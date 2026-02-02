@@ -1,6 +1,0 @@
-mana chat app banaya ha likin ma usma Ai add kar raha hu @Ai use karna sa message ka replay Ai dy backend Api http://localhost:3001/api/ai/get-result
-
-
-
-
-update Typesend.js file with useSendMessage for send message and useSendAiMessage for ai
