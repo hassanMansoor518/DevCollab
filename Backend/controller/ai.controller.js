@@ -3,7 +3,7 @@ import * as ai from '../services/ai.service.js';
 import Message from '../model/message.model.js';
 import Conversation from '../model/conversation.model.js';
 import User from '../model/user.model.js';
-import { getReceiverSocketId, io } from '../SocketIO/SocketServer.js';
+import { getReceiverSocketIds, io } from '../SocketIO/SocketServer.js';
 
 
 
@@ -34,14 +34,16 @@ export const getResult = async (req, res) => {
             const receiverId = conversation.members.find((m) => m.toString() !== req.user._id.toString());
 
             // Create and save AI message attached to the same conversation
-            const newMessage = new Message({ senderId, receiverId, message: resultText });
+            const newMessage = new Message({ senderId, receiverId, message: resultText, isAI: true });
             conversation.messages.push(newMessage._id);
             await Promise.all([newMessage.save(), conversation.save()]);
 
             // Emit socket event to the other human (if online)
             try {
-                const receiverSocketId = getReceiverSocketId(receiverId.toString());
-                if (receiverSocketId) io.to(receiverSocketId).emit('newMessage', { message: newMessage, conversationId: conversation._id.toString() });
+                const receiverSocketIds = getReceiverSocketIds(receiverId.toString());
+                if (receiverSocketIds && receiverSocketIds.length) {
+                    receiverSocketIds.forEach((sid) => io.to(sid).emit('newMessage', { message: newMessage, conversationId: conversation._id.toString() }));
+                }
             } catch (err) {
                 console.log('Socket emit error (AI):', err);
             }
@@ -62,8 +64,10 @@ export const getResult = async (req, res) => {
 
         // Emit socket to the human who triggered (if online)
         try {
-            const receiverSocketId = getReceiverSocketId(receiverId.toString());
-            if (receiverSocketId) io.to(receiverSocketId).emit('newMessage', { message: newMessage, conversationId: fallbackConversation._id.toString() });
+            const receiverSocketIds = getReceiverSocketIds(receiverId.toString());
+            if (receiverSocketIds && receiverSocketIds.length) {
+                receiverSocketIds.forEach((sid) => io.to(sid).emit('newMessage', { message: newMessage, conversationId: fallbackConversation._id.toString() }));
+            }
         } catch (err) {
             console.log('Socket emit error (AI-fallback):', err);
         }

@@ -1,6 +1,6 @@
 const Message = require('../model/message.model');
 const Conversation = require('../model/conversation.model');
-const { getReceiverSocketId, io } = require('../SocketIO/SocketServer');
+const { getReceiverSocketIds, io } = require('../SocketIO/SocketServer');
 
 async function sendMessage(req, res) {
     try {
@@ -32,9 +32,9 @@ async function sendMessage(req, res) {
 
         // emit socket event to receiver if online
         try {
-            const receiverSocketId = getReceiverSocketId(receiverId.toString());
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit('newMessage', { message: newMessage, conversationId: conversation._id.toString() });
+            const receiverSocketIds = getReceiverSocketIds(receiverId.toString());
+            if (receiverSocketIds && receiverSocketIds.length) {
+                receiverSocketIds.forEach((sid) => io.to(sid).emit('newMessage', { message: newMessage, conversationId: conversation._id.toString() }));
             }
         } catch (err) {
             console.log('Socket emit error:', err);

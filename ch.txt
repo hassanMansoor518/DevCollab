@@ -1,6 +1,5 @@
-mana chat app banaya ha likin ma usma Ai add kar raha hu @Ai use karna sa message ka replay Ai dy backend Api http://localhost:3001/api/ai/get-result
 
 
-
-
-update Typesend.js file with useSendMessage for send message and useSendAiMessage for ai
+git remote add origin https://github.com/hassanMansoor518/AI-Powered-Chat-Application.git
+git branch -M main
+git push -u origin main
