@@ -1,50 +1,44 @@
 import React from "react";
-import { CiMenuFries } from "react-icons/ci";
-import { useNavigate } from "react-router-dom";
 import useConversation from "../../zustand/useConversation.js";
 import { useSocketContext } from "../../context/SocketContext.jsx";
+import { CiMenuFries } from "react-icons/ci";
+import profile from "../../assets/Profile.png";
 
-export default function ChatUser() {
-  const navigate = useNavigate();
+function Chatuser() {
   const { selectedConversation } = useConversation();
   const { onlineUsers } = useSocketContext();
+  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
 
   if (!selectedConversation) return null;
 
-  const isOnline = onlineUsers.includes(selectedConversation._id);
+  // 🔥 find other user
+  const otherUser = selectedConversation.members.find(
+    (member) => member._id !== authUser.user._id
+  );
+
+  const isOnline = onlineUsers.includes(otherUser?._id);
 
   return (
-    <div className="relative flex items-center h-[8%] justify-center gap-4 bg-slate-800 hover:bg-slate-700 duration-300 rounded-md">
-      
-      {/* Mobile Back Button */}
-      <button
+    <div className="relative flex items-center h-[8%] justify-center gap-4 bg-slate-800 rounded-md">
+      <label
+        htmlFor="my-drawer-2"
         className="btn btn-ghost drawer-button lg:hidden absolute left-5"
-        onClick={() => navigate(-1)}
       >
         <CiMenuFries className="text-white text-xl" />
-      </button>
+      </label>
 
-      {/* User Info */}
-      <div className="flex space-x-3 items-center justify-center h-[8vh] bg-gray-800 hover:bg-gray-700 duration-300 rounded-md p-2">
-        
-        {/* Avatar */}
+      <div className="flex space-x-3 items-center h-[8vh]">
+        {/* avatar */}
         <div className={`avatar ${isOnline ? "online" : "offline"}`}>
-          <div className="w-16 rounded-full overflow-hidden bg-gray-600">
-            {/* Image can go here */}
+          <div className="w-16 rounded-full">
+            <img src={profile} alt="profile" />
           </div>
         </div>
 
-        {/* Name & Status */}
+        {/* name + status */}
         <div>
-          <h1 className="text-white font-medium">
-            {selectedConversation.fullName}
-          </h1>
-
-          <span
-            className={`text-sm ${
-              isOnline ? "text-green-400" : "text-gray-400"
-            }`}
-          >
+          <h1 className="text-xl text-white">{otherUser?.fullName}</h1>
+          <span className={`text-sm ${isOnline ? "text-green-400" : "text-gray-400"}`}>
             {isOnline ? "Online" : "Offline"}
           </span>
         </div>
@@ -52,3 +46,6 @@ export default function ChatUser() {
     </div>
   );
 }
+
+export default Chatuser;
+

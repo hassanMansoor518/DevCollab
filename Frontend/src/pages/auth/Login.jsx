@@ -20,7 +20,7 @@ const Login = () => {
 
     try{
       const res = await axios.post(
-        "http://localhost:3001/api/auth/user/login",
+        "/api/auth/user/login",
         { email, password },
         { withCredentials: true }
       );

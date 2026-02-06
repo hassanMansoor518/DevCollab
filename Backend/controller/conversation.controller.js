@@ -1,6 +1,5 @@
 const Conversation = require('../model/conversation.model');
 
-// GET or CREATE a conversation between current user and given user id
 async function getOrCreateConversation(req, res) {
   try {
     const otherUserId = req.params.id;
@@ -10,14 +9,21 @@ async function getOrCreateConversation(req, res) {
       return res.status(400).json({ message: 'Missing user id' });
     }
 
-    let conversation = await Conversation.findOne({ members: { $all: [currentUserId, otherUserId] } });
+    let conversation = await Conversation.findOne({
+      members: { $all: [currentUserId, otherUserId] }
+    })
+      .populate("members", "fullName email") // ✅ ADD THIS
+      .populate("messages");                 // keep this
 
     if (!conversation) {
-      conversation = await Conversation.create({ members: [currentUserId, otherUserId] });
-    }
+      conversation = await Conversation.create({
+        members: [currentUserId, otherUserId]
+      });
 
-    // populate messages for convenience
-    conversation = await Conversation.findById(conversation._id).populate('messages');
+      conversation = await Conversation.findById(conversation._id)
+        .populate("members", "fullName email") // ✅ ADD THIS
+        .populate("messages");
+    }
 
     res.status(200).json(conversation);
   } catch (error) {

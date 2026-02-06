@@ -14,19 +14,28 @@ function useGetAllUser() {
         setLoading(true)
 
         try {
-            const token = Cookies.get("token")
-            const response = await fetch("/api/auth/allUser" , {   
-                credentials : "include",
-                headers:{
-                    "Authorization" : `Bearer ${token}`
-                }
+            const response = await fetch("/api/auth/allUser", {
+                credentials: "include",
             })
+
+            if (!response.ok) {
+                console.error("Failed to fetch users, status:", response.status)
+                setAllUser([])
+                setLoading(false)
+                return
+            }
+
             const data = await response.json()
-            setAllUser(data)
+
+            if (Array.isArray(data)) setAllUser(data)
+            else if (data && Array.isArray(data.users)) setAllUser(data.users)
+            else setAllUser([])
+
             setLoading(false)
         }
         catch (error) {
             console.error("Error fetching users:", error)
+            setAllUser([])
             setLoading(false)
         }
     }
