@@ -13,13 +13,17 @@
   "dependencies": {
     "@google/genai": "^1.39.0",
     "@google/generative-ai": "^0.24.1",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "install": "^0.13.0",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.0",
     "mongoose": "^9.0.1",
+    "npm": "^11.10.0",
     "socket.io": "^4.8.3"
   }
 }

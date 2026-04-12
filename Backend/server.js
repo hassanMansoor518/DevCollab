@@ -8,8 +8,9 @@ const aiRoutes = require("./routes/ai.route");
 const conversationRoutes = require("./routes/conversation.route");
 const cors = require("cors");
 const { app, server } = require("./SocketIO/SocketServer");
-
-
+const inviteRoutes = require("./routes/Invite.route");
+const projectRoutes = require("./routes/project.route");
+const workspaceRoutes = require("./routes/workspace.route");
 const connectDB = require("./db/db");
 connectDB();
 const Port = process.env.PORT
@@ -27,8 +28,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/ai", aiRoutes);
 app.use('/api/conversation', conversationRoutes);
-
-
+app.use('/api/invite', inviteRoutes);
+app.use('/api/project',projectRoutes);
+app.use("/api/workspace", workspaceRoutes);
 app.get("/", (req, res) => {
   res.send("home page");
 });
