@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FiUser, FiMessageSquare } from "react-icons/fi";
+import { FiMessageSquare, FiUserPlus } from "react-icons/fi";
 import InviteModal from "./InviteModal";
 
 export default function ActiveTeam({ currentUserId }) {
@@ -9,13 +9,18 @@ export default function ActiveTeam({ currentUserId }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+  const token = authUser?.token;
+
   const fetchData = async () => {
     if (!currentUserId) return;
+
     try {
       setLoading(true);
+
       const [activeRes, usersRes] = await Promise.all([
-        axios.get(`/api/invite/team/active/${currentUserId}`),
-        axios.get(`/api/auth/alluser`)
+        axios.get(`/api/invite/team/active/${currentUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`/api/auth/alluser`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       setActiveTeam(activeRes.data);
@@ -36,38 +41,100 @@ export default function ActiveTeam({ currentUserId }) {
       await axios.post(`/api/invite/invite`, {
         senderId: currentUserId,
         receiverId: user._id,
-        role: "Developer"
-      });
+        role: "Developer",
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
       fetchData();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to send invite");
     }
   };
 
-  if (loading) return <p className="text-white">Loading team...</p>;
-
   return (
     <>
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <h3 className="font-semibold mb-2 text-white">Active Team</h3>
+      <div className="
+        bg-[#111827]/70
+        border border-white/[0.05]
+        rounded-2xl
+        p-4
+      ">
 
-        {activeTeam.map(user => (
-          <div key={user._id} className="flex justify-between items-center bg-gray-700 p-2 rounded mb-2">
-            <div className="flex items-center space-x-2">
-              <img src={`https://i.pravatar.cc/30?u=${user._id}`} alt={user.fullName} className="w-8 h-8 rounded-full" />
-              <span className="text-white">{user.fullName}</span>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-white">
+            Team
+          </h3>
+
+          <span className="text-xs text-gray-500">
+            {activeTeam.length} members
+          </span>
+        </div>
+
+        {/* TEAM LIST */}
+        <div className="space-y-2">
+
+          {loading && (
+            <p className="text-xs text-gray-500">
+              Loading...
+            </p>
+          )}
+
+          {activeTeam.map((user) => (
+            <div
+              key={user._id}
+              className="
+                flex items-center justify-between
+                p-2 rounded-xl
+                hover:bg-white/[0.03]
+                transition
+              "
+            >
+
+              <div className="flex items-center gap-3">
+
+                <img
+                  src={`https://i.pravatar.cc/40?u=${user._id}`}
+                  className="w-8 h-8 rounded-full"
+                />
+
+                <div>
+                  <p className="text-sm text-white leading-tight">
+                    {user.fullName}
+                  </p>
+
+                  <p className="text-xs text-gray-500">
+                    Online
+                  </p>
+                </div>
+
+              </div>
+
+              <FiMessageSquare className="text-gray-500 hover:text-white cursor-pointer transition" />
+
             </div>
-            <FiMessageSquare className="text-gray-400 cursor-pointer hover:text-white transition" />
-          </div>
-        ))}
+          ))}
 
+        </div>
+
+        {/* INVITE BUTTON */}
         <button
           onClick={() => setShowModal(true)}
-          className="mt-3 border border-gray-600 w-full py-1 rounded hover:bg-gray-700 transition flex items-center justify-center text-white"
+          className="
+            mt-3 w-full
+            flex items-center justify-center gap-2
+            py-2
+            text-xs
+            text-gray-300
+            bg-white/[0.03]
+            hover:bg-white/[0.06]
+            border border-white/[0.05]
+            rounded-xl
+            transition
+          "
         >
-          <FiUser className="mr-1" /> Invite Member
+          <FiUserPlus />
+          Invite member
         </button>
+
       </div>
 
       {showModal && (
@@ -80,4 +147,3 @@ export default function ActiveTeam({ currentUserId }) {
     </>
   );
 }
-

@@ -11,7 +11,8 @@ const { app, server } = require("./SocketIO/SocketServer");
 const inviteRoutes = require("./routes/Invite.route");
 const projectRoutes = require("./routes/project.route");
 const workspaceRoutes = require("./routes/workspace.route");
-const workspaceMessageRoutes = require("./routes/workspaceMessage.route"); 
+const workspaceMessageRoutes = require("./routes/workspaceMessage.route");
+const activityRoutes = require("./routes/activity.route");
 const reportRoutes = require("./routes/report.route.js").default || require("./routes/report.route.js");
 const connectDB = require("./db/db");
 connectDB();
@@ -31,10 +32,11 @@ app.use("/api/message", messageRoutes);
 app.use("/api/ai", aiRoutes);
 app.use('/api/conversation', conversationRoutes);
 app.use('/api/invite', inviteRoutes);
-app.use('/api/project',projectRoutes);
+app.use('/api/project', projectRoutes);
 app.use("/api/workspace", workspaceRoutes);
-app.use("/api/workspace/message", workspaceMessageRoutes); 
+app.use("/api/workspace/message", workspaceMessageRoutes);
 app.use("/api/report", reportRoutes);
+app.use("/api/activity", activityRoutes);
 
 app.get("/", (req, res) => {
   res.send("home page");

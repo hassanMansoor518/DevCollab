@@ -2,6 +2,8 @@ import Report from "../model/report.model.js";
 import Project from "../model/project.model.js";
 import { generateProfessionalReport } from "../services/ai.service.js";
 import PDFDocument from "pdfkit";
+import activityService from "../services/activity.service.js";
+const { logActivity } = activityService;
 
 // Generate a new report
 export const generateReport = async (req, res) => {
@@ -58,6 +60,21 @@ export const generateReport = async (req, res) => {
     });
 
     await report.save();
+
+    // Log Activities
+    await logActivity({
+      type: "AI_ANALYSIS_GENERATED",
+      title: "AI Code Analysis Completed",
+      description: `Automated review for ${filename.split('/').pop()} completed with health score ${healthScore}/100.`,
+      metadata: { projectId, reportId: report._id }
+    });
+
+    await logActivity({
+      type: "REPORT_GENERATED",
+      title: "New Audit Report Available",
+      description: `Professional audit report generated for ${filename} in project ${project.projectName}.`,
+      metadata: { projectId, reportId: report._id }
+    });
 
     res.status(201).json({ message: "Report generated successfully", report });
   } catch (error) {
@@ -127,7 +144,7 @@ export const downloadReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const report = await Report.findById(reportId).populate('projectId');
-    
+
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }

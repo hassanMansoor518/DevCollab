@@ -1,66 +1,174 @@
 import React, { useState } from "react";
-import { FiX, FiUserPlus } from "react-icons/fi";
+import { FiX, FiUserPlus, FiSearch } from "react-icons/fi";
 
 export default function InviteModal({ users, onClose, onInvite }) {
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch] = useState("");
 
-  const toggleSelect = (user) => {
-    if (selectedUsers.find(u => u._id === user._id)) {
-      setSelectedUsers(selectedUsers.filter(u => u._id !== user._id));
+  const toggle = (user) => {
+    if (selected.find(u => u._id === user._id)) {
+      setSelected(selected.filter(u => u._id !== user._id));
     } else {
-      setSelectedUsers([...selectedUsers, user]);
+      setSelected([...selected, user]);
     }
   };
 
-  const sendInvites = () => {
-    selectedUsers.forEach(user => onInvite(user));
-    setSelectedUsers([]);
+  const send = () => {
+    selected.forEach(u => onInvite(u));
+    setSelected([]);
     onClose();
   };
 
+  const filteredUsers = users.filter(u =>
+    u.fullName?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#1F2937] w-[420px] rounded-2xl shadow-2xl p-6 relative border border-gray-700">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white">
-          <FiX size={18} />
-        </button>
+    <div className="
+      fixed inset-0
+      bg-black/60
+      backdrop-blur-md
+      flex items-center justify-center
+      z-50
+      p-4
+    ">
 
-        <h2 className="text-lg font-semibold mb-1 flex items-center gap-2 text-white">
-          <FiUserPlus /> Invite Member
-        </h2>
+      <div className="
+        w-full max-w-md
+        bg-[#111827]
+        border border-white/[0.05]
+        rounded-2xl
+        overflow-hidden
+      ">
 
-        <div className="space-y-3 max-h-60 overflow-y-auto">
-          {users.map(user => {
-            const isSelected = selectedUsers.find(u => u._id === user._id);
+        {/* HEADER */}
+        <div className="
+          flex items-center justify-between
+          px-4 py-3
+          border-b border-white/[0.05]
+        ">
+
+          <h2 className="text-sm font-medium flex items-center gap-2">
+            <FiUserPlus />
+            Invite members
+          </h2>
+
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            <FiX />
+          </button>
+
+        </div>
+
+        {/* SEARCH */}
+        <div className="p-3 border-b border-white/[0.05]">
+          <div className="
+            flex items-center gap-2
+            bg-white/[0.03]
+            px-3 py-2
+            rounded-xl
+          ">
+            <FiSearch className="text-gray-500" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users..."
+              className="
+                bg-transparent
+                outline-none
+                text-sm
+                w-full
+                placeholder:text-gray-500
+              "
+            />
+          </div>
+        </div>
+
+        {/* USERS */}
+        <div className="max-h-72 overflow-y-auto p-2 space-y-1">
+
+          {filteredUsers.map(user => {
+            const isSelected = selected.find(u => u._id === user._id);
+
             return (
               <div
                 key={user._id}
-                className="flex items-center justify-between p-2 rounded hover:bg-gray-700 transition"
+                onClick={() => toggle(user)}
+                className={`
+                  flex items-center justify-between
+                  p-2 rounded-xl
+                  cursor-pointer
+                  transition
+                  hover:bg-white/[0.03]
+                  ${isSelected ? "bg-white/[0.05]" : ""}
+                `}
               >
+
                 <div className="flex items-center gap-3">
-                  <img src={`https://i.pravatar.cc/40?u=${user._id}`} className="w-9 h-9 rounded-full" alt={user.fullName} />
+
+                  <img
+                    src={`https://i.pravatar.cc/40?u=${user._id}`}
+                    className="w-8 h-8 rounded-full"
+                  />
+
                   <div>
-                    <p className="text-white text-sm">{user.fullName}</p>
-                    <p className="text-xs text-gray-400">{user.email}</p>
+                    <p className="text-sm text-white">
+                      {user.fullName}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user.email}
+                    </p>
                   </div>
+
                 </div>
 
-                <button
-                  onClick={() => toggleSelect(user)}
-                  className={`px-3 py-1 rounded text-sm ${isSelected ? "bg-blue-500 text-white" : "text-blue-500 hover:text-white"}`}
-                >
-                  {isSelected ? "Selected" : "+"}
-                </button>
+                <div className={`
+                  text-xs px-2 py-1 rounded-lg
+                  ${isSelected
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-400"
+                  }
+                `}>
+                  {isSelected ? "Added" : "Add"}
+                </div>
+
               </div>
             );
           })}
+
         </div>
 
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-sm">Cancel</button>
-          <button onClick={sendInvites} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium">Send Invite</button>
+        {/* FOOTER */}
+        <div className="
+          flex justify-between items-center
+          p-3
+          border-t border-white/[0.05]
+        ">
+
+          <p className="text-xs text-gray-500">
+            {selected.length} selected
+          </p>
+
+          <button
+            onClick={send}
+            className="
+              bg-blue-600
+              hover:bg-blue-500
+              text-xs
+              px-4 py-2
+              rounded-xl
+              transition
+            "
+          >
+            Send invites
+          </button>
+
         </div>
+
       </div>
+
     </div>
   );
 }

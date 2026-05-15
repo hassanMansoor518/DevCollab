@@ -1,178 +1,208 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
-  FiSearch,
-  FiUser,
   FiCheckCircle,
-  FiFileText,
   FiMessageSquare,
+  FiTrendingUp,
+  FiUsers,
+  FiFolder,
+  FiCpu,
+  FiFileText,
+  FiZap,
+  FiSettings,
+  FiUserMinus,
+  FiTerminal
 } from "react-icons/fi";
+
 import { AiOutlineStar } from "react-icons/ai";
+import { motion } from "framer-motion";
 
 import DashboardLeftSide from "./DashboardLeftSide";
 import ActiveTeam from "./ActiveTeam";
-import Notification from "../../component/Notification";
 import DashboardHeader from "../../component/DashboardHeader";
 
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    projects: 0,
+    members: 0,
+    reviews: 0,
+    reports: 0
+  });
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
   const user = authUser?.user;
+  const token = authUser?.token;
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      const [reportsRes, projectsRes, activityRes, usersRes] = await Promise.all([
+        axios.get("/api/report", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("/api/project", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("/api/activity", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("/api/auth/alluser", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      const reports = reportsRes.data.reports || [];
+      const projects = projectsRes.data || [];
+      const messages = activityRes.data || [];
+      const allUsers = usersRes.data || [];
+
+      // Map System Activities to UI icons
+      const iconMap = {
+        PROJECT_CREATED: <FiFolder className="text-blue-400" />,
+        PROJECT_UPDATED: <FiFolder className="text-blue-300" />,
+        PROJECT_DELETED: <FiUserMinus className="text-red-400" />,
+        TEAM_MEMBER_ADDED: <FiUsers className="text-green-400" />,
+        AI_ANALYSIS_GENERATED: <AiOutlineStar className="text-violet-400" />,
+        REPORT_GENERATED: <FiFileText className="text-purple-400" />,
+        COMMIT_PUSHED: <FiTerminal className="text-orange-400" />,
+        CODE_DEPLOYED: <FiZap className="text-yellow-400" />,
+        SETTINGS_UPDATED: <FiSettings className="text-gray-400" />
+      };
+
+      const systemActivities = activityRes.data.map(a => ({
+        id: a._id,
+        type: a.type,
+        title: a.title,
+        description: a.description,
+        time: new Date(a.createdAt),
+        icon: iconMap[a.type] || <FiZap className="text-blue-400" />
+      }));
+
+      setActivities(systemActivities);
+
+      setStats({
+        projects: projects.length,
+        members: allUsers.length,
+        reviews: reports.length, // Using reports as proxy for AI reviews
+        reports: reports.length
+      });
+
+    } catch (err) {
+      console.error("Dashboard data fetch failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const statCards = [
+    { title: "Projects", value: stats.projects, icon: <FiFolder />, color: "text-blue-400" },
+    { title: "Team Members", value: stats.members, icon: <FiUsers />, color: "text-violet-400" },
+    { title: "AI Reviews", value: stats.reviews, icon: <FiCpu />, color: "text-pink-400" },
+    { title: "Reports Generated", value: stats.reports, icon: <FiTrendingUp />, color: "text-green-400" },
+  ];
+
+  const formatTime = (date) => {
+    const diff = Math.floor((new Date() - date) / 60000);
+    if (diff < 1) return "just now";
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
-    <div className="flex h-screen bg-[#0B1120] text-white ">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-[#0B1220] text-white overflow-hidden">
       <DashboardLeftSide />
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        {/* Top Bar */}
-        <DashboardHeader />
-
-        {/* Dashboard Feed */}
-        <h2 className="text-2xl font-bold mb-4">Dashboard Feed</h2>
-        <p className="text-gray-400 mb-6">
-          Your workspace activities and insights from the last 24 hours.
-        </p>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Feed Left */}
-          <div className="md:col-span-2 space-y-4">
-            {/* Commit Card */}
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-gray-400">
-                  COMMIT • 12M AGO
-                </span>
-                <span className="text-green-500 font-semibold flex items-center">
-                  SUCCESS <FiCheckCircle className="ml-1" />
-                </span>
-              </div>
-
-              <h3 className="font-semibold mb-2">
-                Feature: Enhanced Auth Provider
-              </h3>
-
-              <p className="text-gray-400 text-sm mb-2">
-                Merged PR #124 from 'feature/oauth-v2'. Implementation of Google and Github social logins with session persistence.
-              </p>
-
-              <div className="flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  <img
-                    src="https://i.pravatar.cc/30?img=5"
-                    alt=""
-                    className="w-6 h-6 rounded-full border-2 border-gray-800"
-                  />
-                  <img
-                    src="https://i.pravatar.cc/30?img=6"
-                    alt=""
-                    className="w-6 h-6 rounded-full border-2 border-gray-800"
-                  />
-                </div>
-
-                <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition flex items-center">
-                  <FiFileText className="mr-1" />
-                  View Diff
-                </button>
-              </div>
-            </div>
-
-            {/* AI Action Card */}
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="flex items-center mb-2">
-                <AiOutlineStar className="text-purple-500 mr-2" />
-                <span className="text-xs text-gray-400">
-                  AI ACTION • 1H AGO
-                </span>
-              </div>
-
-              <h3 className="font-semibold mb-2">
-                Automated Code Review Completed
-              </h3>
-
-              <p className="text-gray-400 text-sm mb-2">
-                "Found 3 potential performance bottlenecks in server/api/v1/data.py and suggested refactoring for list comprehensions."
-              </p>
-
-              <div className="flex space-x-2">
-                <button className="bg-gray-700 px-3 py-1 rounded hover:bg-gray-600 transition flex items-center">
-                  <FiFileText className="mr-1" />
-                  See Suggestions
-                </button>
-
-                <button className="bg-gray-700 px-3 py-1 rounded hover:bg-gray-600 transition flex items-center">
-                  <FiCheckCircle className="mr-1" />
-                  Dismiss
-                </button>
-              </div>
-            </div>
-
-            {/* Message Card */}
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="flex items-center mb-2">
-                <FiMessageSquare className="mr-2 text-yellow-500" />
-                <span className="text-xs text-gray-400">
-                  MESSAGE • 3H AGO
-                </span>
-              </div>
-
-              <h3 className="font-semibold mb-2">
-                Sarah Jenks
-              </h3>
-
-              <p className="text-gray-400 text-sm mb-2">
-                Hey team, I've updated the Figma file for the new dashboard components. Take a look when you have a chance!
-              </p>
-
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-400 flex items-center">
-                  #design-ops <FiFileText className="ml-1" />
-                </span>
-
-                <a
-                  href="#"
-                  className="text-blue-500 text-sm hover:underline transition"
-                >
-                  Download
-                </a>
-              </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[1400px] mx-auto px-5 py-6 space-y-6">
+          
+          <div className="space-y-2">
+            <DashboardHeader user={user} />
+            <div>
+              <p className="text-xs text-blue-400 tracking-widest uppercase mt-7">Dashboard</p>
+              <h1 className="text-3xl font-semibold tracking-tight">Dashboard Overview</h1>
+              <p className="text-sm text-gray-400">Monitor system activity and AI insights in real time.</p>
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="space-y-4">
-            {/* AI Summary */}
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold">AI Summary</h3>
-                <AiOutlineStar className="text-purple-500" />
-              </div>
+          {/* STATS SECTION */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {statCards.map((s, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-4 hover:border-blue-500/20 transition"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-gray-500">{s.title}</p>
+                    <h2 className="text-xl font-semibold mt-1">{loading ? "..." : s.value}</h2>
+                  </div>
+                  <div className={`${s.color} text-lg`}>{s.icon}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
-              <p className="text-xs text-gray-400 mb-2">
-                STATUS:
-                <span className="text-green-500 flex items-center">
-                  ON TRACK <FiCheckCircle className="ml-1" />
-                </span>
-              </p>
-
-              <p className="text-sm mb-2">
-                Workspace productivity is up 12% this week.
-                Primary focus: <strong>API Integration</strong>.
-              </p>
-
-              <ul className="text-gray-400 text-xs mb-2">
-                <li>• 3 critical PRs merged today</li>
-                <li>• Security audit pending for 'billing-service'</li>
-                <li>• Team velocity stable at 42pts</li>
-              </ul>
-
-              <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition w-full flex items-center">
-                <FiFileText className="mr-1" />
-                Full Report
-              </button>
+          <div className="grid lg:grid-cols-3 gap-4">
+            {/* FEED */}
+            <div className="lg:col-span-2 space-y-4">
+              {loading ? (
+                <p className="text-sm text-gray-500">Syncing workspace activity...</p>
+              ) : activities.length === 0 ? (
+                <div className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-10 text-center text-gray-500 text-sm">
+                  No recent activity detected in your workspace.
+                </div>
+              ) : (
+                activities.map((act, i) => (
+                  <motion.div
+                    key={act.id || i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5 hover:border-blue-500/20 transition"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        {act.icon}
+                        <span className="text-xs text-gray-500 uppercase tracking-tighter">
+                          {act.type} • {formatTime(act.time)}
+                        </span>
+                      </div>
+                      {act.type === 'AUDIT' && (
+                        <span className="text-green-400 text-xs flex items-center gap-1 font-bold">
+                          SUCCESS <FiCheckCircle />
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-medium">{act.title}</h3>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed">{act.description}</p>
+                  </motion.div>
+                ))
+              )}
             </div>
 
-            {/* Active Team */}
-            <ActiveTeam currentUserId={user?._id} />
+            {/* SIDEBAR */}
+            <div className="space-y-4">
+              <div className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5">
+                <h3 className="text-base font-medium mb-3">AI Workspace Summary</h3>
+                <div className="text-sm text-gray-400 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FiTrendingUp className="text-green-400" />
+                    <span>Productivity Score: <strong>Stable</strong></span>
+                  </div>
+                  <p>• {stats.projects} active projects detected</p>
+                  <p>• {stats.reports} engineering audits generated</p>
+                  <p>• {stats.members} team members collaborating</p>
+                  <button className="w-full mt-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl text-blue-400 text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">
+                    Generate Health Report
+                  </button>
+                </div>
+              </div>
+
+              <ActiveTeam currentUserId={user?._id} />
+            </div>
           </div>
         </div>
       </div>

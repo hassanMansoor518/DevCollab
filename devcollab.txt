@@ -1,7 +1,5 @@
 pull requests 
 member
-generate report 
-view report 
 
 chat
 create workplace 

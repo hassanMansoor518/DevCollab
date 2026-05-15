@@ -39,16 +39,16 @@ export default function Left() {
         </div>
 
         {/* Workspaces */}
-        <Workspaces 
-          onSelectWorkspace={setActiveWorkspace} 
-          activeWorkspace={activeWorkspace} 
+        <Workspaces
+          onSelectWorkspace={setActiveWorkspace}
+          activeWorkspace={activeWorkspace}
         />
 
         {/* Users / Channels */}
         <Users workspace={activeWorkspace} />
       </div>
 
-    
+
     </div>
   );
 }

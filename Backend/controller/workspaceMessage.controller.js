@@ -62,7 +62,7 @@ const getWorkspaceMessages = async (req, res) => {
     if (!isMember) return res.status(403).json({ error: "Forbidden" });
 
     const messages = await WorkspaceMessage.find({ workspaceId })
-     .populate("senderId", "fullName email")
+      .populate("senderId", "fullName email")
       .sort({ createdAt: 1 });
 
     res.status(200).json(messages);
@@ -72,4 +72,35 @@ const getWorkspaceMessages = async (req, res) => {
   }
 };
 
-module.exports = { sendWorkspaceMessage, getWorkspaceMessages };
+const getRecentActivity = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const myWorkspaces = await Workspace.find({ members: userId }).select("_id name");
+    const workspaceIds = myWorkspaces.map(w => w._id);
+
+    const messages = await WorkspaceMessage.find({ workspaceId: { $in: workspaceIds } })
+      .populate("senderId", "fullName avatar")
+      .populate("workspaceId", "name")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const activity = messages.map(m => ({
+      id: m._id,
+      type: 'MESSAGE',
+      title: m.senderId.fullName,
+      description: m.message,
+      time: m.createdAt,
+      meta: `#${m.workspaceId.name}`,
+      status: 'INFO',
+      link: '/chat'
+    }));
+
+    res.status(200).json(activity);
+  } catch (error) {
+    console.log("Error in getRecentActivity", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+module.exports = { sendWorkspaceMessage, getWorkspaceMessages, getRecentActivity };

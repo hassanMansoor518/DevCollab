@@ -384,11 +384,10 @@ function EditProjectModal({ project, allUsers, currentUserId, onClose, onSave })
                 return (
                   <label
                     key={u._id}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition cursor-pointer ${
-                      isChecked
-                        ? "border-blue-500 bg-blue-500/10"
-                        : "border-[#1C2333] hover:border-[#2D3748]"
-                    } ${isCurrentUser ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition cursor-pointer ${isChecked
+                      ? "border-blue-500 bg-blue-500/10"
+                      : "border-[#1C2333] hover:border-[#2D3748]"
+                      } ${isCurrentUser ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <input
                       type="checkbox"

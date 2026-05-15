@@ -4,6 +4,7 @@ const Project = require("../model/project.model");
 const Workspace = require("../model/workspace.model");
 const Analysis = require("../model/analysis.model");
 const ai = require("../services/ai.service");
+const { logActivity } = require("../services/activity.service");
 require("dotenv").config();
 
 const router = express.Router();
@@ -92,6 +93,14 @@ router.post("/", async (req, res) => {
       console.error("Workspace creation error:", err.message);
     }
 
+    // ✅ Step 3: Log Activity
+    await logActivity({
+      type: "PROJECT_CREATED",
+      title: "New Project Created",
+      description: `Project '${projectName}' has been initialized with visibility: ${visibility}.`,
+      metadata: { projectId: newProject._id }
+    });
+
     res.status(201).json(newProject);
   } catch (err) {
     console.error("Create Project Error:", err);
@@ -139,6 +148,14 @@ router.post("/:id/members", async (req, res) => {
     } else {
       console.warn("No workspace found for project:", project._id);
     }
+
+    // ✅ Step 4: Log Activity
+    await logActivity({
+      type: "TEAM_MEMBER_ADDED",
+      title: "Team Member Added",
+      description: `A new member has joined the project '${project.projectName}'.`,
+      metadata: { projectId: project._id, userId }
+    });
 
     res.json({ message: "Member added to project and workspace", project });
   } catch (err) {
@@ -419,6 +436,14 @@ router.delete("/:id", async (req, res) => {
     } else {
       console.warn("No workspace found to delete for project:", deleted._id);
     }
+
+    // ✅ Step 3: Log Activity
+    await logActivity({
+      type: "PROJECT_DELETED",
+      title: "Project Deleted",
+      description: `Project '${deleted.projectName}' and its associated workspace have been removed.`,
+      metadata: { projectId: deleted._id }
+    });
 
     res.json({ success: true, message: "Project and workspace deleted" });
   } catch (err) {

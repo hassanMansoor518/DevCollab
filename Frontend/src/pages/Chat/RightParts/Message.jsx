@@ -16,9 +16,9 @@ function Message({ message }) {
 
   const formattedTime = message.createdAt
     ? new Date(message.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "";
 
   // ✅ Get sender name — works for both DM and workspace
@@ -76,9 +76,8 @@ function Message({ message }) {
           </div>
 
           <div
-            className={`mt-1 px-4 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-              itsMe ? "bg-blue-600 text-white" : "bg-[#1f2937] text-gray-300"
-            }`}
+            className={`mt-1 px-4 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${itsMe ? "bg-blue-600 text-white" : "bg-[#1f2937] text-gray-300"
+              }`}
           >
             {message.message}
           </div>

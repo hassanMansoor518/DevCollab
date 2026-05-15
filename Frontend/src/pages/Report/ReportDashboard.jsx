@@ -61,7 +61,7 @@ export default function ReportsPage() {
 
   return (
     <div className="flex h-screen bg-[#050B18] text-white font-[Inter] overflow-hidden">
-      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined" rel="stylesheet" />
 
       <DashboardLeftSide />
 
@@ -98,8 +98,8 @@ export default function ReportsPage() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
-             <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-             <p className="text-gray-400">Loading reports...</p>
+            <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <p className="text-gray-400">Loading reports...</p>
           </div>
         ) : reports.length === 0 ? (
           <div className="bg-[#0e1625] p-12 rounded-lg border border-[#1f2a44] text-center">
@@ -123,9 +123,9 @@ export default function ReportsPage() {
       </div>
 
       {isViewModalOpen && selectedReport && (
-        <ReportViewModal 
-          report={selectedReport} 
-          onClose={() => setIsViewModalOpen(false)} 
+        <ReportViewModal
+          report={selectedReport}
+          onClose={() => setIsViewModalOpen(false)}
           onDownload={() => downloadReport(selectedReport._id, selectedReport.filename)}
         />
       )}
@@ -163,21 +163,21 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
           <p className="text-xs text-gray-400">{report.totalIssues} Issues Found</p>
 
           <div className="flex gap-3 mt-3 justify-end">
-            <button 
+            <button
               onClick={onDownload}
               className="text-gray-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Download
             </button>
-            <button 
+            <button
               onClick={onDelete}
               className="text-red-400/70 hover:text-red-400 text-xs flex items-center gap-1 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">delete</span>
               Delete
             </button>
-            <button 
+            <button
               onClick={onView}
               className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded text-xs hover:bg-indigo-600/40 transition-colors"
             >
@@ -201,14 +201,14 @@ function ReportViewModal({ report, onClose, onDownload }) {
             <p className="text-xs text-gray-400">{report.filename}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={onDownload}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-xs font-semibold transition"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Download PDF
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-white"
             >
@@ -219,7 +219,7 @@ function ReportViewModal({ report, onClose, onDownload }) {
 
         {/* MODAL CONTENT */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
-          
+
           {/* TOP GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatBox label="Project" value={report.projectName || "N/A"} />
@@ -245,16 +245,16 @@ function ReportViewModal({ report, onClose, onDownload }) {
               Bug Severity Breakdown
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <SeverityBox label="Critical" count={report.bugSeverityBreakdown.critical} color="bg-red-500" />
-               <SeverityBox label="High" count={report.bugSeverityBreakdown.high} color="bg-orange-500" />
-               <SeverityBox label="Medium" count={report.bugSeverityBreakdown.medium} color="bg-yellow-500" />
-               <SeverityBox label="Low" count={report.bugSeverityBreakdown.low} color="bg-blue-500" />
+              <SeverityBox label="Critical" count={report.bugSeverityBreakdown.critical} color="bg-red-500" />
+              <SeverityBox label="High" count={report.bugSeverityBreakdown.high} color="bg-orange-500" />
+              <SeverityBox label="Medium" count={report.bugSeverityBreakdown.medium} color="bg-yellow-500" />
+              <SeverityBox label="Low" count={report.bugSeverityBreakdown.low} color="bg-blue-500" />
             </div>
           </div>
 
           <ListSection title="Suggested Fixes" items={report.suggestedFixes} icon="build" />
           <ListSection title="AI Recommendations" items={report.aiRecommendations} icon="lightbulb" />
-          
+
           <Section title="Final Risk Assessment" content={report.finalRiskAssessment} />
         </div>
       </div>
