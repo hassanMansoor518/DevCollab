@@ -23,10 +23,11 @@ export default function ProjectsDashboard() {
   const [allUsers, setAllUsers] = useState([]);
   const [editingProject, setEditingProject] = useState(null);
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp") || "{}");
-  const user = authUser?.user || {};
+  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+  const user = authUser?.user;
+  const token = authUser?.token;
 
-  /* ================= Fetch All Users ================= */
+  /* ================= Fetch Users ================= */
   const fetchAllUsers = async () => {
     if (!user?._id) return;
     try {
@@ -44,7 +45,10 @@ export default function ProjectsDashboard() {
     if (!user?._id) return;
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:3001/api/project/");
+      // Backend already filters by user membership
+      const res = await axios.get("/api/project", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       const usersWithCurrent = [
         ...allUsers,
@@ -79,7 +83,9 @@ export default function ProjectsDashboard() {
     e.stopPropagation();
     if (!confirm("Delete this project permanently?")) return;
     try {
-      await axios.delete(`http://localhost:3001/api/project/${projectId}`);
+      await axios.delete(`/api/project/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setProjects((prev) => prev.filter((p) => p._id !== projectId));
     } catch (err) {
       console.error("Failed to delete project:", err.message);
@@ -91,27 +97,12 @@ export default function ProjectsDashboard() {
   const handleEditSave = async (updatedData) => {
     try {
       const res = await axios.put(
-        `http://localhost:3001/api/project/${editingProject._id}`,
-        updatedData
+        `/api/project/${editingProject._id}`,
+        updatedData,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const usersWithCurrent = [
-        ...allUsers,
-        { _id: user._id, fullName: user.fullName },
-      ];
-
-      const updatedMembers = res.data.members?.map((id) => {
-        const member = usersWithCurrent.find((u) => u._id === id);
-        return member ? member.fullName : "Unknown User";
-      });
-
-      setProjects((prev) =>
-        prev.map((p) =>
-          p._id === editingProject._id
-            ? { ...res.data, members: updatedMembers || [] }
-            : p
-        )
-      );
+      fetchProjects(); // Refresh list to update all members
       setEditingProject(null);
     } catch (err) {
       console.error("Failed to edit project:", err.message);

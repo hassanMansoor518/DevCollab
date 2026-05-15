@@ -2,16 +2,16 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   FiCheckCircle,
-  FiMessageSquare,
   FiTrendingUp,
   FiUsers,
   FiFolder,
   FiCpu,
   FiFileText,
-  FiZap,
   FiSettings,
-  FiUserMinus,
-  FiTerminal
+  FiUserPlus,
+  FiTrash2,
+  FiTerminal,
+  FiActivity
 } from "react-icons/fi";
 
 import { AiOutlineStar } from "react-icons/ai";
@@ -39,46 +39,40 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      const [reportsRes, projectsRes, activityRes, usersRes] = await Promise.all([
+      const [reportsRes, projectsRes, activityRes] = await Promise.all([
         axios.get("/api/report", { headers: { Authorization: `Bearer ${token}` } }),
         axios.get("/api/project", { headers: { Authorization: `Bearer ${token}` } }),
         axios.get("/api/activity", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("/api/auth/alluser", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       const reports = reportsRes.data.reports || [];
       const projects = projectsRes.data || [];
-      const messages = activityRes.data || [];
-      const allUsers = usersRes.data || [];
+      const systemActivities = activityRes.data || [];
 
-      // Map System Activities to UI icons
-      const iconMap = {
-        PROJECT_CREATED: <FiFolder className="text-blue-400" />,
-        PROJECT_UPDATED: <FiFolder className="text-blue-300" />,
-        PROJECT_DELETED: <FiUserMinus className="text-red-400" />,
-        TEAM_MEMBER_ADDED: <FiUsers className="text-green-400" />,
-        AI_ANALYSIS_GENERATED: <AiOutlineStar className="text-violet-400" />,
-        REPORT_GENERATED: <FiFileText className="text-purple-400" />,
-        COMMIT_PUSHED: <FiTerminal className="text-orange-400" />,
-        CODE_DEPLOYED: <FiZap className="text-yellow-400" />,
-        SETTINGS_UPDATED: <FiSettings className="text-gray-400" />
-      };
+      // Calculate unique team members across the user's projects
+      const uniqueMembers = new Set();
+      projects.forEach(p => {
+        if (p.members) {
+          p.members.forEach(m => uniqueMembers.add(m.toString() || m));
+        }
+      });
 
-      const systemActivities = activityRes.data.map(a => ({
-        id: a._id,
-        type: a.type,
-        title: a.title,
-        description: a.description,
-        time: new Date(a.createdAt),
-        icon: iconMap[a.type] || <FiZap className="text-blue-400" />
+      // Map system activities
+      const mappedActivities = systemActivities.map(act => ({
+        id: act._id,
+        type: act.type,
+        title: act.title,
+        description: act.description,
+        time: new Date(act.createdAt),
+        icon: getIconForActivity(act.type)
       }));
 
-      setActivities(systemActivities);
+      setActivities(mappedActivities);
 
       setStats({
         projects: projects.length,
-        members: allUsers.length,
-        reviews: reports.length, // Using reports as proxy for AI reviews
+        members: uniqueMembers.size,
+        reviews: reports.length,
         reports: reports.length
       });
 
@@ -89,12 +83,25 @@ const Dashboard = () => {
     }
   };
 
+  const getIconForActivity = (type) => {
+    switch (type) {
+      case "PROJECT_CREATED": return <FiFolder className="text-blue-400" />;
+      case "PROJECT_UPDATED": return <FiSettings className="text-orange-400" />;
+      case "PROJECT_DELETED": return <FiTrash2 className="text-red-400" />;
+      case "REPORT_GENERATED": 
+      case "AI_ANALYSIS_GENERATED": return <AiOutlineStar className="text-violet-400" />;
+      case "TEAM_MEMBER_ADDED": return <FiUserPlus className="text-green-400" />;
+      case "COMMIT_PUSHED": return <FiTerminal className="text-gray-400" />;
+      default: return <FiActivity className="text-blue-400" />;
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const statCards = [
-    { title: "Projects", value: stats.projects, icon: <FiFolder />, color: "text-blue-400" },
+    { title: "My Projects", value: stats.projects, icon: <FiFolder />, color: "text-blue-400" },
     { title: "Team Members", value: stats.members, icon: <FiUsers />, color: "text-violet-400" },
     { title: "AI Reviews", value: stats.reviews, icon: <FiCpu />, color: "text-pink-400" },
     { title: "Reports Generated", value: stats.reports, icon: <FiTrendingUp />, color: "text-green-400" },
@@ -118,13 +125,12 @@ const Dashboard = () => {
           <div className="space-y-2">
             <DashboardHeader user={user} />
             <div>
-              <p className="text-xs text-blue-400 tracking-widest uppercase mt-7">Dashboard</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Dashboard Overview</h1>
-              <p className="text-sm text-gray-400">Monitor system activity and AI insights in real time.</p>
+              <p className="text-xs text-blue-400 tracking-widest uppercase mt-7">Personal Workspace</p>
+              <h1 className="text-3xl font-semibold tracking-tight">Activity Mission Control</h1>
+              <p className="text-sm text-gray-400">Monitoring your specific engineering events and AI audits.</p>
             </div>
           </div>
 
-          {/* STATS SECTION */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {statCards.map((s, i) => (
               <motion.div
@@ -132,7 +138,7 @@ const Dashboard = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-4 hover:border-blue-500/20 transition"
+                className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-4 hover:border-blue-500/20 transition shadow-lg"
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -146,13 +152,21 @@ const Dashboard = () => {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-4">
-            {/* FEED */}
             <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">My System Events</h3>
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">LIVE FEED</span>
+              </div>
+              
               {loading ? (
-                <p className="text-sm text-gray-500">Syncing workspace activity...</p>
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-white/[0.03] border border-white/[0.05] rounded-2xl animate-pulse" />
+                  ))}
+                </div>
               ) : activities.length === 0 ? (
                 <div className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-10 text-center text-gray-500 text-sm">
-                  No recent activity detected in your workspace.
+                  No system events recorded for your projects yet.
                 </div>
               ) : (
                 activities.map((act, i) => (
@@ -161,42 +175,53 @@ const Dashboard = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5 hover:border-blue-500/20 transition"
+                    className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5 hover:border-blue-500/20 transition group"
                   >
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
-                        {act.icon}
-                        <span className="text-xs text-gray-500 uppercase tracking-tighter">
-                          {act.type} • {formatTime(act.time)}
+                        <div className="p-1.5 bg-white/[0.03] rounded-lg group-hover:bg-blue-500/10 transition-colors">
+                          {act.icon}
+                        </div>
+                        <span className="text-xs text-gray-500 font-bold uppercase tracking-tighter">
+                          {act.type.replace('_', ' ')} • {formatTime(act.time)}
                         </span>
                       </div>
-                      {act.type === 'AUDIT' && (
-                        <span className="text-green-400 text-xs flex items-center gap-1 font-bold">
-                          SUCCESS <FiCheckCircle />
+                      {(act.type === 'REPORT_GENERATED' || act.type === 'PROJECT_CREATED') && (
+                        <span className="text-green-400 text-[10px] font-black tracking-widest border border-green-400/30 px-2 py-0.5 rounded uppercase">
+                          SUCCESS
                         </span>
                       )}
                     </div>
-                    <h3 className="text-base font-medium">{act.title}</h3>
+                    <h3 className="text-base font-bold text-gray-100">{act.title}</h3>
                     <p className="text-sm text-gray-400 mt-1 leading-relaxed">{act.description}</p>
                   </motion.div>
                 ))
               )}
             </div>
 
-            {/* SIDEBAR */}
             <div className="space-y-4">
-              <div className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5">
-                <h3 className="text-base font-medium mb-3">AI Workspace Summary</h3>
-                <div className="text-sm text-gray-400 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <FiTrendingUp className="text-green-400" />
-                    <span>Productivity Score: <strong>Stable</strong></span>
+              <div className="bg-[#111827]/70 border border-white/[0.05] rounded-2xl p-5 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-3xl -mr-16 -mt-16 group-hover:bg-blue-600/10 transition-all" />
+                <h3 className="text-base font-bold mb-4 flex items-center gap-2">
+                  <FiActivity className="text-blue-500" /> My Workspace Summary
+                </h3>
+                <div className="text-sm text-gray-400 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span>Avg. Health Score</span>
+                    <span className="text-green-400 font-bold">88/100</span>
                   </div>
-                  <p>• {stats.projects} active projects detected</p>
-                  <p>• {stats.reports} engineering audits generated</p>
-                  <p>• {stats.members} team members collaborating</p>
-                  <button className="w-full mt-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl text-blue-400 text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">
-                    Generate Health Report
+                  <div className="flex items-center justify-between">
+                    <span>Deploy Readiness</span>
+                    <span className="text-blue-400 font-bold">OPTIMAL</span>
+                  </div>
+                  <div className="pt-4 border-t border-white/[0.05] space-y-2">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Workspace Stats</p>
+                    <p>• {stats.projects} Active Repositories</p>
+                    <p>• {stats.reports} Technical Audits</p>
+                    <p>• {stats.members} Collaborators</p>
+                  </div>
+                  <button className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95">
+                    Security Dashboard
                   </button>
                 </div>
               </div>

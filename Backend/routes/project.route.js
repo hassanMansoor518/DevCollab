@@ -9,6 +9,7 @@ require("dotenv").config();
 
 const router = express.Router();
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const protectRoute = require("../middleware/secureRoute");
 
 /* ================= GLOBAL HELPER ================= */
 const formatRepo = (url) => {
@@ -89,17 +90,17 @@ router.post("/", async (req, res) => {
       await newProject.save();
 
       console.log("WORKSPACE CREATED:", workspace);
+
+      // Log Activity: PROJECT_CREATED
+      await logActivity({
+        type: "PROJECT_CREATED",
+        title: "New Project Created",
+        description: `Project '${projectName}' has been successfully initialized.`,
+        metadata: { projectId: newProject._id }
+      });
     } catch (err) {
       console.error("Workspace creation error:", err.message);
     }
-
-    // ✅ Step 3: Log Activity
-    await logActivity({
-      type: "PROJECT_CREATED",
-      title: "New Project Created",
-      description: `Project '${projectName}' has been initialized with visibility: ${visibility}.`,
-      metadata: { projectId: newProject._id }
-    });
 
     res.status(201).json(newProject);
   } catch (err) {
@@ -149,11 +150,11 @@ router.post("/:id/members", async (req, res) => {
       console.warn("No workspace found for project:", project._id);
     }
 
-    // ✅ Step 4: Log Activity
+    // Log Activity: TEAM_MEMBER_ADDED
     await logActivity({
       type: "TEAM_MEMBER_ADDED",
       title: "Team Member Added",
-      description: `A new member has joined the project '${project.projectName}'.`,
+      description: `A new member has been added to project '${project.projectName}'.`,
       metadata: { projectId: project._id, userId }
     });
 
@@ -282,10 +283,11 @@ router.get("/:id/commit/:sha/analyze", async (req, res) => {
   }
 });
 
-/* ================= GET ALL PROJECTS ================= */
-router.get("/", async (req, res) => {
+/* ================= GET ALL PROJECTS (Filtered by user) ================= */
+router.get("/", protectRoute, async (req, res) => {
   try {
-    const projects = await Project.find();
+    const userId = req.user._id;
+    const projects = await Project.find({ members: userId });
     res.json(projects);
   } catch (err) {
     console.error("Fetch Projects Error:", err.message);
@@ -412,6 +414,14 @@ router.put("/:id", async (req, res) => {
 
     if (!updated) return res.status(404).json({ error: "Project not found" });
 
+    // Log Activity: PROJECT_UPDATED
+    await logActivity({
+      type: "PROJECT_UPDATED",
+      title: "Project Settings Updated",
+      description: `The settings for project '${updated.projectName}' have been modified.`,
+      metadata: { projectId: updated._id }
+    });
+
     res.json(updated);
   } catch (err) {
     console.error("Edit Project Error:", err.message);
@@ -437,11 +447,11 @@ router.delete("/:id", async (req, res) => {
       console.warn("No workspace found to delete for project:", deleted._id);
     }
 
-    // ✅ Step 3: Log Activity
+    // Log Activity: PROJECT_DELETED
     await logActivity({
       type: "PROJECT_DELETED",
       title: "Project Deleted",
-      description: `Project '${deleted.projectName}' and its associated workspace have been removed.`,
+      description: `Project '${deleted.projectName}' and its workspace have been removed.`,
       metadata: { projectId: deleted._id }
     });
 

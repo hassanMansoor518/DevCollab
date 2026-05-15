@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const Invite = require("../model/invite.model");
-const { logActivity } = require("../services/activity.service");
 
 // Send invite
 router.post("/invite", async (req, res) => {
@@ -21,16 +20,7 @@ router.post("/invite", async (req, res) => {
 router.post("/invite/accept", async (req, res) => {
   const { inviteId } = req.body;
   try {
-    const invite = await Invite.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true }).populate("receiver sender");
-    
-    // Log Activity
-    await logActivity({
-      type: "TEAM_MEMBER_ADDED",
-      title: "Team Member Added",
-      description: `${invite.receiver.fullName} has joined the workspace via invite from ${invite.sender.fullName}.`,
-      metadata: { userId: invite.receiver._id }
-    });
-
+    const invite = await Invite.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
     res.json(invite);
   } catch (err) {
     res.status(500).json({ error: err.message });

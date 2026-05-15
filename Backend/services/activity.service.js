@@ -1,4 +1,4 @@
-const SystemActivity = require("../model/systemActivity.model.js");
+const SystemActivity = require("../model/systemActivity.model");
 
 const logActivity = async ({ type, title, description, metadata = {} }) => {
   try {

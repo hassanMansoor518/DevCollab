@@ -2,8 +2,7 @@ import Report from "../model/report.model.js";
 import Project from "../model/project.model.js";
 import { generateProfessionalReport } from "../services/ai.service.js";
 import PDFDocument from "pdfkit";
-import activityService from "../services/activity.service.js";
-const { logActivity } = activityService;
+import { logActivity } from "../services/activity.service.js";
 
 // Generate a new report
 export const generateReport = async (req, res) => {
@@ -61,18 +60,11 @@ export const generateReport = async (req, res) => {
 
     await report.save();
 
-    // Log Activities
-    await logActivity({
-      type: "AI_ANALYSIS_GENERATED",
-      title: "AI Code Analysis Completed",
-      description: `Automated review for ${filename.split('/').pop()} completed with health score ${healthScore}/100.`,
-      metadata: { projectId, reportId: report._id }
-    });
-
+    // Log Activity: REPORT_GENERATED
     await logActivity({
       type: "REPORT_GENERATED",
-      title: "New Audit Report Available",
-      description: `Professional audit report generated for ${filename} in project ${project.projectName}.`,
+      title: "Audit Report Finalized",
+      description: `A comprehensive technical audit for '${filename.split('/').pop()}' is now available.`,
       metadata: { projectId, reportId: report._id }
     });
 
