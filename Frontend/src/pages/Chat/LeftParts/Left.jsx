@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import SearchBar from "./Search";
 import Users from "./Users";
-import Logout from "./Logout";
+
 import Workspaces from "./Workspaces";
 import { FiPlus } from "react-icons/fi";
 
@@ -48,10 +48,7 @@ export default function Left() {
         <Users workspace={activeWorkspace} />
       </div>
 
-      {/* BOTTOM SECTION */}
-      <div className="border-t border-[#1f2937]">
-        <Logout />
-      </div>
+    
     </div>
   );
 }

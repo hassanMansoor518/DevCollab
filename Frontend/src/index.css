@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @plugin "daisyui";
 /* Remove Chrome / Edge password eye icon */
+
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
@@ -14,6 +15,10 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
 /* Smooth Scroll */
 html {
   scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter';
 }
 
 /* Custom Scrollbar */
@@ -32,4 +37,8 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
+}
+
+.btn-secondary {
+  @apply flex items-center gap-1 bg-[#1f2a44] text-gray-300 px-3 py-1.5 rounded text-xs;
 }

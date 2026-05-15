@@ -1,250 +1,303 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { RotateCcw, Folder, File, Clipboard, FileText, X, ChevronLeft } from "lucide-react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
+import Editor, { useMonaco } from "@monaco-editor/react";
 
-export default function CodeViewer({ projectId, filePath }) {
+import {
+  Folder,
+  File,
+  ChevronLeft,
+  X,
+  Plus,
+  Trash2,
+  RefreshCcw,
+  Save,
+} from "lucide-react";
+import AiCodeReviewer from "../../component/AiCodeReviewer";
+
+export default function CodeViewer({ projectId }) {
+  const monaco = useMonaco();
+
   const [fileTree, setFileTree] = useState([]);
-  const [currentPath, setCurrentPath] = useState(filePath || "");
+  const [currentPath, setCurrentPath] = useState("");
   const [pathHistory, setPathHistory] = useState([]);
   const [openTabs, setOpenTabs] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [commitMessage, setCommitMessage] = useState("");
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp") || "{}");
+  /* ---------------- MONACO THEME ---------------- */
+  useEffect(() => {
+    if (monaco) {
+      monaco.editor.defineTheme("devcollab-dark", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+          { token: "comment", foreground: "6A9955" },
+          { token: "keyword", foreground: "C586C0" },
+          { token: "string", foreground: "CE9178" },
+          { token: "number", foreground: "B5CEA8" },
+          { token: "identifier", foreground: "9CDCFE" },
+        ],
+        colors: {
+          "editor.background": "#050A14",
+          "editor.lineHighlightBackground": "#1a2333",
+          "editorCursor.foreground": "#6366F1",
+        },
+      });
+    }
+  }, [monaco]);
 
-  // ✅ Detects folder by type OR by name having no extension
-  const isFolder = (item) => {
-    const folderTypes = ["folder", "dir", "directory", "FOLDER", "DIR", "DIRECTORY"];
-    return folderTypes.includes(item.type) || !item.name.includes(".");
+  /* ---------------- LANGUAGE ---------------- */
+  const getLanguage = (filePath) => {
+    if (!filePath) return "javascript";
+    const ext = filePath.split(".").pop();
+    const map = {
+      js: "javascript",
+      jsx: "javascript",
+      ts: "typescript",
+      tsx: "typescript",
+      json: "json",
+      css: "css",
+      html: "html",
+      md: "markdown",
+      py: "python",
+    };
+    return map[ext] || "plaintext";
   };
 
+  /* ---------------- FETCH FILES ---------------- */
   const fetchFiles = useCallback(
-    async (path = "", addToHistory = true) => {
+    async (path = "", addHistory = true) => {
       try {
         setLoading(true);
+
         const res = await axios.get(
           `http://localhost:3001/api/project/${projectId}/contents`,
-          {
-            params: { path },
-            headers: { Authorization: `Bearer ${authUser.token || ""}` },
-          }
+          { params: { path } }
         );
 
         if (res.data.type === "folder") {
-          if (addToHistory) {
-            setPathHistory((prev) => [...prev, currentPath]);
+          if (addHistory) {
+            setPathHistory((p) => [...p, currentPath]);
           }
+
           setFileTree(res.data.items);
-          setCode("");
-          setActiveTab(null);
           setCurrentPath(path);
-        } else if (res.data.type === "file") {
-          const content = res.data.content || "";
-          setCode(content);
+          setActiveTab(null);
+          setCode("");
+        } else {
+          setCode(res.data.content || "");
+          setActiveTab(path);
 
           setOpenTabs((prev) => {
             if (prev.find((t) => t.path === path)) return prev;
             return [...prev, { path, name: path.split("/").pop() }];
           });
-          setActiveTab(path);
         }
       } catch (err) {
-        console.error("Fetch files error:", err.response?.data || err.message);
-        setCode("");
+        console.error(err);
       } finally {
         setLoading(false);
       }
     },
-    [projectId, authUser.token, currentPath]
+    [projectId, currentPath]
   );
 
   useEffect(() => {
-    fetchFiles(filePath || "", false);
+    fetchFiles("");
   }, [projectId]);
 
+  /* ---------------- NAVIGATION ---------------- */
   const goBack = () => {
-    if (pathHistory.length === 0) return;
+    if (!pathHistory.length) return;
     const prev = pathHistory[pathHistory.length - 1];
-    setPathHistory((h) => h.slice(0, -1));
+    setPathHistory((p) => p.slice(0, -1));
     fetchFiles(prev, false);
   };
 
-  const closeTab = (tabPath, e) => {
+  /* ---------------- CRUD ---------------- */
+  const deleteItem = async (path) => {
+    if (!window.confirm("Delete this file/folder?")) return;
+
+    await axios.delete(
+      `http://localhost:3001/api/project/${projectId}/delete-file`,
+      { data: { path } }
+    );
+
+    fetchFiles(currentPath);
+  };
+
+  const createFile = async () => {
+    const name = prompt("File name?");
+    if (!name) return;
+
+    await axios.post(
+      `http://localhost:3001/api/project/${projectId}/create-file`,
+      {
+        path: currentPath ? `${currentPath}/${name}` : name,
+        content: "",
+      }
+    );
+
+    fetchFiles(currentPath);
+  };
+
+  /* ---------------- TABS ---------------- */
+  const switchTab = (path) => {
+    setActiveTab(path);
+    fetchFiles(path, false);
+  };
+
+  const closeTab = (path, e) => {
     e.stopPropagation();
-    const remaining = openTabs.filter((t) => t.path !== tabPath);
+
+    const remaining = openTabs.filter((t) => t.path !== path);
     setOpenTabs(remaining);
 
-    if (activeTab === tabPath) {
-      if (remaining.length > 0) {
-        const last = remaining[remaining.length - 1];
-        setActiveTab(last.path);
-        fetchFiles(last.path, false);
-      } else {
-        setActiveTab(null);
-        setCode("");
-      }
+    if (activeTab === path) {
+      setActiveTab(remaining.length ? remaining[0].path : null);
+      setCode("");
     }
   };
 
-  const switchTab = (tabPath) => {
-    setActiveTab(tabPath);
-    fetchFiles(tabPath, false);
+  /* ---------------- SAVE ---------------- */
+  const saveFile = async () => {
+    await axios.put(
+      `http://localhost:3001/api/project/${projectId}/update-file`,
+      {
+        path: activeTab,
+        content: code,
+        message: commitMessage || "Updated via DevCollab",
+      }
+    );
+
+    alert("🚀 Code pushed to GitHub");
   };
 
-  const copyCode = () => {
-    if (code) navigator.clipboard.writeText(code);
-  };
-
-  const getLanguage = (path = "") => {
-    const ext = path.split(".").pop();
-    const map = {
-      js: "javascript",
-      jsx: "jsx",
-      ts: "typescript",
-      tsx: "tsx",
-      py: "python",
-      css: "css",
-      html: "html",
-      json: "json",
-      md: "markdown",
-      sh: "bash",
-      yml: "yaml",
-      yaml: "yaml",
-      xml: "xml",
-      sql: "sql",
-    };
-    return map[ext] || "javascript";
-  };
-
+  /* ---------------- UI ---------------- */
   return (
-    <div className="flex mt-4 h-[650px] bg-[#0A0F1A] border border-[#1F2937] rounded-lg overflow-hidden shadow-2xl">
+    <div className="h-[650px] flex rounded-2xl overflow-hidden
+    bg-[rgba(10,15,26,0.7)] backdrop-blur-xl
+    border border-[rgba(255,255,255,0.06)]
+    shadow-[0_0_40px_rgba(88,101,242,0.15)] text-white">
 
-      {/* LEFT EXPLORER */}
-      <div className="w-64 bg-[#0B1220] text-gray-300 flex flex-col border-r border-[#1F2937]">
+      {/* SIDEBAR */}
+      <div className="w-72 flex flex-col bg-[rgba(11,18,32,0.6)]
+      border-r border-[rgba(255,255,255,0.05)]">
 
-        {/* Header with Back Button */}
-        <div className="px-3 py-2 flex items-center gap-2 border-b border-[#1F2937]">
-          <button
-            onClick={goBack}
-            disabled={pathHistory.length === 0}
-            className={`p-1 rounded transition ${
-              pathHistory.length === 0
-                ? "text-gray-600 cursor-not-allowed"
-                : "text-gray-400 hover:text-white hover:bg-[#1B2540]"
-            }`}
-            title="Go back"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-[11px] tracking-widest text-gray-400 font-semibold">
-            EXPLORER
-          </span>
-          {currentPath && (
-            <span className="ml-auto text-[10px] text-gray-600 truncate max-w-[80px]">
-              {currentPath.split("/").pop()}
-            </span>
-          )}
-        </div>
+        <div className="flex items-center justify-between p-3 border-b border-[rgba(255,255,255,0.05)]">
+          <button onClick={goBack}><ChevronLeft size={16} /></button>
 
-        {/* File Tree */}
-        <div className="flex-1 overflow-y-auto px-2 py-2">
-          {fileTree.length === 0 && !loading && (
-            <p className="text-gray-600 text-xs px-2 py-2">No files found</p>
-          )}
-          {fileTree.map((item) => (
-            <div
-              key={item.path}
-              onClick={() => fetchFiles(item.path)}
-              className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded cursor-pointer hover:bg-[#172036] transition ${
-                activeTab === item.path ? "bg-[#1A2540] text-white" : ""
-              }`}
-            >
-              {/* ✅ isFolder handles all possible API type values */}
-              {isFolder(item) ? (
-                <Folder size={15} className="text-yellow-400" />
-              ) : (
-                <File size={15} className="text-blue-400" />
-              )}
-              <span className="truncate">{item.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* RIGHT PANEL */}
-      <div className="flex-1 flex flex-col bg-[#0A0F1A] min-w-0">
-
-        {/* Tabs Bar */}
-        <div className="flex items-center bg-[#0D1324] border-b border-[#1F2937] h-10 overflow-x-auto">
-          {openTabs.map((tab) => (
-            <div
-              key={tab.path}
-              onClick={() => switchTab(tab.path)}
-              className={`flex items-center gap-2 px-3 h-full text-sm border-r border-[#1F2937] cursor-pointer whitespace-nowrap transition ${
-                activeTab === tab.path
-                  ? "bg-[#111827] text-white"
-                  : "text-gray-400 hover:bg-[#111827] hover:text-gray-200"
-              }`}
-            >
-              <File size={13} className="text-blue-400" />
-              {tab.name}
-              <button
-                onClick={(e) => closeTab(tab.path, e)}
-                className="ml-1 p-0.5 rounded hover:bg-[#2a3550] text-gray-500 hover:text-white transition"
-                title="Close"
-              >
-                <X size={11} />
-              </button>
-            </div>
-          ))}
-
-          <div className="ml-auto flex items-center gap-1 pr-3 shrink-0">
-            <button
-              onClick={copyCode}
-              className="p-1.5 rounded hover:bg-[#1B2540]"
-              title="Copy"
-            >
-              <Clipboard size={15} className="text-gray-400 hover:text-white" />
-            </button>
-            <button className="p-1.5 rounded hover:bg-[#1B2540]" title="Raw">
-              <FileText size={15} className="text-gray-400 hover:text-white" />
+          <div className="flex gap-2">
+            <button onClick={createFile}><Plus size={16} /></button>
+            <button onClick={() => fetchFiles(currentPath)}>
+              <RefreshCcw size={14} />
             </button>
           </div>
         </div>
 
-        {/* Editor */}
-        <div className="flex-1 overflow-auto p-4 bg-[#0A0F1A]">
-          {loading ? (
-            <div className="flex items-center gap-2 text-gray-400 text-sm">
-              <RotateCcw className="animate-spin" size={16} />
-              Loading...
+        <div className="flex-1 overflow-auto p-2 space-y-1">
+          {fileTree.map((item) => (
+            <div key={item.path}
+              className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-indigo-500/10">
+
+              <div onClick={() => fetchFiles(item.path)}
+                className="flex items-center gap-2 cursor-pointer">
+
+                {item.type === "dir"
+                  ? <Folder size={14} className="text-yellow-400" />
+                  : <File size={14} className="text-blue-400" />}
+
+                <span className="text-sm text-gray-400 group-hover:text-white">
+                  {item.name}
+                </span>
+              </div>
+
+              <button onClick={() => deleteItem(item.path)}
+                className="opacity-0 group-hover:opacity-100 text-red-400">
+                <Trash2 size={14} />
+              </button>
             </div>
-          ) : code ? (
-            <SyntaxHighlighter
-              language={getLanguage(activeTab || "")}
-              style={tomorrow}
-              showLineNumbers
-              wrapLines={false}
-              wrapLongLines={false}
-              customStyle={{
-                background: "#0A0F1A",
-                padding: "20px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                overflowX: "auto",
-                whiteSpace: "pre",
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
-          ) : (
-            <p className="text-gray-500 text-sm">Select a file to view code</p>
-          )}
+          ))}
         </div>
       </div>
+
+      {/* MAIN + RIGHT */}
+      <div className="flex-1 flex">
+
+        {/* EDITOR AREA */}
+        <div className="flex-1 flex flex-col">
+
+          {/* TABS */}
+          <div className="flex border-b border-white/5">
+            {openTabs.map((tab) => (
+              <div key={tab.path}
+                onClick={() => switchTab(tab.path)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm cursor-pointer
+                ${activeTab === tab.path
+                    ? "bg-[#111827] border-b-2 border-indigo-500"
+                    : "text-gray-500 hover:text-white"}`}>
+
+                <File size={12} />
+                {tab.name}
+
+                <X size={12} onClick={(e) => closeTab(tab.path, e)} />
+              </div>
+            ))}
+          </div>
+
+          {/* COMMIT */}
+          {activeTab && (
+            <div className="flex gap-2 p-2 bg-[#0f172a] border-b border-white/5">
+              <input
+                value={commitMessage}
+                onChange={(e) => setCommitMessage(e.target.value)}
+                placeholder="Commit message..."
+                className="flex-1 px-2 py-1 bg-[#1e293b] rounded text-sm"
+              />
+              <button onClick={saveFile}
+                className="bg-indigo-600 px-3 py-1 rounded">
+                <Save size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* EDITOR */}
+          <div className="flex-1">
+            {loading ? (
+              <div className="p-4 text-gray-400">Loading...</div>
+            ) : activeTab ? (
+              <Editor
+                height="100%"
+                theme="devcollab-dark"
+                language={getLanguage(activeTab)}
+                value={code}
+                onChange={(v) => setCode(v)}
+                options={{ minimap: { enabled: false } }}
+              />
+            ) : (
+              <div className="p-6 text-gray-500">
+                Select a file 🚀
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT PANEL */}
+
+      </div>
+
+      <AiCodeReviewer 
+        filename={activeTab} 
+        code={code} 
+        language={getLanguage(activeTab)} 
+      />
     </div>
   );
+
+
+
+
 }
+

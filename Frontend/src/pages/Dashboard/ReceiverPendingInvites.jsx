@@ -82,7 +82,7 @@ export default function ReceiverPendingInvites({
             className="absolute top-4 right-4 text-gray-400 hover:text-white"
           >
             <FiX size={18} />
-            
+
           </button>
 
           <h2 className="text-lg font-semibold mb-4 text-white">

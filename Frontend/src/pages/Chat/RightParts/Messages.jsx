@@ -9,32 +9,24 @@ function Messages() {
   const safeMessages = Array.isArray(messages) ? messages : [];
   const lastMsgRef = useRef();
 
+  const { typingState, selectedConversation, selectedWorkspace } = useConversation();
+
   useEffect(() => {
     if (safeMessages.length === 0) return;
-
     const timer = setTimeout(() => {
       lastMsgRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-
     return () => clearTimeout(timer);
   }, [safeMessages]);
 
-  const { typingState, selectedConversation } = useConversation();
   const typingInfo =
-    selectedConversation &&
-    selectedConversation._id &&
-    typingState
+    selectedConversation?._id && typingState
       ? typingState[selectedConversation._id]
       : null;
 
   return (
     <div
-      className="
-        flex-1
-        overflow-y-auto
-        bg-[#0b1120]
-        py-20
-      "
+      className="flex-1 overflow-y-auto bg-[#0b1120] py-20"
       style={{ minHeight: "calc(92vh - 8vh)" }}
     >
       {loading ? (
@@ -51,20 +43,19 @@ function Messages() {
       )}
 
       {/* Typing indicator */}
-      {typingInfo && typingInfo.typing && (
+      {typingInfo?.typing && (
         <div className="px-8 py-4 text-sm text-gray-400 animate-pulse">
           Typing...
         </div>
       )}
 
       {!loading && safeMessages.length === 0 && (
-       <p className="text-center mt-[20%] text-gray-500 text-md">
-  No messages yet. Start conversation or use @ai
-</p>
+        <p className="text-center mt-[20%] text-gray-500 text-md">
+          No messages yet. Start conversation or use @ai
+        </p>
       )}
     </div>
   );
 }
 
 export default Messages;
-

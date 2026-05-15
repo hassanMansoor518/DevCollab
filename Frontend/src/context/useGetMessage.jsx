@@ -4,31 +4,40 @@ import axios from "axios";
 
 const useGetMessage = () => {
   const [loading, setLoading] = useState(false);
-  const { messages, setMessage, selectedConversation } = useConversation();
+  const { messages, setMessage, selectedConversation, selectedWorkspace } = useConversation();
 
-
-
-  // ✅ FETCH EFFECT
   useEffect(() => {
     const getMessages = async () => {
-     
-      if (selectedConversation && selectedConversation._id)
+      setLoading(true);
+      try {
+        let res;
 
-      try {    
-        const res = await axios.get(
-          `/api/message/get/${selectedConversation._id}`,
-          { withCredentials: true } // ✅ important
-        );
-        
+        if (selectedWorkspace && !selectedConversation) {
+          res = await axios.get(
+            `/api/workspace/message/get/${selectedWorkspace._id}`,
+            { withCredentials: true }
+          );
+        } else if (selectedConversation?._id) {
+          res = await axios.get(
+            `/api/message/get/${selectedConversation._id}`,
+            { withCredentials: true }
+          );
+        } else {
+          setMessage([]);
+          setLoading(false);
+          return;
+        }
+
         setMessage(res.data);
-        setLoading(false);
       } catch (error) {
         console.log("Error in getting messages", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     getMessages();
-  }, [selectedConversation?._id, setMessage]);
+  }, [selectedConversation?._id, selectedWorkspace?._id]);
 
   return { loading, messages };
 };

@@ -39,18 +39,16 @@ const Login = ({ isModal, closeModal, openSignup }) => {
   return (
     <div className={isModal ? "" : "min-h-screen text-white"}>
       <div
-        className={`flex items-center justify-center ${
-          isModal ? "" : "min-h-screen bg-gray-950"
-        } p-4`}
+        className={`flex items-center justify-center ${isModal ? "" : "min-h-screen bg-gray-950"
+          } p-4`}
       >
         <div className="w-full max-w-md">
           <form
             onSubmit={handelSubmit}
-            className={`${
-              isModal
+            className={`${isModal
                 ? "bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
                 : "bg-gray-900"
-            } p-6 sm:p-10 rounded-3xl shadow-2xl space-y-5 relative`}
+              } p-6 sm:p-10 rounded-3xl shadow-2xl space-y-5 relative`}
           >
             {/* Close Button */}
             {isModal && (

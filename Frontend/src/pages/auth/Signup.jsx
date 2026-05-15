@@ -48,120 +48,120 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
     }
   };
 
- return (
-  <div className={isModal ? "" : "min-h-screen bg-gray-950 text-white flex items-center justify-center p-4"}>
-    
-    <div className="w-full max-w-md">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="
+  return (
+    <div className={isModal ? "" : "min-h-screen bg-gray-950 text-white flex items-center justify-center p-4"}>
+
+      <div className="w-full max-w-md">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="
           relative space-y-5 p-6 sm:p-10 rounded-3xl
           bg-white/5 backdrop-blur-xl
           border border-white/10
           shadow-[0_0_40px_rgba(0,0,0,0.5)]
         "
-      >
-        {/* Close Button */}
-        {isModal && (
-          <button
-            type="button"
-            onClick={closeModal}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white"
-          >
-            ✕
-          </button>
-        )}
+        >
+          {/* Close Button */}
+          {isModal && (
+            <button
+              type="button"
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
 
-        {/* Logo (SAME as Login) */}
-        <div className="flex justify-center mb-2">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center border border-blue-500/30 backdrop-blur-xl">
-            <FiLock className="w-8 h-8 text-blue-400" />
+          {/* Logo (SAME as Login) */}
+          <div className="flex justify-center mb-2">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center border border-blue-500/30 backdrop-blur-xl">
+              <FiLock className="w-8 h-8 text-blue-400" />
+            </div>
           </div>
-        </div>
 
-        {/* Title */}
-        <h1 className="text-3xl font-bold text-center text-white">
-          Create Account
-        </h1>
+          {/* Title */}
+          <h1 className="text-3xl font-bold text-center text-white">
+            Create Account
+          </h1>
 
-        <p className="text-gray-400 text-sm text-center">
-          Join DevCollab and start building
-        </p>
-
-        {/* Error */}
-        {error && (
-          <p className="bg-red-700/80 border-l-4 border-red-500 text-white p-3 rounded text-sm text-center">
-            {error}
+          <p className="text-gray-400 text-sm text-center">
+            Join DevCollab and start building
           </p>
-        )}
 
-        {/* Inputs (same style feel as Login) */}
-        <InputField
-          icon={<FiUser />}
-          placeholder="Full Name"
-          error={errors.fullname?.message}
-          register={register("fullname", {
-            required: "Full name is required",
-          })}
-        />
+          {/* Error */}
+          {error && (
+            <p className="bg-red-700/80 border-l-4 border-red-500 text-white p-3 rounded text-sm text-center">
+              {error}
+            </p>
+          )}
 
-        <InputField
-          icon={<FiMail />}
-          placeholder="Email"
-          error={errors.email?.message}
-          register={register("email", {
-            required: "Email is required",
-          })}
-        />
+          {/* Inputs (same style feel as Login) */}
+          <InputField
+            icon={<FiUser />}
+            placeholder="Full Name"
+            error={errors.fullname?.message}
+            register={register("fullname", {
+              required: "Full name is required",
+            })}
+          />
 
-        <PasswordField
-          icon={<FiLock />}
-          placeholder="Password"
-          show={showPassword}
-          toggle={() => setShowPassword(!showPassword)}
-          register={register("password", {
-            required: "Password is required",
-          })}
-        />
+          <InputField
+            icon={<FiMail />}
+            placeholder="Email"
+            error={errors.email?.message}
+            register={register("email", {
+              required: "Email is required",
+            })}
+          />
 
-        <PasswordField
-          icon={<FiLock />}
-          placeholder="Confirm Password"
-          show={showConfirmPassword}
-          toggle={() => setShowConfirmPassword(!showConfirmPassword)}
-          register={register("confirmPassword", {
-            required: "Confirm password is required",
-            validate: validatePasswordMatch,
-          })}
-        />
+          <PasswordField
+            icon={<FiLock />}
+            placeholder="Password"
+            show={showPassword}
+            toggle={() => setShowPassword(!showPassword)}
+            register={register("password", {
+              required: "Password is required",
+            })}
+          />
 
-        {/* BUTTON (NOW EXACT LOGIN STYLE) */}
-        <button
-          disabled={isSubmitting}
-          className="
+          <PasswordField
+            icon={<FiLock />}
+            placeholder="Confirm Password"
+            show={showConfirmPassword}
+            toggle={() => setShowConfirmPassword(!showConfirmPassword)}
+            register={register("confirmPassword", {
+              required: "Confirm password is required",
+              validate: validatePasswordMatch,
+            })}
+          />
+
+          {/* BUTTON (NOW EXACT LOGIN STYLE) */}
+          <button
+            disabled={isSubmitting}
+            className="
             w-full bg-blue-600
             text-white py-3 rounded-xl font-semibold
             transition hover:bg-blue-700
           "
-        >
-          {isSubmitting ? "Creating Account..." : "Sign Up"}
-        </button>
-
-        {/* Switch */}
-        <p className="text-gray-400 text-sm text-center">
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={openLogin}
-            className="text-blue-500 font-medium"
           >
-            Login
+            {isSubmitting ? "Creating Account..." : "Sign Up"}
           </button>
-        </p>
-      </form>
+
+          {/* Switch */}
+          <p className="text-gray-400 text-sm text-center">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={openLogin}
+              className="text-blue-500 font-medium"
+            >
+              Login
+            </button>
+          </p>
+        </form>
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 /* Reusable Input */

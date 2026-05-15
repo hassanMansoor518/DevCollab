@@ -11,51 +11,21 @@ import { AiOutlineStar } from "react-icons/ai";
 import DashboardLeftSide from "./DashboardLeftSide";
 import ActiveTeam from "./ActiveTeam";
 import Notification from "../../component/Notification";
+import DashboardHeader from "../../component/DashboardHeader";
 
 const Dashboard = () => {
   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
   const user = authUser?.user;
 
   return (
-    <div className="flex h-screen bg-[#0B1120] text-white font-sans">
+    <div className="flex h-screen bg-[#0B1120] text-white ">
       {/* Sidebar */}
       <DashboardLeftSide />
 
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         {/* Top Bar */}
-        <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-5">
-          {/* Search */}
-          <div className="flex items-center bg-gray-800 rounded-lg px-4 py-2 w-96">
-            <FiSearch className="mr-2" />
-            <input
-              type="text"
-              placeholder="Search anything..."
-              className="bg-gray-800 outline-none w-full"
-            />
-          </div>
-
-          <div className="flex items-center ml-4 space-x-4 relative">
-            {/* 🔔 Notification Component */}
-            <Notification currentUserId={user?._id} />
-
-            {/* User Info */}
-            <div className="flex items-center space-x-2">
-              <div className="text-right flex flex-col items-end">
-                <p className="text-sm font-semibold">
-                  {user?.fullName}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Lead Developer
-                </p>
-              </div>
-
-               <div className="w-8 h-8 bg-[#1E293B] rounded-lg flex items-center justify-center font-bold">
-                {user?.fullName[0]}
-              </div>
-            </div>
-          </div>
-        </div>
+        <DashboardHeader />
 
         {/* Dashboard Feed */}
         <h2 className="text-2xl font-bold mb-4">Dashboard Feed</h2>

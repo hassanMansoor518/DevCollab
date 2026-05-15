@@ -1,43 +1,46 @@
 import { useState } from "react";
-import useConversation from "../zustand/useConversation.js";
 import axios from "axios";
+import useAIMessages from "../context/useAIMessages";
 
 const useSendAiMessage = () => {
   const [loading, setLoading] = useState(false);
-  const { messages, setMessage, selectedConversation } = useConversation();
+
+  const { addMessage, addTempMessage, replaceTempMessage } =
+    useAIMessages();
 
   const sendAiMessage = async (prompt) => {
+    if (!prompt.trim()) return;
+
     setLoading(true);
+
+    // 1. user message
+    addMessage(prompt, false);
+
+    // 2. temp AI message
+    const tempId = addTempMessage();
+
     try {
-      // Create a temporary 'AI thinking' message locally so user sees feedback
-      const tempId = `ai-temp-${Date.now()}`;
-      const tempMessage = {
-        _id: tempId,
-        senderId: 'ai',
-        message: 'AI is thinking...',
-        isAI: true,
-        pending: true,
-        createdAt: new Date().toISOString(),
-      };
+      const res = await axios.get(
+        "http://localhost:3001/api/ai/get-result",
+        {
+          params: { prompt },
+          withCredentials: true,
+        }
+      );
 
-      setMessage([...messages, tempMessage]);
+      // ✅ FIXED KEY HERE
+      const aiText = res.data?.message;
 
-      // call AI backend endpoint (proxied via Vite dev server) and include conversation id
-      const res = await axios.get(`/api/ai/get-result`, { params: { prompt, conversationId: selectedConversation._id } });
+      replaceTempMessage(tempId, aiText || "No response");
 
-      // use the saved message returned from backend
-      const savedMessage = res.data;
-
-      // Replace temporary message with saved message
-      const withoutTemp = (messages || []).filter((m) => !(m._id && m._id.toString().startsWith('ai-temp-')));
-      setMessage([...withoutTemp, savedMessage]);
-
-      setLoading(false);
     } catch (error) {
-      console.log("Error in sending AI message", error);
-      // remove temp message on error
-      const withoutTemp = (messages || []).filter((m) => !(m._id && m._id.toString().startsWith('ai-temp-')));
-      setMessage(withoutTemp);
+      console.error("AI Error:", error);
+
+      replaceTempMessage(
+        tempId,
+        "Failed to get AI response. Please try again."
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -46,5 +49,3 @@ const useSendAiMessage = () => {
 };
 
 export default useSendAiMessage;
-
-

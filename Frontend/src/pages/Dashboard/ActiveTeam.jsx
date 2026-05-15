@@ -55,10 +55,10 @@ export default function ActiveTeam({ currentUserId }) {
         {activeTeam.map(user => (
           <div key={user._id} className="flex justify-between items-center bg-gray-700 p-2 rounded mb-2">
             <div className="flex items-center space-x-2">
-              <img src={`https://i.pravatar.cc/30?u=${user._id}`} alt={user.fullName} className="w-8 h-8 rounded-full"/>
+              <img src={`https://i.pravatar.cc/30?u=${user._id}`} alt={user.fullName} className="w-8 h-8 rounded-full" />
               <span className="text-white">{user.fullName}</span>
             </div>
-            <FiMessageSquare className="text-gray-400 cursor-pointer hover:text-white transition"/>
+            <FiMessageSquare className="text-gray-400 cursor-pointer hover:text-white transition" />
           </div>
         ))}
 

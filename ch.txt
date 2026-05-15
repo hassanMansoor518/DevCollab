@@ -1,7 +1,6 @@
-git remote add origin https://github.com/hassanMansoor518/AI-Powered-Chat-Application.git
-git branch -M main
-git push -u origin main
-
+git add .
+git commit -m "Updated something"
+git push
 
 
 
