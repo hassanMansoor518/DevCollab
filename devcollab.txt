@@ -1,0 +1,21 @@
+pull requests 
+member
+generate report 
+view report 
+
+chat
+create workplace 
+delete workplace 
+add member 
+remove menber 
+Admin right 
+search 
+remove and Add chat user
+delete message 
+edit message 
+@ai sumarize all key change 
+
+Ai Assistant 
+complete repo analysis 
+history save ho gi har repo ki 
+

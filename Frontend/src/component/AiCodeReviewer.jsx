@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import AiAnalysis from "./AiAnalysis";
 import axios from "axios";
 
-function AiCodeReviewer({ filename, code, language }) {
+function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState(null);
@@ -31,6 +31,28 @@ function AiCodeReviewer({ filename, code, language }) {
             setError(err.response?.data?.message || "Failed to analyze code");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const applyFix = async (issueTitle, issueDescription) => {
+        if (!code || !filename) return;
+
+        try {
+            const response = await axios.post(
+                "http://localhost:3001/api/ai/fix-issue",
+                { code, filename, language, issueTitle, issueDescription },
+                { withCredentials: true }
+            );
+            
+            if (response.data.fixedCode && onApplyFix) {
+                onApplyFix(response.data.fixedCode);
+                // Optionally trigger a re-analysis
+                handleRunTestCases();
+            }
+        } catch (err) {
+            console.error("Fix Issue Error:", err);
+            alert(err.response?.data?.message || "Failed to apply code fix");
+            throw err;
         }
     };
 
@@ -75,7 +97,14 @@ function AiCodeReviewer({ filename, code, language }) {
                         </button>
                     </div>
                 ) : analysisResult ? (
-                    <AiAnalysis result={analysisResult} />
+                    <AiAnalysis 
+                        result={analysisResult} 
+                        onApplyFix={applyFix} 
+                        projectId={projectId}
+                        filename={filename}
+                        language={language}
+                        code={code}
+                    />
                 ) : null
             ) : (
                 <div className="flex-1 flex items-center justify-center">

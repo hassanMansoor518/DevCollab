@@ -174,3 +174,24 @@ export const analyzeCode = async (req, res) => {
     });
   }
 };
+
+export const fixIssue = async (req, res) => {
+  try {
+    const { code, filename, language, issueTitle, issueDescription } = req.body;
+
+    if (!code || !issueTitle) {
+      return res.status(400).json({ message: 'Code and issueTitle are required' });
+    }
+
+    const result = await ai.fixCodeIssue({ code, filename, language, issueTitle, issueDescription });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Fix Issue Error:', error);
+    
+    return res.status(500).json({
+      message: 'Failed to apply code fix via AI',
+      error: error.message,
+    });
+  }
+};

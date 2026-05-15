@@ -7,5 +7,6 @@ const router = express.Router();
 
 router.get("/get-result", secureRoute, aiController.getResult);
 router.post("/analyze-code", aiController.analyzeCode);
+router.post("/fix-issue", aiController.fixIssue);
 
 module.exports = router;

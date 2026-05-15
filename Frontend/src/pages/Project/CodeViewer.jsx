@@ -292,6 +292,8 @@ export default function CodeViewer({ projectId }) {
         filename={activeTab} 
         code={code} 
         language={getLanguage(activeTab)} 
+        onApplyFix={setCode}
+        projectId={projectId}
       />
     </div>
   );

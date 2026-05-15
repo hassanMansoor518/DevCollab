@@ -16,7 +16,7 @@ const ai = new GoogleGenAI({
 // MODEL
 // =========================
 function getModel() {
-  return "gemini-2.5-flash";
+  return "gemini-3-flash-preview";
 }
 
 // =========================
@@ -120,7 +120,7 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
     });
 
     let rawText = response.text;
-    
+
     // 1. Try to extract from ```json ... ``` block
     const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
@@ -143,6 +143,116 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
     return JSON.parse(rawText);
   } catch (err) {
     console.error("Gemini Code Analysis Error:", err);
+    throw err;
+  }
+}
+
+// =========================
+// FIX CODE ISSUE
+// =========================
+export async function fixCodeIssue({ code, filename, language, issueTitle, issueDescription }) {
+  try {
+    const trimmedCode = code?.slice(0, 15000);
+
+    const prompt = `
+You are a senior software engineer. Fix the following specific issue in the provided code.
+
+File: ${filename}
+Language: ${language}
+Issue to fix: ${issueTitle}
+Details: ${issueDescription}
+
+Provide ONLY the completely corrected source code for the entire file. Do not include any explanations, markdown formatting like \`\`\`javascript, or extra text. Your output must be purely the corrected code.
+
+Code:
+${trimmedCode}
+`;
+
+    const response = await ai.models.generateContent({
+      model: getModel(),
+      contents: prompt,
+    });
+
+    let fixedCode = response.text;
+
+    if (fixedCode.startsWith('\`\`\`')) {
+      fixedCode = fixedCode.replace(/^\`\`\`[a-z]*\s*/i, '');
+      fixedCode = fixedCode.replace(/\s*\`\`\`$/, '');
+    }
+
+    return { fixedCode };
+  } catch (err) {
+    console.error("Gemini Fix Code Error:", err);
+    throw err;
+  }
+}
+
+// =========================
+// GENERATE PROFESSIONAL REPORT
+// =========================
+export async function generateProfessionalReport({ code, filename, language, analysisResult }) {
+  try {
+    const trimmedCode = code?.slice(0, 15000);
+
+    const prompt = `
+You are a senior software engineering auditor. Generate a comprehensive, professional bug report for the following code.
+
+Filename: ${filename}
+Language: ${language}
+Initial Analysis: ${JSON.stringify(analysisResult)}
+
+Code:
+\`\`\`${language}
+${trimmedCode}
+\`\`\`
+
+Provide a strict JSON response. The output MUST be valid JSON matching this structure:
+{
+  "riskLevel": "Critical" | "High" | "Medium" | "Low",
+  "executiveSummary": "A high-level summary of the code's health and major findings.",
+  "codeQualityOverview": "Analysis of the overall code quality, patterns, and standards.",
+  "securityIssues": ["Specific security vulnerability or risk"],
+  "performanceConcerns": ["Specific performance bottleneck or concern"],
+  "maintainabilityAnalysis": "Assessment of how easy the code is to maintain and scale.",
+  "bugSeverityBreakdown": {
+    "critical": number,
+    "high": number,
+    "medium": number,
+    "low": number
+  },
+  "suggestedFixes": ["Description of a fix for a major issue"],
+  "aiRecommendations": ["Strategic recommendation for improving the codebase"],
+  "finalRiskAssessment": "Final verdict on the code's readiness for production."
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: getModel(),
+      contents: prompt,
+    });
+
+    let rawText = response.text;
+
+    // JSON Extraction logic (same as analyzeCode)
+    const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      rawText = jsonMatch[1];
+    } else {
+      const genericMatch = rawText.match(/```\s*([\s\S]*?)\s*```/);
+      if (genericMatch) {
+        rawText = genericMatch[1];
+      }
+    }
+
+    const firstBrace = rawText.indexOf('{');
+    const lastBrace = rawText.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      rawText = rawText.substring(firstBrace, lastBrace + 1);
+    }
+
+    return JSON.parse(rawText);
+  } catch (err) {
+    console.error("Gemini Generate Report Error:", err);
     throw err;
   }
 }

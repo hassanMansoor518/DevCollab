@@ -12,6 +12,7 @@ const inviteRoutes = require("./routes/Invite.route");
 const projectRoutes = require("./routes/project.route");
 const workspaceRoutes = require("./routes/workspace.route");
 const workspaceMessageRoutes = require("./routes/workspaceMessage.route"); 
+const reportRoutes = require("./routes/report.route.js").default || require("./routes/report.route.js");
 const connectDB = require("./db/db");
 connectDB();
 const Port = process.env.PORT
@@ -33,6 +34,7 @@ app.use('/api/invite', inviteRoutes);
 app.use('/api/project',projectRoutes);
 app.use("/api/workspace", workspaceRoutes);
 app.use("/api/workspace/message", workspaceMessageRoutes); 
+app.use("/api/report", reportRoutes);
 
 app.get("/", (req, res) => {
   res.send("home page");

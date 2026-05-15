@@ -1,12 +1,48 @@
-import React from 'react'
+import React, { useState } from 'react';
+import axios from 'axios';
 
-function AiAnalysis({ result }) {
+function AiAnalysis({ result, onApplyFix, projectId, filename, language, code }) {
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [reportStatus, setReportStatus] = useState(null);
+
     if (!result) return null;
 
     const { healthScore, complexity, maintainability, issues = [], suggestions = [] } = result;
 
     const circumference = 28 * 2 * Math.PI;
     const strokeDashoffset = circumference - (healthScore / 100) * circumference;
+
+    const handleGenerateReport = async () => {
+        if (!projectId) {
+            alert("Project context missing. Cannot generate report.");
+            return;
+        }
+
+        setIsGenerating(true);
+        setReportStatus(null);
+
+        try {
+            const response = await axios.post(
+                `http://localhost:3001/api/report/${projectId}/generate`,
+                {
+                    filename,
+                    language,
+                    code,
+                    analysisResult: result
+                },
+                { withCredentials: true }
+            );
+
+            setReportStatus({ success: true, message: "Report saved to dashboard!" });
+            alert("Professional report generated and saved to Dashboard!");
+        } catch (err) {
+            console.error("Report Generation Error:", err);
+            setReportStatus({ success: false, message: err.response?.data?.message || "Failed to generate report" });
+            alert("Failed to generate report. Please try again.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     return (
         < div className="flex-1 overflow-y-auto px-5 py-4 space-y-6" >
@@ -97,6 +133,7 @@ function AiAnalysis({ result }) {
                                 description={issue.description}
                                 line={issue.line}
                                 hasFix={issue.hasFix}
+                                onFix={() => onApplyFix(issue.title, issue.description)}
                             />
                         ))}
                     </div>
@@ -125,9 +162,25 @@ function AiAnalysis({ result }) {
             < div className="border-t border-white/5" />
 
             < div >
-                <button className="text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded">
-                    Generate Report
+                <button 
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating}
+                    className="text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded disabled:opacity-50 flex items-center gap-2"
+                >
+                    {isGenerating ? (
+                        <>
+                            <div className="animate-spin w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                            Generating...
+                        </>
+                    ) : (
+                        "Generate Report"
+                    )}
                 </button>
+                {reportStatus && (
+                    <p className={`text-[10px] mt-2 ${reportStatus.success ? 'text-green-400' : 'text-red-400'}`}>
+                        {reportStatus.message}
+                    </p>
+                )}
             </div >
 
         </div >
@@ -136,21 +189,31 @@ function AiAnalysis({ result }) {
 
 export default AiAnalysis
 
-const IssueCard = ({ severity, title, description, line, hasFix }) => {
+const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
+    const [isFixing, setIsFixing] = useState(false);
+
+    const handleFix = async () => {
+        setIsFixing(true);
+        try {
+            await onFix();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsFixing(false);
+        }
+    };
+
     const styles = {
         high: {
             border: "border-red-500/60",
-
             badge: "bg-red-500 text-white",
         },
         medium: {
             border: "border-gray-400/40",
-
             badge: "bg-gray-500 text-white",
         },
         low: {
             border: "border-blue-400/40",
-
             badge: "bg-blue-500 text-white",
         },
     };
@@ -190,8 +253,19 @@ const IssueCard = ({ severity, title, description, line, hasFix }) => {
 
             {/* ACTION */}
             {hasFix && (
-                <button className="text-xs text-blue-400 mt-2 hover:underline">
-                    ✨ Quick fix available
+                <button 
+                    onClick={handleFix}
+                    disabled={isFixing}
+                    className="flex items-center gap-1 text-xs text-blue-400 mt-2 hover:underline disabled:opacity-50 disabled:no-underline"
+                >
+                    {isFixing ? (
+                        <>
+                            <div className="animate-spin w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                            Applying fix...
+                        </>
+                    ) : (
+                        "✨ Quick fix available"
+                    )}
                 </button>
             )}
         </div>
