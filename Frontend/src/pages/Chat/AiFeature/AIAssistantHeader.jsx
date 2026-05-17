@@ -2,21 +2,25 @@ import React, { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, Folder, Cpu, Users } from "lucide-react";
 import Notification from "./../../../component/Notification.jsx";
 import { useNavigate } from "react-router-dom";
+import useProjectStore from "../../../zustand/useProjectStore";
+
 export default function AiAssistantHeader({ user }) {
   const [mode, setMode] = useState("ai");
-  const [selectedProject, setSelectedProject] = useState("CompilerProject");
   const [open, setOpen] = useState(false);
   
   const dropdownRef = useRef();
   const navigate = useNavigate();
 
+  const { projects, selectedProject, setSelectedProject, fetchProjects, loading } = useProjectStore();
 
-  const projects = [
-    "CompilerProject",
-    "AI Chat App",
-    "DevCollab",
-    "Portfolio Website",
-  ];
+  useEffect(() => {
+    console.log("AIAssistantHeader mounted, fetching projects...");
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    console.log("Projects updated in store:", projects);
+  }, [projects]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -29,7 +33,6 @@ export default function AiAssistantHeader({ user }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
   return (
     <>
       {/* Top Bar */}
@@ -40,7 +43,7 @@ export default function AiAssistantHeader({ user }) {
           
           {/* MODE SWITCH + DROPDOWN */}
           <div className="relative flex items-center gap-4 h-12">
-
+            
             {/* MODE SWITCH */}
             <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full p-1 shadow-md">
               
@@ -57,7 +60,6 @@ export default function AiAssistantHeader({ user }) {
                     mode === "team"
                       ? "bg-white/10 text-white"
                       : "text-gray-400 hover:text-white hover:bg-white/10"
-
                   }`}
               >
                 <Users size={14} />
@@ -68,7 +70,7 @@ export default function AiAssistantHeader({ user }) {
               <button
                 onClick={() => {
                   setMode("ai");
-                  navigate("/ai");
+                  navigate("/AIAssistant");
                 }}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm transition-all
                   ${
@@ -95,7 +97,7 @@ export default function AiAssistantHeader({ user }) {
                 "
               >
                 <Folder size={16} className="text-blue-400" />
-                {selectedProject}
+                {selectedProject ? selectedProject.projectName : "Select Project"}
                 <ChevronDown
                   size={16}
                   className={`transition-transform ${
@@ -106,23 +108,26 @@ export default function AiAssistantHeader({ user }) {
 
               {/* DROPDOWN MENU */}
               {open && (
-                <div className="absolute mt-2 w-[200px] bg-[#0f172a] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50">
+                <div className="absolute mt-2 w-[200px] max-h-[300px] bg-[#0f172a] border border-white/10 rounded-xl shadow-xl overflow-y-auto z-50">
+                  {projects.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-gray-500">No projects found</div>
+                  )}
                   {projects.map((project) => (
                     <div
-                      key={project}
+                      key={project._id}
                       onClick={() => {
                         setSelectedProject(project);
                         setOpen(false);
                       }}
                       className={`px-4 py-2 text-sm cursor-pointer flex items-center gap-2 hover:bg-white/10 transition
                         ${
-                          selectedProject === project
+                          selectedProject?._id === project._id
                             ? "bg-blue-600/20 text-blue-400"
                             : "text-gray-300"
                         }`}
                     >
                       <Folder size={14} />
-                      {project}
+                      {project.projectName}
                     </div>
                   ))}
                 </div>
@@ -153,5 +158,4 @@ export default function AiAssistantHeader({ user }) {
       </div>
     </>
   );
-
 }

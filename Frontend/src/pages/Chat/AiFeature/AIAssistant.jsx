@@ -1,34 +1,45 @@
-import React from "react";
+import React, { useEffect } from "react";
 import AIAssistantHeader from "../AiFeature/AIAssistantHeader.jsx";
 import { useAuth } from "../../../context/AuthProvider.jsx";
 import TypeSendAi from "./TypeSendAi.jsx";
 import AIMessages from "./AIMessages.jsx";
 import useAIMessages from "../../../context/useAIMessages.js";
+import useProjectStore from "../../../zustand/useProjectStore.js";
 import { Lightbulb, Bug, Rocket, RotateCcw } from "lucide-react";
 
 
 export default function AIAssistant() {
   const [authUser] = useAuth();
-  const aiMessages = useAIMessages((state) => state.aiMessages);
+  const { aiMessages, fetchHistory, clearMessages } = useAIMessages();
+  const { selectedProject } = useProjectStore();
 
   const hasMessages = aiMessages.length > 0;
+
+  // 👉 FETCH HISTORY ON MOUNT / PROJECT CHANGE
+  useEffect(() => {
+    if (selectedProject?._id) {
+      fetchHistory(selectedProject._id);
+    } else {
+      clearMessages();
+    }
+  }, [selectedProject?._id, fetchHistory, clearMessages]);
 
   return (
     <div className="flex flex-col max-w-10xl h-screen bg-gradient-to-br from-[#0b1220] via-[#0a0f1c] text-white overflow-hidden">
 
       {/* ================= HEADER ================= */}
-      <div className="shrink-0 px-6 py-4 border-b border-white/10 backdrop-blur-xl">
+      <div className="shrink-0 px-6 py-4 border-b border-white/10 backdrop-blur-xl sticky top-0 z-50">
         <AIAssistantHeader user={authUser?.user} />
       </div>
 
       {/* ================= CHAT AREA ================= */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-30 py-4">
 
         {/* 👉 EMPTY STATE (Cards + Intro) */}
         {!hasMessages && (
           <div className="flex flex-col items-center text-center py-10">
 
-            <h1 className="text-4xl font-bold mb-4">
+            <h1 className="text-5xl font-bold mb-4">
               Your{" "}
               <span className="bg-gradient-to-r from-blue-500 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
                 intelligent coding assistant
@@ -40,7 +51,7 @@ export default function AIAssistant() {
             </p>
 
             {/* Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
 
               <Card
                 icon={<Lightbulb size={24} />}
@@ -77,7 +88,7 @@ export default function AIAssistant() {
 
       {/* ================= INPUT ================= */}
       <div className="shrink-0">
-        <TypeSendAi />
+        <TypeSendAi isAiPage={true} />
       </div>
     </div>
   );
@@ -86,15 +97,15 @@ export default function AIAssistant() {
 /* ================= CARD ================= */
 function Card({ icon, title, desc, iconColor, bgColor }) {
   return (
-    <div className="bg-[#111625] border border-white/5 rounded-2xl p-4 text-left hover:bg-[#161c2e] transition">
+    <div className="bg-[#111625] border border-white/5 rounded-2xl px-8 py-6 text-left hover:bg-[#161c2e] transition">
 
-      <div className={`p-3 rounded-xl ${bgColor} ${iconColor} mb-4 w-fit`}>
+      <div className={`p-4 rounded-xl ${bgColor} ${iconColor} mb-4 w-fit`}>
         {icon}
       </div>
 
-      <h3 className="text-lg font-bold mb-2">{title}</h3>
+      <h3 className="text-xl font-bold mb-4">{title}</h3>
 
-      <p className="text-slate-400 text-xs">{desc}</p>
+      <p className="text-slate-400 text-sm">{desc}</p>
     </div>
   );
 }

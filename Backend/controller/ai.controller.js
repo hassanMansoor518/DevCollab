@@ -4,22 +4,65 @@ import Conversation from '../model/conversation.model.js';
 import WorkspaceMessage from '../model/workspaceMessage.model.js';
 import Workspace from '../model/workspace.model.js';
 import User from '../model/user.model.js';
+import Project from '../model/project.model.js';
+import AiMessage from '../model/aiMessage.model.js';
 import { getReceiverSocketIds, io } from '../SocketIO/SocketServer.js';
 
 export const getResult = async (req, res) => {
   try {
-    const { prompt, conversationId } = req.query;
+    const { prompt, conversationId, projectId } = req.query;
 
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });
     }
 
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userId = req.user._id;
+
     // =========================
-    // 🔥 FIX: AI call safety
+    // 🔥 PERSIST USER MESSAGE
     // =========================
+    if (projectId) {
+      await AiMessage.create({
+        projectId,
+        userId,
+        role: 'user',
+        message: prompt,
+      });
+    }
+
+    // =========================
+    // 🔥 CONTEXT INJECTION
+    // =========================
+    let projectContext = null;
+    let chatHistory = [];
+
+    if (projectId) {
+      const project = await Project.findById(projectId);
+      if (project) {
+        projectContext = {
+          name: project.projectName,
+          githubRepo: project.githubRepo,
+          structure: project.projectStructure,
+          summary: project.indexedCodeSummary,
+        };
+
+        // Fetch recent history for memory (limit to 10 for tokens)
+        chatHistory = await AiMessage.find({ projectId, userId })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean();
+        
+        chatHistory = chatHistory.reverse();
+      }
+    }
+
     let resultText;
     try {
-      resultText = await ai.generateResult(prompt);
+      resultText = await ai.generateResult(prompt, projectContext, chatHistory);
     } catch (aiError) {
       console.error("AI Service Failed:", aiError);
 
@@ -29,7 +72,26 @@ export const getResult = async (req, res) => {
       });
     }
 
-    // Ensure AI user exists
+    // =========================
+    // 🔥 PERSIST AI RESPONSE
+    // =========================
+    if (projectId) {
+      const aiResponse = await AiMessage.create({
+        projectId,
+        userId,
+        role: 'assistant',
+        message: resultText,
+      });
+
+      return res.status(201).json({
+        message: resultText,
+        _id: aiResponse._id,
+        isAI: true,
+        role: 'assistant'
+      });
+    }
+
+    // Ensure AI user exists (for standard chat flows)
     let aiUser = await User.findOne({ email: 'ai@chatapp.local' });
 
     if (!aiUser) {
@@ -105,10 +167,6 @@ export const getResult = async (req, res) => {
     // =========================
     // FALLBACK FLOW
     // =========================
-    if (!req.user?._id) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
     const receiverId = req.user._id;
 
     let fallbackConversation = await Conversation.findOne({
@@ -151,6 +209,35 @@ export const getResult = async (req, res) => {
       message: 'Internal server error',
       error: error.message,
     });
+  }
+};
+
+export const getChatHistory = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user._id;
+
+    if (!projectId) {
+      return res.status(400).json({ message: 'Project ID is required' });
+    }
+
+    const messages = await AiMessage.find({ projectId, userId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Map for frontend compatibility
+    const formattedMessages = messages.map(msg => ({
+      _id: msg._id,
+      message: msg.message,
+      isAI: msg.role === 'assistant',
+      role: msg.role,
+      createdAt: msg.createdAt
+    }));
+
+    res.status(200).json(formattedMessages);
+  } catch (error) {
+    console.error('Get Chat History Error:', error);
+    res.status(500).json({ message: 'Failed to fetch chat history' });
   }
 };
 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthProvider";
 import useConversation from "../zustand/useConversation.js";
+import useAIMessages from "./useAIMessages";
 
 const SocketContext = createContext(null);
 export const useSocketContext = () => useContext(SocketContext);
@@ -37,22 +38,15 @@ export const SocketProvider = ({ children }) => {
       socket.on("newMessage", ({ message, conversationId }) => {
         const store = useConversation.getState();
 
+        // 1. If it's a message for the current DM conversation
         if (store.selectedConversation?._id?.toString() === conversationId) {
           store.setMessage([...store.messages, message]);
         }
 
-        // ✅ IMPORTANT: AI message handling
+        // 2. If it's an AI message, add it to the AI assistant store
         if (message?.isAI) {
           const aiStore = useAIMessages.getState();
           aiStore.addMessage(message.message, true);
-        }
-      });
-
-      // ✅ New DM message via socket
-      socket.on("newMessage", ({ message, conversationId }) => {
-        const { selectedConversation, messages, setMessage } = useConversation.getState();
-        if (selectedConversation?._id?.toString() === conversationId) {
-          setMessage([...messages, message]);
         }
       });
 

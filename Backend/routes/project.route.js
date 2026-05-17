@@ -287,7 +287,17 @@ router.get("/:id/commit/:sha/analyze", async (req, res) => {
 router.get("/", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id;
-    const projects = await Project.find({ members: userId });
+    const fullName = req.user.fullName;
+
+    // Use raw collection to avoid Mongoose CastError on 'members' field
+    // which is defined as ObjectId in the schema but contains names in legacy data.
+    const projects = await Project.collection.find({
+      $or: [
+        { members: userId },
+        { members: fullName }
+      ]
+    }).toArray();
+    
     res.json(projects);
   } catch (err) {
     console.error("Fetch Projects Error:", err.message);
@@ -459,6 +469,84 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     console.error("Delete Project Error:", err.message);
     res.status(500).json({ error: "Failed to delete project" });
+  }
+});
+
+/* ================= INDEX REPOSITORY ================= */
+router.post("/:id/index", async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project || !project.githubRepo) {
+      return res.status(400).json({ error: "No GitHub repo linked" });
+    }
+
+    const repo = formatRepo(project.githubRepo);
+
+    // 1. Fetch Repository Tree (Recursive)
+    // We'll use the main/master branch. Typically 'main' or 'master'
+    // First, get the default branch if possible, but let's assume 'main' or 'master' for now
+    // Actually, we can get the default branch from githubData if we have it
+    const defaultBranch = project.githubData?.default_branch || "main";
+
+    let treeRes;
+    try {
+      treeRes = await axios.get(
+        `https://api.github.com/repos/${repo}/git/trees/${defaultBranch}?recursive=1`,
+        { headers: { Authorization: `token ${GITHUB_TOKEN}` } }
+      );
+    } catch (err) {
+      // Fallback to master if main fails
+      treeRes = await axios.get(
+        `https://api.github.com/repos/${repo}/git/trees/master?recursive=1`,
+        { headers: { Authorization: `token ${GITHUB_TOKEN}` } }
+      );
+    }
+
+    const fullTree = treeRes.data.tree;
+
+    // 2. Filter tree (exclude node_modules, .git, etc.)
+    const ignoredPatterns = [
+      "node_modules/",
+      ".git/",
+      "dist/",
+      "build/",
+      ".next/",
+      ".cache/",
+      "package-lock.json",
+      "yarn.lock",
+    ];
+
+    const filteredTree = fullTree
+      .filter((item) => {
+        return !ignoredPatterns.some((pattern) => item.path.includes(pattern));
+      })
+      .map((item) => ({
+        path: item.path,
+        type: item.type === "blob" ? "file" : "folder",
+      }));
+
+    // 3. Generate a summary (Simple version for now: list top-level folders and key files)
+    const topLevelFiles = filteredTree
+      .filter((item) => !item.path.includes("/"))
+      .map((item) => item.path)
+      .join(", ");
+
+    const structureSummary = `Repository structure: ${filteredTree.length} files/folders. Top level items: ${topLevelFiles}`;
+
+    // 4. Update Project
+    project.projectStructure = filteredTree;
+    project.indexedCodeSummary = structureSummary;
+    await project.save();
+
+    res.json({
+      message: "Repository indexed successfully",
+      structure: filteredTree,
+      summary: structureSummary,
+    });
+  } catch (err) {
+    console.error("Index Error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to index repository" });
   }
 });
 

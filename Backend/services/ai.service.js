@@ -22,11 +22,56 @@ function getModel() {
 // =========================
 // CHAT
 // =========================
-export async function generateResult(prompt) {
+export async function generateResult(prompt, projectContext = null, chatHistory = []) {
   try {
+    let systemPrompt = `You are an elite Software Architect and AI Developer Assistant. 
+Your goal is to provide high-quality, production-ready, and repository-specific engineering solutions.
+
+CORE RULES:
+1. RESPONSE STYLE: Be concise, professional, and direct. Use engineering terminology.
+2. REPO AWARENESS: Always prioritize the provided project structure and summary. 
+3. ARCHITECTURE: Follow the existing patterns and architecture of the project.
+4. NO HALLUCINATION: If a file or component doesn't exist in the structure, mention that you can't find it.
+5. CODE QUALITY: Provide complete, clean, and optimized code snippets.
+6. CONTEXT: Use the conversation history to maintain continuity.
+`;
+
+    if (projectContext) {
+      const { name, githubRepo, structure, summary } = projectContext;
+      const structureList = structure 
+        ? structure.slice(0, 150).map(f => `- ${f.path} (${f.type})`).join('\n') 
+        : 'Not available';
+
+      systemPrompt += `
+CURRENT PROJECT CONTEXT:
+- Name: ${name}
+- Repository: ${githubRepo || 'Local'}
+- Summary: ${summary || 'Codebase not yet indexed.'}
+
+PROJECT STRUCTURE (Top 150 files):
+${structureList}
+`;
+    }
+
+    // Format chat history for context
+    const historyContext = chatHistory.length > 0 
+      ? chatHistory.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.message}`).join('\n\n')
+      : "No previous messages in this session.";
+
+    const finalPrompt = `
+${systemPrompt}
+
+RECENT CONVERSATION HISTORY:
+${historyContext}
+
+NEW USER QUESTION:
+${prompt}
+
+Assistant:`;
+
     const response = await ai.models.generateContent({
       model: getModel(),
-      contents: prompt,
+      contents: finalPrompt,
     });
 
     return response.text;

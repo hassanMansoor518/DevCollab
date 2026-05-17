@@ -27,6 +27,9 @@ const projectSchema = new mongoose.Schema(
       forks: Number,
       languages: [String],
     },
+
+    projectStructure: { type: Object },
+    indexedCodeSummary: { type: String },
   },
   { timestamps: true }
 );
