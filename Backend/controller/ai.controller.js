@@ -55,7 +55,7 @@ export const getResult = async (req, res) => {
           .sort({ createdAt: -1 })
           .limit(10)
           .lean();
-        
+
         chatHistory = chatHistory.reverse();
       }
     }
@@ -250,11 +250,11 @@ export const analyzeCode = async (req, res) => {
     }
 
     const analysisResult = await ai.analyzeCode({ code, filename, language });
-    
+
     return res.status(200).json(analysisResult);
   } catch (error) {
     console.error('Analyze Code Error:', error);
-    
+
     return res.status(500).json({
       message: 'AI code analysis temporarily unavailable',
       error: error.message,
@@ -271,14 +271,14 @@ export const fixIssue = async (req, res) => {
     }
 
     const result = await ai.fixCodeIssue({ code, filename, language, issueTitle, issueDescription });
-    
+
     return res.status(200).json(result);
   } catch (error) {
     console.error('Fix Issue Error:', error);
-    
+
     return res.status(500).json({
       message: 'Failed to apply code fix via AI',
       error: error.message,
     });
   }
-};
+}

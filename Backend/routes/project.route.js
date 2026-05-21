@@ -297,7 +297,7 @@ router.get("/", protectRoute, async (req, res) => {
         { members: fullName }
       ]
     }).toArray();
-    
+
     res.json(projects);
   } catch (err) {
     console.error("Fetch Projects Error:", err.message);

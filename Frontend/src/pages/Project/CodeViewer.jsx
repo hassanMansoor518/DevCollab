@@ -12,6 +12,7 @@ import {
   RefreshCcw,
   Save,
 } from "lucide-react";
+
 import AiCodeReviewer from "../../component/AiCodeReviewer";
 
 export default function CodeViewer({ projectId }) {
@@ -51,6 +52,7 @@ export default function CodeViewer({ projectId }) {
   /* ---------------- LANGUAGE ---------------- */
   const getLanguage = (filePath) => {
     if (!filePath) return "javascript";
+
     const ext = filePath.split(".").pop();
     const map = {
       js: "javascript",
@@ -63,6 +65,7 @@ export default function CodeViewer({ projectId }) {
       md: "markdown",
       py: "python",
     };
+
     return map[ext] || "plaintext";
   };
 
@@ -82,21 +85,23 @@ export default function CodeViewer({ projectId }) {
             setPathHistory((p) => [...p, currentPath]);
           }
 
-          setFileTree(res.data.items);
+          setFileTree(res.data.items || []);
           setCurrentPath(path);
           setActiveTab(null);
           setCode("");
         } else {
+          const filePath = path;
+
           setCode(res.data.content || "");
-          setActiveTab(path);
+          setActiveTab(filePath);
 
           setOpenTabs((prev) => {
-            if (prev.find((t) => t.path === path)) return prev;
-            return [...prev, { path, name: path.split("/").pop() }];
+            if (prev.find((t) => t.path === filePath)) return prev;
+            return [...prev, { path: filePath, name: filePath.split("/").pop() }];
           });
         }
       } catch (err) {
-        console.error(err);
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -111,6 +116,7 @@ export default function CodeViewer({ projectId }) {
   /* ---------------- NAVIGATION ---------------- */
   const goBack = () => {
     if (!pathHistory.length) return;
+
     const prev = pathHistory[pathHistory.length - 1];
     setPathHistory((p) => p.slice(0, -1));
     fetchFiles(prev, false);
@@ -156,7 +162,8 @@ export default function CodeViewer({ projectId }) {
     setOpenTabs(remaining);
 
     if (activeTab === path) {
-      setActiveTab(remaining.length ? remaining[0].path : null);
+      const next = remaining.length ? remaining[0].path : null;
+      setActiveTab(next);
       setCode("");
     }
   };
@@ -172,22 +179,21 @@ export default function CodeViewer({ projectId }) {
       }
     );
 
-    alert("🚀 Code pushed to GitHub");
+    alert("🚀 Saved successfully");
   };
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="h-[650px] flex rounded-2xl overflow-hidden
-    bg-[rgba(10,15,26,0.7)] backdrop-blur-xl
-    border border-[rgba(255,255,255,0.06)]
-    shadow-[0_0_40px_rgba(88,101,242,0.15)] text-white">
+    <div className="h-[650px] flex rounded-2xl overflow-hidden bg-[#0b1220] text-white border border-white/5">
 
-      {/* SIDEBAR */}
-      <div className="w-72 flex flex-col bg-[rgba(11,18,32,0.6)]
-      border-r border-[rgba(255,255,255,0.05)]">
+      {/* LEFT SIDEBAR */}
+      <div className="w-72 flex flex-col bg-[#0a0f1a] border-r border-white/5">
 
-        <div className="flex items-center justify-between p-3 border-b border-[rgba(255,255,255,0.05)]">
-          <button onClick={goBack}><ChevronLeft size={16} /></button>
+        {/* HEADER */}
+        <div className="flex items-center justify-between p-3 border-b border-white/5">
+          <button onClick={goBack}>
+            <ChevronLeft size={16} />
+          </button>
 
           <div className="flex gap-2">
             <button onClick={createFile}><Plus size={16} /></button>
@@ -197,109 +203,110 @@ export default function CodeViewer({ projectId }) {
           </div>
         </div>
 
+        {/* FILE LIST */}
         <div className="flex-1 overflow-auto p-2 space-y-1">
-          {fileTree.map((item) => (
-            <div key={item.path}
-              className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-indigo-500/10">
+          {fileTree.length === 0 ? (
+            <div className="text-xs text-gray-500 p-2">No files found</div>
+          ) : (
+            fileTree.map((item) => (
+              <div
+                key={item.path}
+                className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-indigo-500/10"
+              >
+                <div
+                  onClick={() => fetchFiles(item.path)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  {item.type === "dir" ? (
+                    <Folder size={14} className="text-yellow-400" />
+                  ) : (
+                    <File size={14} className="text-blue-400" />
+                  )}
 
-              <div onClick={() => fetchFiles(item.path)}
-                className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-gray-400 group-hover:text-white">
+                    {item.name}
+                  </span>
+                </div>
 
-                {item.type === "dir"
-                  ? <Folder size={14} className="text-yellow-400" />
-                  : <File size={14} className="text-blue-400" />}
-
-                <span className="text-sm text-gray-400 group-hover:text-white">
-                  {item.name}
-                </span>
+                <button
+                  onClick={() => deleteItem(item.path)}
+                  className="opacity-0 group-hover:opacity-100 text-red-400"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
+            ))
+          )}
+        </div>
+      </div>
 
-              <button onClick={() => deleteItem(item.path)}
-                className="opacity-0 group-hover:opacity-100 text-red-400">
-                <Trash2 size={14} />
-              </button>
+      {/* CENTER (EDITOR) */}
+      <div className="flex-1 flex flex-col">
+
+        {/* TABS */}
+        <div className="flex border-b border-white/5 overflow-x-auto">
+          {openTabs.map((tab) => (
+            <div
+              key={tab.path}
+              onClick={() => switchTab(tab.path)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm cursor-pointer whitespace-nowrap
+              ${activeTab === tab.path
+                  ? "bg-[#111827] border-b-2 border-indigo-500"
+                  : "text-gray-500 hover:text-white"}`}
+            >
+              <File size={12} />
+              {tab.name}
+
+              <X size={12} onClick={(e) => closeTab(tab.path, e)} />
             </div>
           ))}
         </div>
-      </div>
 
-      {/* MAIN + RIGHT */}
-      <div className="flex-1 flex">
-
-        {/* EDITOR AREA */}
-        <div className="flex-1 flex flex-col">
-
-          {/* TABS */}
-          <div className="flex border-b border-white/5">
-            {openTabs.map((tab) => (
-              <div key={tab.path}
-                onClick={() => switchTab(tab.path)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm cursor-pointer
-                ${activeTab === tab.path
-                    ? "bg-[#111827] border-b-2 border-indigo-500"
-                    : "text-gray-500 hover:text-white"}`}>
-
-                <File size={12} />
-                {tab.name}
-
-                <X size={12} onClick={(e) => closeTab(tab.path, e)} />
-              </div>
-            ))}
+        {/* COMMIT BAR */}
+        {activeTab && (
+          <div className="flex gap-2 p-2 bg-[#0f172a] border-b border-white/5">
+            <input
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              placeholder="Commit message..."
+              className="flex-1 px-2 py-1 bg-[#1e293b] rounded text-sm outline-none"
+            />
+            <button onClick={saveFile} className="bg-indigo-600 px-3 py-1 rounded">
+              <Save size={14} />
+            </button>
           </div>
+        )}
 
-          {/* COMMIT */}
-          {activeTab && (
-            <div className="flex gap-2 p-2 bg-[#0f172a] border-b border-white/5">
-              <input
-                value={commitMessage}
-                onChange={(e) => setCommitMessage(e.target.value)}
-                placeholder="Commit message..."
-                className="flex-1 px-2 py-1 bg-[#1e293b] rounded text-sm"
-              />
-              <button onClick={saveFile}
-                className="bg-indigo-600 px-3 py-1 rounded">
-                <Save size={14} />
-              </button>
+        {/* EDITOR */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="p-4 text-gray-400">Loading...</div>
+          ) : activeTab ? (
+            <Editor
+              height="100%"
+              theme="devcollab-dark"
+              language={getLanguage(activeTab)}
+              value={code}
+              onChange={(v) => setCode(v || "")}
+              options={{ minimap: { enabled: false } }}
+            />
+          ) : (
+            <div className="p-6 text-gray-500">
+              Select a file to start coding 🚀
             </div>
           )}
-
-          {/* EDITOR */}
-          <div className="flex-1">
-            {loading ? (
-              <div className="p-4 text-gray-400">Loading...</div>
-            ) : activeTab ? (
-              <Editor
-                height="100%"
-                theme="devcollab-dark"
-                language={getLanguage(activeTab)}
-                value={code}
-                onChange={(v) => setCode(v)}
-                options={{ minimap: { enabled: false } }}
-              />
-            ) : (
-              <div className="p-6 text-gray-500">
-                Select a file 🚀
-              </div>
-            )}
-          </div>
         </div>
-
-        {/* RIGHT PANEL */}
-
       </div>
 
-      <AiCodeReviewer 
-        filename={activeTab} 
-        code={code} 
-        language={getLanguage(activeTab)} 
+      {/* RIGHT AI PANEL */}
+      <AiCodeReviewer
+        filename={activeTab}
+        code={code}
+        language={getLanguage(activeTab)}
         onApplyFix={setCode}
         projectId={projectId}
       />
     </div>
   );
-
-
-
-
 }
 

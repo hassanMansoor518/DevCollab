@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { Search, Code2, BookOpen } from "lucide-react";
-import { FaProjectDiagram, FaComments, FaServer, FaCog, FaGithub } from "react-icons/fa";
+import { Search, Code2, BookOpen, Bot } from "lucide-react";
+import { FaProjectDiagram, FaComments, FaServer, FaCog, FaGithub, FaCode } from "react-icons/fa";
 import { AiOutlineRobot } from "react-icons/ai";
 import { motion, AnimatePresence } from "framer-motion";
 import Login from "../auth/Login";
 import Signup from "../auth/Signup";
+import FeaturesSection from "./FeaturesSection";
+import ProjectsSection from "./ProjectsSection";
+import TeamsSection from "./TeamsSection";
+import AIFeaturesSection from "./AIFeaturesSection";
 
 export default function DevCollabLanding() {
   const [showLogin, setShowLogin] = useState(false);
@@ -32,7 +36,7 @@ export default function DevCollabLanding() {
 
         {/* ================= NAVBAR ================= */}
         <motion.nav
-          className="flex items-center justify-between px-15 py-4 border-b border-slate-800"
+          className="flex items-center justify-between px-18 py-8 border-b border-slate-800"
           initial="hidden"
           animate="visible"
           variants={staggerChildren}
@@ -41,17 +45,17 @@ export default function DevCollabLanding() {
             <div className="bg-blue-600 p-2 rounded-md">
               <Code2 size={18} />
             </div>
-            <span className="font-semibold text-lg">DevCollab</span>
+            <span className="font-semibold text-xl">DevCollab</span>
           </motion.div>
 
           <motion.div
             className="hidden md:flex gap-8 text-sm text-slate-300"
             variants={fadeInUp}
           >
-            <a href="#">Features</a>
-            <a href="#">Projects</a>
-            <a href="#">Teams</a>
-            <a href="#">AI Features</a>
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#projects" className="hover:text-white transition-colors">Projects</a>
+            <a href="#teams" className="hover:text-white transition-colors">Teams</a>
+            <a href="#ai" className="hover:text-white transition-colors">AI Features</a>
           </motion.div>
 
           {/* ===== LOGIN + SIGNUP BUTTONS ===== */}
@@ -172,7 +176,7 @@ export default function DevCollabLanding() {
                       <FaComments /> Conversations
                     </div>
                     <div className="text-slate-400 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer flex items-center gap-2">
-                      <FaServer /> Deployments
+                      <FaCode /> Ai Assistant
                     </div>
                     <div className="text-slate-400 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer flex items-center gap-2">
                       <FaCog /> Settings
@@ -269,43 +273,14 @@ export default function DevCollabLanding() {
 
         </section>
 
-        {/* ================= FEATURES ================= */}
-        <section className="relative py-24 px-6 border-t border-slate-800 bg-[#0B1120]">
-          <div className="max-w-6xl mx-auto">
-            {/* Top Header Row */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-14">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                  Everything you need to build
-                </h2>
-                <p className="text-slate-400 max-w-2xl text-sm md:text-base">
-                  We've integrated every part of the development cycle into a single
-                  cohesive experience. No more context switching.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature Cards */}
-            <motion.div className="grid md:grid-cols-3 gap-8" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerChildren}>
-              {[
-                { icon: "💬", title: "Contextual Chat", desc: "Discuss code directly in the editor. Mention teammates and resolve issues seamlessly." },
-                { icon: "⏳", title: "Time Travel", desc: "Review your project at any point in time. Visualize commit history and merge conflicts." },
-                { icon: "🚀", title: "Safe Deploys", desc: "Automated Canary releases and instant rollbacks. Monitor performance and logs in real-time." }
-              ].map((feature, i) => (
-                <motion.div key={i} className="group bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-800 p-8 rounded-2xl hover:-translate-y-2 hover:border-blue-500/40 transition-all duration-300 shadow-lg" variants={fadeInUp}>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 mb-5">
-                    {feature.icon}
-                  </div>
-                  <h3 className="font-semibold text-lg mb-3 text-white">{feature.title}</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
+        {/* ================= NEW SECTIONS ================= */}
+        <FeaturesSection />
+        <ProjectsSection />
+        <TeamsSection />
+        <AIFeaturesSection />
 
         {/* ================= FOOTER ================= */}
-        <motion.footer className="border-t border-slate-800 bg-[#0B1120]" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+        <motion.footer className="bg-[#0B1120]" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
           <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-400">
             {/* Left Side */}
             <div className="flex items-center gap-2 mb-4 md:mb-0">

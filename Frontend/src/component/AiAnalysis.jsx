@@ -162,7 +162,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             < div className="border-t border-white/5" />
 
             < div >
-                <button 
+                <button
                     onClick={handleGenerateReport}
                     disabled={isGenerating}
                     className="text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded disabled:opacity-50 flex items-center gap-2"
@@ -253,7 +253,7 @@ const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
 
             {/* ACTION */}
             {hasFix && (
-                <button 
+                <button
                     onClick={handleFix}
                     disabled={isFixing}
                     className="flex items-center gap-1 text-xs text-blue-400 mt-2 hover:underline disabled:opacity-50 disabled:no-underline"
