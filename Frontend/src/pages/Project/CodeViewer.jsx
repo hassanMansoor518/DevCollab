@@ -184,13 +184,13 @@ export default function CodeViewer({ projectId }) {
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="h-[650px] flex rounded-2xl overflow-hidden bg-[#0b1220] text-white border border-white/5">
+    <div className="h-[650px] flex rounded-2xl overflow-hidden bg-background text-text-primary border border-border-subtle">
 
       {/* LEFT SIDEBAR */}
-      <div className="w-72 flex flex-col bg-[#0a0f1a] border-r border-white/5">
+      <div className="w-72 flex flex-col bg-sidebar border-r border-border-subtle">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between p-3 border-b border-white/5">
+        <div className="flex items-center justify-between p-3 border-b border-border-subtle">
           <button onClick={goBack}>
             <ChevronLeft size={16} />
           </button>
@@ -203,15 +203,14 @@ export default function CodeViewer({ projectId }) {
           </div>
         </div>
 
-        {/* FILE LIST */}
         <div className="flex-1 overflow-auto p-2 space-y-1">
           {fileTree.length === 0 ? (
-            <div className="text-xs text-gray-500 p-2">No files found</div>
+            <div className="text-xs text-text-secondary p-2">No files found</div>
           ) : (
             fileTree.map((item) => (
               <div
                 key={item.path}
-                className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-indigo-500/10"
+                className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-hover-bg"
               >
                 <div
                   onClick={() => fetchFiles(item.path)}
@@ -223,7 +222,7 @@ export default function CodeViewer({ projectId }) {
                     <File size={14} className="text-blue-400" />
                   )}
 
-                  <span className="text-sm text-gray-400 group-hover:text-white">
+                  <span className="text-sm text-text-secondary group-hover:text-text-primary">
                     {item.name}
                   </span>
                 </div>
@@ -244,15 +243,15 @@ export default function CodeViewer({ projectId }) {
       <div className="flex-1 flex flex-col">
 
         {/* TABS */}
-        <div className="flex border-b border-white/5 overflow-x-auto">
+        <div className="flex border-b border-border-subtle overflow-x-auto">
           {openTabs.map((tab) => (
             <div
               key={tab.path}
               onClick={() => switchTab(tab.path)}
               className={`flex items-center gap-2 px-4 py-2 text-sm cursor-pointer whitespace-nowrap
               ${activeTab === tab.path
-                  ? "bg-[#111827] border-b-2 border-indigo-500"
-                  : "text-gray-500 hover:text-white"}`}
+                  ? "bg-input-bg border-b-2 border-indigo-500"
+                  : "text-text-secondary hover:text-text-primary"}`}
             >
               <File size={12} />
               {tab.name}
@@ -264,12 +263,12 @@ export default function CodeViewer({ projectId }) {
 
         {/* COMMIT BAR */}
         {activeTab && (
-          <div className="flex gap-2 p-2 bg-[#0f172a] border-b border-white/5">
+          <div className="flex gap-2 p-2 bg-surface border-b border-border-subtle">
             <input
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
               placeholder="Commit message..."
-              className="flex-1 px-2 py-1 bg-[#1e293b] rounded text-sm outline-none"
+              className="flex-1 px-2 py-1 bg-input-bg rounded text-sm outline-none text-text-primary placeholder:text-text-muted"
             />
             <button onClick={saveFile} className="bg-indigo-600 px-3 py-1 rounded">
               <Save size={14} />
@@ -280,7 +279,7 @@ export default function CodeViewer({ projectId }) {
         {/* EDITOR */}
         <div className="flex-1">
           {loading ? (
-            <div className="p-4 text-gray-400">Loading...</div>
+            <div className="p-4 text-text-secondary">Loading...</div>
           ) : activeTab ? (
             <Editor
               height="100%"
@@ -291,7 +290,7 @@ export default function CodeViewer({ projectId }) {
               options={{ minimap: { enabled: false } }}
             />
           ) : (
-            <div className="p-6 text-gray-500">
+            <div className="p-6 text-text-secondary">
               Select a file to start coding 🚀
             </div>
           )}

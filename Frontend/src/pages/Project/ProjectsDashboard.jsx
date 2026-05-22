@@ -126,7 +126,7 @@ export default function ProjectsDashboard() {
       <DashboardLeftSide />
 
       {/* ===== Main Content ===== */}
-      <div className="flex-1 h-screen overflow-y-auto bg-gradient-to-br from-[#050B18] via-[#071428] to-[#030712] text-white px-8 py-6">
+      <div className="flex-1 h-screen overflow-y-auto bg-[#0B1220] text-white px-8 py-6">
 
         {/* Top Header */}
         <DashboardHeader user={user} />

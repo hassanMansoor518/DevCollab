@@ -43,7 +43,7 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
                 { code, filename, language, issueTitle, issueDescription },
                 { withCredentials: true }
             );
-            
+
             if (response.data.fixedCode && onApplyFix) {
                 onApplyFix(response.data.fixedCode);
                 // Optionally trigger a re-analysis
@@ -89,7 +89,7 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
                 ) : error ? (
                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
                         <p className="text-red-400 text-sm">{error}</p>
-                        <button 
+                        <button
                             onClick={handleRunTestCases}
                             className="text-xs bg-white/5 hover:bg-white/10 px-4 py-2 rounded text-white"
                         >
@@ -97,9 +97,9 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
                         </button>
                     </div>
                 ) : analysisResult ? (
-                    <AiAnalysis 
-                        result={analysisResult} 
-                        onApplyFix={applyFix} 
+                    <AiAnalysis
+                        result={analysisResult}
+                        onApplyFix={applyFix}
                         projectId={projectId}
                         filename={filename}
                         language={language}

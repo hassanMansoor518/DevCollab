@@ -32,36 +32,36 @@ export default function AddMemberModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0B1120] w-[420px] rounded-2xl border border-[#1C2333] shadow-2xl p-5">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-card w-[420px] rounded-2xl border border-border-default shadow-2xl p-5">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-white font-semibold text-lg">
+          <h2 className="text-text-primary font-semibold text-lg">
             Add Member to Project
           </h2>
           <button onClick={onClose}>
-            <X className="text-gray-400 hover:text-white" />
+            <X className="text-text-secondary hover:text-text-primary" />
           </button>
         </div>
 
         {/* Search + Role */}
         <div className="flex gap-2 mb-4">
-          <div className="flex items-center bg-[#111827] px-3 rounded-lg flex-1">
-            <Search className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center bg-input-bg px-3 rounded-lg flex-1">
+            <Search className="w-4 h-4 text-text-secondary" />
             <input
               type="text"
               placeholder="Search by email or name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none text-sm px-2 py-2 w-full text-white"
+              className="bg-transparent outline-none text-sm px-2 py-2 w-full text-text-primary placeholder:text-text-muted"
             />
           </div>
 
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="bg-[#111827] text-sm text-white px-3 rounded-lg"
+            className="bg-input-bg text-sm text-text-primary px-3 rounded-lg"
           >
             <option>Developer</option>
             <option>Admin</option>
@@ -71,7 +71,7 @@ export default function AddMemberModal({
 
         {/* Suggested Users */}
         <div className="mb-4">
-          <p className="text-xs text-gray-400 mb-2">
+          <p className="text-xs text-text-secondary mb-2">
             SUGGESTED TEAM MEMBERS
           </p>
 
@@ -84,7 +84,7 @@ export default function AddMemberModal({
               return (
                 <div
                   key={user._id}
-                  className="flex items-center justify-between bg-[#0f172a] px-3 py-2 rounded-lg hover:bg-[#1e293b] transition"
+                  className="flex items-center justify-between bg-surface border border-border-subtle px-3 py-2 rounded-lg hover:bg-hover-bg transition"
                 >
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
@@ -93,10 +93,10 @@ export default function AddMemberModal({
                     </div>
 
                     <div>
-                      <p className="text-sm text-white">
+                      <p className="text-sm text-text-primary">
                         {user.fullName}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-text-secondary">
                         {user.email}
                       </p>
                     </div>
@@ -108,12 +108,12 @@ export default function AddMemberModal({
                     className={`w-8 h-8 flex items-center justify-center rounded-full border ${
                       isSelected
                         ? "bg-blue-600 border-blue-600"
-                        : "border-gray-500"
+                        : "border-border-default text-text-secondary hover:text-text-primary"
                     }`}
                   >
                     <Plus
                       className={`w-4 h-4 ${
-                        isSelected ? "text-white" : "text-gray-400"
+                        isSelected ? "text-white" : "currentColor"
                       }`}
                     />
                   </button>
@@ -127,7 +127,7 @@ export default function AddMemberModal({
         <div className="flex justify-between items-center mt-4">
           <button
             onClick={onClose}
-            className="text-gray-400 text-sm hover:text-white"
+            className="text-text-secondary text-sm hover:text-text-primary"
           >
             Cancel
           </button>

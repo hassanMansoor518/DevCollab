@@ -26,7 +26,7 @@ export default function InviteModal({ users, onClose, onInvite }) {
   return (
     <div className="
       fixed inset-0
-      bg-black/60
+      bg-black/40 dark:bg-black/60
       backdrop-blur-md
       flex items-center justify-center
       z-50
@@ -35,8 +35,8 @@ export default function InviteModal({ users, onClose, onInvite }) {
 
       <div className="
         w-full max-w-md
-        bg-[#111827]
-        border border-white/[0.05]
+        bg-surface
+        border border-border-subtle
         rounded-2xl
         overflow-hidden
       ">
@@ -45,7 +45,7 @@ export default function InviteModal({ users, onClose, onInvite }) {
         <div className="
           flex items-center justify-between
           px-4 py-3
-          border-b border-white/[0.05]
+          border-b border-border-subtle
         ">
 
           <h2 className="text-sm font-medium flex items-center gap-2">
@@ -55,7 +55,7 @@ export default function InviteModal({ users, onClose, onInvite }) {
 
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white"
+            className="text-text-secondary hover:text-text-primary"
           >
             <FiX />
           </button>
@@ -63,14 +63,14 @@ export default function InviteModal({ users, onClose, onInvite }) {
         </div>
 
         {/* SEARCH */}
-        <div className="p-3 border-b border-white/[0.05]">
+        <div className="p-3 border-b border-border-subtle">
           <div className="
             flex items-center gap-2
-            bg-white/[0.03]
+            bg-input-bg
             px-3 py-2
             rounded-xl
           ">
-            <FiSearch className="text-gray-500" />
+            <FiSearch className="text-text-secondary" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -80,7 +80,8 @@ export default function InviteModal({ users, onClose, onInvite }) {
                 outline-none
                 text-sm
                 w-full
-                placeholder:text-gray-500
+                text-text-primary
+                placeholder:text-text-muted
               "
             />
           </div>
@@ -101,8 +102,8 @@ export default function InviteModal({ users, onClose, onInvite }) {
                   p-2 rounded-xl
                   cursor-pointer
                   transition
-                  hover:bg-white/[0.03]
-                  ${isSelected ? "bg-white/[0.05]" : ""}
+                  hover:bg-hover-bg
+                  ${isSelected ? "bg-hover-bg/80 dark:bg-hover-bg" : ""}
                 `}
               >
 
@@ -114,10 +115,10 @@ export default function InviteModal({ users, onClose, onInvite }) {
                   />
 
                   <div>
-                    <p className="text-sm text-white">
+                    <p className="text-sm text-text-primary">
                       {user.fullName}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-text-secondary">
                       {user.email}
                     </p>
                   </div>
@@ -127,8 +128,8 @@ export default function InviteModal({ users, onClose, onInvite }) {
                 <div className={`
                   text-xs px-2 py-1 rounded-lg
                   ${isSelected
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-400"
+                    ? "bg-blue-600 text-white"
+                    : "text-text-secondary"
                   }
                 `}>
                   {isSelected ? "Added" : "Add"}
@@ -144,10 +145,10 @@ export default function InviteModal({ users, onClose, onInvite }) {
         <div className="
           flex justify-between items-center
           p-3
-          border-t border-white/[0.05]
+          border-t border-border-subtle
         ">
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-text-secondary">
             {selected.length} selected
           </p>
 

@@ -5,18 +5,17 @@ import useConversation from "../../zustand/useConversation.js";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide.jsx";
 
 function Chat() {
-  const { selectedConversation } = useConversation();
+    const { selectedConversation } = useConversation();
 
-  return (
-    <div className="h-screen flex overflow-hidden bg-gray-900 text-gray-100">
-       <DashboardLeftSide/>
-       <Left/>
-       <Right/>
-      
-    </div>
-  );
+    return (
+        <div className="app-shell">
+            <DashboardLeftSide />
+            <Left />
+            <Right />
+
+        </div>
+    );
 }
 
 export default Chat;
-
 

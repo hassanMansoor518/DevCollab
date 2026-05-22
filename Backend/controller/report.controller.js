@@ -35,6 +35,7 @@ export const generateReport = async (req, res) => {
 
     // Create Report in DB
     const report = new Report({
+      user: req.user._id,
       projectId,
       projectName: project.projectName,
       title: `${project.projectName} - ${filename.split('/').pop()} Audit`,
@@ -90,14 +91,25 @@ export const getReportsByProject = async (req, res) => {
 // Get all reports (across all projects for user)
 export const getAllReports = async (req, res) => {
   try {
-    // Assuming we want to filter by projects the user belongs to, 
-    // but for now let's just get all reports as a simpler version 
-    // unless we have complex multi-user separation requirements.
-    const reports = await Report.find().sort({ createdAt: -1 }).populate('projectId');
-    res.status(200).json({ reports });
+    // logged in user id
+    const userId = req.user._id;
+
+    // only current user reports
+    const reports = await Report.find({
+      user: userId,
+    })
+      .sort({ createdAt: -1 })
+      .populate("projectId");
+
+    res.status(200).json({
+      reports,
+    });
   } catch (error) {
     console.error("Error fetching all reports:", error);
-    res.status(500).json({ message: "Internal server error" });
+
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
 

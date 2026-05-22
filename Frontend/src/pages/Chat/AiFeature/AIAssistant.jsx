@@ -14,6 +14,10 @@ export default function AIAssistant() {
   const { selectedProject } = useProjectStore();
 
   const hasMessages = aiMessages.length > 0;
+  
+ const User = JSON.parse(localStorage.getItem("ChatApp"));
+   const user = User?.user;
+   const token =User?.token;
 
   // 👉 FETCH HISTORY ON MOUNT / PROJECT CHANGE
   useEffect(() => {
@@ -25,11 +29,11 @@ export default function AIAssistant() {
   }, [selectedProject?._id, fetchHistory, clearMessages]);
 
   return (
-    <div className="flex flex-col max-w-10xl h-screen bg-gradient-to-br from-[#0b1220] via-[#0a0f1c] text-white overflow-hidden">
+    <div className="flex flex-col max-w-10xl h-screen bg-[#0B1220] text-text-primary overflow-hidden">
 
       {/* ================= HEADER ================= */}
-      <div className="shrink-0 px-6 py-4 border-b border-white/10 backdrop-blur-xl sticky top-0 z-50">
-        <AIAssistantHeader user={authUser?.user} />
+      <div className="shrink-0 px-6 py-4 border-b border-border-subtle backdrop-blur-xl sticky top-0 z-50">
+       <AIAssistantHeader user={user} />
       </div>
 
       {/* ================= CHAT AREA ================= */}
@@ -46,7 +50,7 @@ export default function AIAssistant() {
               </span>
             </h1>
 
-            <p className="text-gray-400 max-w-xl mb-10">
+            <p className="text-text-secondary max-w-xl mb-10">
               Leverage AI to refactor, debug, and improve your code with smart insights.
             </p>
 
@@ -97,7 +101,7 @@ export default function AIAssistant() {
 /* ================= CARD ================= */
 function Card({ icon, title, desc, iconColor, bgColor }) {
   return (
-    <div className="bg-[#111625] border border-white/5 rounded-2xl px-8 py-6 text-left hover:bg-[#161c2e] transition">
+    <div className="bg-card border border-border-subtle rounded-2xl px-8 py-6 text-left hover:bg-hover-bg transition">
 
       <div className={`p-4 rounded-xl ${bgColor} ${iconColor} mb-4 w-fit`}>
         {icon}
@@ -105,7 +109,7 @@ function Card({ icon, title, desc, iconColor, bgColor }) {
 
       <h3 className="text-xl font-bold mb-4">{title}</h3>
 
-      <p className="text-slate-400 text-sm">{desc}</p>
+      <p className="text-text-secondary text-sm">{desc}</p>
     </div>
   );
 }

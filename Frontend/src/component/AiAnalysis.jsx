@@ -50,8 +50,8 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             {/* HEALTH SCORE */}
             < div >
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Health Score</span>
-                    <span className="text-xs text-gray-500">Updated now</span>
+                    <span className="text-xs text-text-secondary">Health Score</span>
+                    <span className="text-xs text-text-muted">Updated now</span>
                 </div>
 
                 <div className="mt-3 flex items-center gap-4">
@@ -63,7 +63,8 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                                 cx="32"
                                 cy="32"
                                 r="28"
-                                stroke="#1f2937"
+                                stroke="currentColor"
+                                className="text-border-default"
                                 strokeWidth="4"
                                 fill="none"
                             />
@@ -81,17 +82,17 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                             />
                         </svg>
 
-                        <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-white">
+                        <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-text-primary">
                             {healthScore}
                         </div>
                     </div>
 
                     {/* META */}
                     <div className="flex flex-col">
-                        <span className="text-sm text-white font-medium">
+                        <span className="text-sm text-text-primary font-medium">
                             {healthScore > 80 ? "Excellent" : healthScore > 50 ? "Moderate" : "Poor"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-text-muted">
                             Maintainability is {maintainability?.toLowerCase()}
                         </span>
                     </div>
@@ -100,26 +101,26 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                 {/* STATS */}
                 <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                        <p className="text-xs text-gray-500">Complexity</p>
+                        <p className="text-xs text-text-muted">Complexity</p>
                         <p className="text-sm text-green-400 font-medium">{complexity || "N/A"}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500">Issues</p>
-                        <p className="text-sm text-white font-medium">{issues.length}</p>
+                        <p className="text-xs text-text-muted">Issues</p>
+                        <p className="text-sm text-text-primary font-medium">{issues.length}</p>
                     </div>
                 </div>
             </div>
 
             {/* DIVIDER */}
-            < div className="border-t border-white/5" />
+            < div className="border-t border-border-subtle" />
 
             {/* ISSUES */}
             < div >
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs text-gray-400 uppercase tracking-wide">
+                    <h3 className="text-xs text-text-secondary uppercase tracking-wide">
                         Issues
                     </h3>
-                    <span className="text-xs text-gray-500">{issues.length} total</span>
+                    <span className="text-xs text-text-muted">{issues.length} total</span>
                 </div>
 
                 <div className="space-y-3">
@@ -144,12 +145,12 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             {/* SUGGESTIONS */}
             {suggestions && suggestions.length > 0 && (
                 <>
-                    <div className="border-t border-white/5" />
+                    <div className="border-t border-border-subtle" />
                     <div>
-                        <h3 className="text-xs text-gray-400 uppercase tracking-wide mb-3">
+                        <h3 className="text-xs text-text-secondary uppercase tracking-wide mb-3">
                             Suggestions
                         </h3>
-                        <ul className="list-disc pl-4 space-y-2 text-sm text-gray-300">
+                        <ul className="list-disc pl-4 space-y-2 text-sm text-text-primary">
                             {suggestions.map((sug, i) => (
                                 <li key={i}>{sug}</li>
                             ))}
@@ -159,7 +160,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             )}
 
             {/* DIVIDER */}
-            < div className="border-t border-white/5" />
+            < div className="border-t border-border-subtle" />
 
             < div >
                 <button
@@ -222,9 +223,9 @@ const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
 
     return (
         <div
-            className={`relative bg-[#0B1220] rounded-lg p-4
+            className={`relative bg-surface rounded-lg p-4
       border-l-2 ${s.border} 
-      border-l-4 border-[rgba(255,255,255,0.05)]`}
+      border-l-4 border-border-subtle shadow-md`}
         >
             {/* TOP ROW */}
             <div className="flex items-center justify-between mb-2">
@@ -234,19 +235,19 @@ const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
                     {severity.toUpperCase()} SEVERITY
                 </span>
 
-                <span className="text-[11px] text-gray-400">
+                <span className="text-[11px] text-text-secondary">
                     {line || "Global"}
                 </span>
             </div>
 
             {/* TITLE */}
-            <p className="text-sm text-white font-medium leading-snug">
+            <p className="text-sm text-text-primary font-medium leading-snug">
                 {title}
             </p>
 
             {/* DESCRIPTION */}
             {description && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-text-secondary mt-1">
                     {description}
                 </p>
             )}

@@ -9,6 +9,9 @@ export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+  const user = authUser?.user;
+  const token = authUser?.token;
   useEffect(() => {
     fetchReports();
   }, []);
@@ -60,13 +63,13 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#050B18] text-white font-[Inter] overflow-hidden">
+    <div className="flex h-screen bg-[#0B1220] text-white font-[Inter] overflow-hidden">
       <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined" rel="stylesheet" />
 
       <DashboardLeftSide />
 
-      <div className="flex-1 overflow-y-auto px-8 py-6 bg-gradient-to-br from-[#050B18] via-[#071428] to-[#030712]">
-        <DashboardHeader />
+      <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#0B1220]">
+        <DashboardHeader user={user} />
 
         <div className="flex justify-between items-end mt-8 mb-8">
           <div>
@@ -102,7 +105,7 @@ export default function ReportsPage() {
             <p className="text-gray-400">Loading reports...</p>
           </div>
         ) : reports.length === 0 ? (
-          <div className="bg-[#0e1625] p-12 rounded-lg border border-[#1f2a44] text-center">
+          <div className="bg-[#0B1220] p-12 rounded-lg border border-[#1f2a44] text-center">
             <span className="material-symbols-outlined text-5xl text-gray-600 mb-4">analytics</span>
             <h3 className="text-xl font-bold">No Reports Yet</h3>
             <p className="text-gray-400 mt-2">Generate your first AI code audit from the Project view.</p>
