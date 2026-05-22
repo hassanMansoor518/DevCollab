@@ -4,9 +4,7 @@ import useSendMessage from "../../../context/useSendMessage.js";
 import useSendAiMessage from "../../../context/useSendAiMessage.jsx";
 import useConversation from "../../../zustand/useConversation.js";
 import { useAuth } from "../../../context/AuthProvider.jsx";
-import { FiSmile, FiAtSign } from "react-icons/fi";
-import { IoSend } from "react-icons/io5";
-import { HiPlus } from "react-icons/hi";
+import { Smile, AtSign, Plus, Send, Sparkles, Loader2 } from "lucide-react";
 
 function Typesend() {
     const [text, setText] = useState("");
@@ -19,8 +17,10 @@ function Typesend() {
     const { selectedConversation, selectedWorkspace } = useConversation();
     const [authUser] = useAuth();
 
+    const isAiMessageActive = text.toLowerCase().includes("@ai");
+    const isLoading = msgLoading || aiLoading;
+
     const emitTyping = (isTyping) => {
-        // ✅ Only emit typing for DM conversations, not workspaces
         if (!socket || !selectedConversation?._id) return;
 
         const myId = authUser?.user?._id;
@@ -40,23 +40,22 @@ function Typesend() {
 
     const handleSend = async (e) => {
         e.preventDefault();
-        if (!text.trim()) return;
+        if (!text.trim() || isLoading) return;
 
         const isAiMessage = text.toLowerCase().includes("@ai");
 
         if (isAiMessage) {
             const prompt = text.replace(/@ai/i, "").trim();
             if (prompt) {
-                await sendAiMessage(prompt); // ✅ send AI message only
+                await sendAiMessage(prompt);
             }
         } else {
-            await sendMessages(text); // ✅ send normal message
+            await sendMessages(text);
         }
 
         setText("");
         setTyping(false);
 
-        // ✅ Only emit typing stop for DM
         if (selectedConversation?._id) {
             emitTyping(false);
         }
@@ -65,7 +64,6 @@ function Typesend() {
     const handleChange = (e) => {
         setText(e.target.value);
 
-        // ✅ Only emit typing for DM conversations
         if (selectedConversation?._id) {
             setTyping(true);
             emitTyping(true);
@@ -78,43 +76,88 @@ function Typesend() {
     };
 
     const placeholder = selectedWorkspace && !selectedConversation
-        ? `Message #${selectedWorkspace.name}... (use @ai for AI)`
-        : "Message... (use @ai for AI)";
+        ? `Message #${selectedWorkspace.name}... (Type @ai for Gemini)`
+        : "Message conversation... (Type @ai for Gemini)";
 
     return (
         <form
             onSubmit={handleSend}
-            className="px-6 py-4 border-t border-[#1f2937] bg-[#0b1120]"
+            className="px-6 py-4.5 border-t border-border-subtle bg-surface select-none z-10"
         >
-            <div className="flex items-center bg-[#111827] border border-[#1f2937] rounded-xl px-4 py-3 shadow-inner">
-                <button type="button" className="text-gray-400 hover:text-gray-200 mr-3 transition">
-                    <HiPlus size={20} />
-                </button>
-                <button type="button" className="text-gray-400 hover:text-gray-200 mr-3 transition">
-                    <FiSmile size={18} />
-                </button>
-                <button type="button" className="text-gray-400 hover:text-gray-200 mr-3 transition">
-                    <FiAtSign size={18} />
-                </button>
+            <div className={`flex items-center bg-input-bg border rounded-2xl px-4 py-3 shadow-sm transition-all duration-300
+                ${isAiMessageActive 
+                    ? "border-violet-500/40 ring-4 ring-violet-500/5 shadow-violet-500/5" 
+                    : "border-border-default focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5"
+                }
+            `}>
+                {/* Actions Grid (Left) */}
+                <div className="flex items-center gap-1 mr-3 shrink-0">
+                    <button 
+                        type="button" 
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
+                        title="Upload file or attachment"
+                    >
+                        <Plus size={18} />
+                    </button>
+                    <button 
+                        type="button" 
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
+                        title="Add emoji"
+                    >
+                        <Smile size={18} />
+                    </button>
+                    <button 
+                        type="button" 
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
+                        title="Mention team member"
+                    >
+                        <AtSign size={16} />
+                    </button>
+                </div>
 
-                <input
-                    type="text"
-                    value={text}
-                    onChange={handleChange}
-                    placeholder={placeholder}
-                    className="flex-1 bg-transparent outline-none text-sm text-gray-200 placeholder-gray-500"
-                />
+                {/* Input Area */}
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                    {/* Gemini Glowing Indicator badge if typing @ai */}
+                    {isAiMessageActive && (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-[10px] font-bold text-white shadow-md shadow-violet-500/10 animate-fade-in shrink-0">
+                            <Sparkles size={11} className="animate-pulse" />
+                            <span>Gemini Mode</span>
+                        </div>
+                    )}
+                    
+                    <input
+                        type="text"
+                        value={text}
+                        onChange={handleChange}
+                        placeholder={placeholder}
+                        className="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted/65"
+                    />
+                </div>
 
+                {/* Typing status fallback */}
                 {typing && (
-                    <div className="text-gray-400 text-xs mr-3 animate-pulse">typing...</div>
+                    <span className="text-[10px] font-semibold text-text-muted animate-pulse shrink-0 mr-3">
+                        typing...
+                    </span>
                 )}
 
+                {/* Send Button */}
                 <button
                     type="submit"
-                    disabled={msgLoading || aiLoading}
-                    className="ml-2 w-9 h-9 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-500 transition disabled:opacity-40"
+                    disabled={!text.trim() || isLoading}
+                    className={`ml-2 w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 shadow-sm
+                        ${isAiMessageActive 
+                            ? "bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-violet-600/10" 
+                            : "bg-primary hover:bg-primary-hover text-white shadow-primary/10"
+                        }
+                        disabled:opacity-30 disabled:scale-95 disabled:pointer-events-none
+                    `}
                 >
-                    <IoSend size={16} className="text-white" />
+                    {isLoading ? (
+                        <Loader2 size={16} className="text-white animate-spin" />
+                    ) : (
+                        <Send size={15} className="text-white" />
+                    )}
                 </button>
             </div>
         </form>

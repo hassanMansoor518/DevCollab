@@ -31,22 +31,28 @@ function Users() {
     <div className="mt-6">
       {/* Section Title */}
       <h2 className="
-        px-6 mb-2
+        px-6 mb-2.5
         text-[11px] 
-        font-semibold 
-        tracking-widest 
+        font-bold 
+        tracking-wider 
         uppercase 
-        text-gray-500
+        text-text-muted
       ">
         Direct Messages
       </h2>
 
       {/* Users List */}
-      <div className="flex flex-col gap-1 px-2 overflow-y-auto max-h-[65vh]">
-        {loading && <p className="text-gray-400 text-sm px-2">Loading users...</p>}
+      <div className="flex flex-col gap-1 px-2 overflow-y-auto max-h-[50vh] scrollbar-thin">
+        {loading && (
+          <div className="space-y-2 px-4 py-2">
+            <div className="h-8 w-full bg-hover-bg rounded-lg animate-pulse" />
+            <div className="h-8 w-full bg-hover-bg rounded-lg animate-pulse" />
+            <div className="h-8 w-full bg-hover-bg rounded-lg animate-pulse" />
+          </div>
+        )}
 
         {!loading && allUsers.length === 0 && (
-          <p className="text-gray-400 text-sm px-2">No active users found</p>
+          <p className="text-text-muted text-xs px-6 py-2">No active users found</p>
         )}
 
         {!loading && Array.isArray(allUsers) &&
@@ -60,3 +66,4 @@ function Users() {
 }
 
 export default Users;
+

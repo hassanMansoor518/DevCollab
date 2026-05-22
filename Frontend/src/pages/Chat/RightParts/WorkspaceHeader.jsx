@@ -1,101 +1,164 @@
 import React, { useState } from "react";
+import { Phone, Video, Search, Settings, Users, Hash, X, Plus } from "lucide-react";
 
 function WorkspaceHeader({ workspace }) {
     const [showMembers, setShowMembers] = useState(false);
+    const [memberSearch, setMemberSearch] = useState("");
 
     if (!workspace) return null;
+
+    // Filter members if there's search text
+    const filteredMembers = workspace.members?.filter(member => {
+        const name = member?.fullName || member?.email || "";
+        return name.toLowerCase().includes(memberSearch.toLowerCase());
+    }) || [];
 
     return (
         <>
             {/* Header Bar */}
             <div
-                className="relative flex items-center h-[65px] justify-center gap-4 px-6 bg-[#0b1120] border-b border-[#1f2937] cursor-pointer hover:bg-[#0f1929] transition"
-                onClick={() => setShowMembers(true)} // ✅ open on click
+                className="relative flex items-center justify-between h-[70px] px-6 bg-surface border-b border-border-subtle shadow-sm select-none z-10"
             >
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#1e293b] text-gray-400 font-bold text-xl">
-                        #
+                {/* Channel Details (Left) */}
+                <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-85 transition-opacity"
+                    onClick={() => setShowMembers(true)}
+                >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-soft text-primary font-bold text-lg shadow-sm">
+                        <Hash size={18} />
                     </div>
                     <div>
-                        <h1 className="text-base font-semibold text-gray-200 tracking-wide">
+                        <h1 className="text-sm font-bold text-text-primary tracking-wide leading-tight">
                             {workspace.name}
                         </h1>
-                        <span className="text-xs text-gray-500">
-                            {workspace.members?.length} members · click to view
+                        <span className="text-[10px] text-text-muted font-medium flex items-center gap-1">
+                            <Users size={10} />
+                            {workspace.members?.length} members · Click to view
                         </span>
                     </div>
+                </div>
+
+                {/* SaaS Top Bar Actions (Right) */}
+                <div className="flex items-center gap-1.5">
+                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start voice call">
+                        <Phone size={16} />
+                    </button>
+                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start video call">
+                        <Video size={16} />
+                    </button>
+                    <div className="h-4 w-[1px] bg-border-subtle mx-1" />
+                    <button 
+                        onClick={() => setShowMembers(true)}
+                        className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" 
+                        title="View members"
+                    >
+                        <Users size={16} />
+                    </button>
+                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Workspace settings">
+                        <Settings size={16} />
+                    </button>
                 </div>
             </div>
 
             {/* Members Modal */}
             {showMembers && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-                    onClick={() => setShowMembers(false)} // ✅ close on outside click
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+                    onClick={() => setShowMembers(false)} // close on outside click
                 >
                     <div
-                        className="bg-[#0f172a] border border-[#1f2937] rounded-2xl w-full max-w-md mx-4 shadow-2xl"
-                        onClick={(e) => e.stopPropagation()} // ✅ prevent close when clicking inside
+                        className="bg-card border border-border-subtle rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transform scale-100 transition-all"
+                        onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
                     >
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1f2937]">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
                             <div>
-                                <h2 className="text-base font-semibold text-gray-100">
-                                    {workspace.name}
+                                <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                                    <Hash size={16} className="text-primary" />
+                                    {workspace.name} Members
                                 </h2>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                    {workspace.members?.length} members
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    {workspace.members?.length} registered members
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowMembers(false)}
-                                className="text-gray-500 hover:text-gray-200 text-xl transition"
+                                className="h-8 w-8 rounded-lg flex items-center justify-center text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
                             >
-                                ✕
+                                <X size={16} />
                             </button>
                         </div>
 
-                        {/* Members List */}
-                        <div className="px-4 py-3 max-h-[60vh] overflow-y-auto">
-                            {workspace.members?.length === 0 && (
-                                <p className="text-gray-500 text-sm text-center py-6">
-                                    No members found
-                                </p>
-                            )}
-                            {workspace.members?.map((member, idx) => {
-                                const name = member?.fullName || member?.email || "Unknown";
-                                const initial = name.charAt(0).toUpperCase();
+                        {/* Search members input */}
+                        <div className="px-4 py-2 border-b border-border-subtle bg-sidebar">
+                            <input 
+                                type="text"
+                                placeholder="Search members..."
+                                value={memberSearch}
+                                onChange={(e) => setMemberSearch(e.target.value)}
+                                className="w-full bg-input-bg border border-border-subtle rounded-xl px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-primary transition"
+                            />
+                        </div>
 
+                        {/* Members List */}
+                        <div className="px-4 py-2 overflow-y-auto flex-1 scrollbar-thin">
+                            {filteredMembers.length === 0 && (
+                                <div className="text-center py-8">
+                                    <Users className="mx-auto text-text-disabled mb-2" size={24} />
+                                    <p className="text-text-muted text-xs">
+                                        No members found matching "{memberSearch}"
+                                    </p>
+                                </div>
+                            )}
+                            {filteredMembers.map((member, idx) => {
+                                const name = member?.fullName || member?.email || "Unknown Member";
+                                const initial = name.charAt(0).toUpperCase();
+                                
                                 return (
                                     <div
                                         key={member._id || idx}
-                                        className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-[#1e293b] transition"
+                                        className="flex items-center gap-3 px-3 py-2.5 my-1 rounded-xl hover:bg-hover-bg transition-colors"
                                     >
-                                        {/* Avatar with initial */}
-                                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        {/* Avatar with initial fallback */}
+                                        <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-primary to-info flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0">
                                             {initial}
                                         </div>
 
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-200">
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-sm font-semibold text-text-primary block truncate">
                                                 {name}
                                             </span>
                                             {member?.email && (
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-[10px] text-text-muted block truncate">
                                                     {member.email}
                                                 </span>
                                             )}
                                         </div>
+
+                                        {/* Quick Action visual button */}
+                                        <button className="h-7 px-2.5 rounded-lg border border-border-subtle text-[11px] font-semibold text-text-secondary hover:bg-surface hover:text-primary transition">
+                                            Message
+                                        </button>
                                     </div>
                                 );
                             })}
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t border-[#1f2937]">
+                        <div className="px-6 py-4 border-t border-border-subtle bg-sidebar flex items-center justify-between">
+                            <button
+                                onClick={() => {
+                                    // Visual mock for adding members
+                                    alert("Invite features are integrated in the project team dashboard!");
+                                }}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover transition"
+                            >
+                                <Plus size={14} />
+                                Invite Member
+                            </button>
                             <button
                                 onClick={() => setShowMembers(false)}
-                                className="w-full py-2 rounded-xl bg-[#1e293b] text-gray-300 hover:bg-[#273548] transition text-sm"
+                                className="px-4 py-1.5 rounded-xl bg-hover-bg hover:bg-active-bg text-text-secondary transition text-xs font-semibold"
                             >
                                 Close
                             </button>
