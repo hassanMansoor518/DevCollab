@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { FiBell } from "react-icons/fi";
 import axios from "axios";
 import ReceiverPendingInvites from "../pages/Dashboard/ReceiverPendingInvites";
 
@@ -29,19 +29,17 @@ const Notification = ({ currentUserId }) => {
     };
 
     return (
-        <div className="relative">
-            <button
-                type="button"
-                className="icon-button"
+        <div className="relative cursor-pointer">
+            {/* Bell Icon */}
+            <FiBell
+                className="text-gray-400 hover:text-white transition"
+                size={24}
                 onClick={() => setShowInvites(!showInvites)}
-                aria-label="View notifications"
-            >
-                <Bell size={17} />
-            </button>
+            />
 
             {/* Count Badge */}
             {pendingCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                     {pendingCount}
                 </span>
             )}
