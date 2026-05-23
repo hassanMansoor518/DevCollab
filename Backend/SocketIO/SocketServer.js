@@ -18,10 +18,28 @@ const io = new Server(server, {
 // { userId: Set(socketId) }
 const users = {};
 const pendingDisconnects = {};
+const callSessions = new Map();
 
 export const getReceiverSocketIds = (receiverId) => {
   return users[receiverId] ? Array.from(users[receiverId]) : [];
 };
+
+function getSocketIdsForUser(userId) {
+  return users[userId] ? Array.from(users[userId]) : [];
+}
+
+function emitToUser(userId, event, payload) {
+  getSocketIdsForUser(userId).forEach((socketId) => {
+    io.to(socketId).emit(event, payload);
+  });
+}
+
+function cleanupCallSession(callId) {
+  const session = callSessions.get(callId);
+  if (!session) return;
+  clearTimeout(session.timeout);
+  callSessions.delete(callId);
+}
 
 async function setUserOnlineStatus(userId, isOnline) {
   try {
@@ -53,14 +71,14 @@ io.on("connection", (socket) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      userId = decoded.id;
+      userId = decoded.id?.toString();
     } catch (err) {
       console.warn("❌ Invalid socket token");
     }
   }
 
   // fallback (dev only)
-  if (!userId) userId = socket.handshake.query.userId;
+  if (!userId) userId = socket.handshake.query.userId?.toString();
 
   if (!userId) {
     console.warn("⚠️ socket connected without userId");
@@ -104,6 +122,114 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("call-user", ({ to, callType, callId, conversationId, caller }) => {
+    const targetId = to?.toString();
+    if (!targetId || !callId || !caller) return;
+
+    const receiverSockets = getSocketIdsForUser(targetId);
+    if (receiverSockets.length === 0) {
+      emitToUser(socket.userId, "user-busy", { callId });
+      return;
+    }
+
+    const existingSession = callSessions.get(callId);
+    if (existingSession && existingSession.status !== "ended") {
+      emitToUser(socket.userId, "user-busy", { callId });
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      emitToUser(socket.userId, "call-timeout", { callId });
+      cleanupCallSession(callId);
+    }, 25000);
+
+    callSessions.set(callId, {
+      callId,
+      callerId: socket.userId,
+      receiverId: targetId,
+      callType,
+      conversationId,
+      status: "ringing",
+      timeout,
+    });
+
+    receiverSockets.forEach((socketId) => {
+      io.to(socketId).emit("incoming-call", {
+        callId,
+        callType,
+        caller: {
+          _id: caller._id,
+          fullName: caller.fullName,
+        },
+        conversationId,
+      });
+    });
+  });
+
+  socket.on("accept-call", ({ callId, to }) => {
+    const targetId = to?.toString();
+    if (!callId || !targetId) return;
+    const session = callSessions.get(callId);
+    if (!session || session.status !== "ringing") {
+      emitToUser(socket.userId, "user-busy", { callId });
+      return;
+    }
+
+    session.status = "accepted";
+    clearTimeout(session.timeout);
+    session.timeout = null;
+    callSessions.set(callId, session);
+
+    emitToUser(session.callerId, "call-accepted", {
+      callId,
+      from: socket.userId,
+      callType: session.callType,
+    });
+  });
+
+  socket.on("reject-call", ({ callId, to }) => {
+    const targetId = to?.toString();
+    if (!callId || !targetId) return;
+    const session = callSessions.get(callId);
+    if (session) {
+      emitToUser(session.callerId, "reject-call", { callId });
+      cleanupCallSession(callId);
+    } else {
+      emitToUser(socket.userId, "user-busy", { callId });
+    }
+  });
+
+  socket.on("end-call", ({ callId }) => {
+    if (!callId) return;
+    const session = callSessions.get(callId);
+    if (!session) return;
+
+    const targetId = session.callerId === socket.userId ? session.receiverId : session.callerId;
+    if (targetId) {
+      emitToUser(targetId, "end-call", { callId });
+    }
+
+    cleanupCallSession(callId);
+  });
+
+  socket.on("offer", ({ to, callId, sdp }) => {
+    const targetId = to?.toString();
+    if (!targetId || !callId || !sdp) return;
+    emitToUser(targetId, "offer", { callId, sdp, from: socket.userId });
+  });
+
+  socket.on("answer", ({ to, callId, sdp }) => {
+    const targetId = to?.toString();
+    if (!targetId || !callId || !sdp) return;
+    emitToUser(targetId, "answer", { callId, sdp, from: socket.userId });
+  });
+
+  socket.on("ice-candidate", ({ to, callId, candidate }) => {
+    const targetId = to?.toString();
+    if (!targetId || !callId || !candidate) return;
+    emitToUser(targetId, "ice-candidate", { callId, candidate, from: socket.userId });
+  });
+
   socket.on("disconnect", () => {
     console.log("🔴 socket disconnected:", socket.id);
 
@@ -121,6 +247,16 @@ io.on("connection", (socket) => {
         }
         delete pendingDisconnects[uid];
       }, 5000);
+    }
+
+    for (const [callId, session] of Array.from(callSessions.entries())) {
+      if (session.callerId === uid || session.receiverId === uid) {
+        const targetId = session.callerId === uid ? session.receiverId : session.callerId;
+        if (targetId) {
+          emitToUser(targetId, "end-call", { callId });
+        }
+        cleanupCallSession(callId);
+      }
     }
   });
 });

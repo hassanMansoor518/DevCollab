@@ -3,8 +3,10 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthProvider";
 import useConversation from "../zustand/useConversation.js";
 import useAIMessages from "./useAIMessages";
+import useCallStore from "../zustand/useCallStore.js";
+import { createPeerConnection, getLocalMediaStream } from "../utils/webrtc.js";
 
-const SocketContext = createContext(null);
+const SocketContext = createContext({ socket: null, onlineUsers: [] });
 export const useSocketContext = () => useContext(SocketContext);
 
 // Synthesize a beautiful, premium glass dual-tone chime natively using the Web Audio API.
@@ -51,6 +53,17 @@ export const SocketProvider = ({ children }) => {
   const [authUser] = useAuth();
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
+
+  const {
+    receiveIncomingCall,
+    setLocalStream,
+    setRemoteStream,
+    setPeerConnection,
+    setCallStatus,
+    setCallMessage,
+    setCallError,
+    resetCall,
+  } = useCallStore();
 
   useEffect(() => {
     // 1. Only connect when user is logged in
@@ -128,6 +141,153 @@ export const SocketProvider = ({ children }) => {
             }, 500);
           }
         }
+      });
+
+      newSocket.on("incoming-call", (payload) => {
+        receiveIncomingCall(payload);
+      });
+
+      newSocket.on("call-accepted", async ({ callId, from, callType }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId || callState.callStatus !== "outgoing") return;
+
+        try {
+          setCallStatus("connecting");
+          setCallMessage("Connecting...");
+          const stream = await getLocalMediaStream(callType);
+          setLocalStream(stream);
+
+          const connection = createPeerConnection({
+            onIceCandidate: (candidate) => {
+              newSocket.emit("ice-candidate", { to: from, callId, candidate });
+            },
+            onTrack: (stream) => {
+              setRemoteStream(stream);
+            },
+            onConnectionStateChange: (state) => {
+              if (state === "connected") {
+                setCallStatus("inCall");
+                setCallMessage("Live call");
+              }
+              if (["disconnected", "failed", "closed"].includes(state)) {
+                resetCall();
+              }
+            },
+          });
+
+          stream.getTracks().forEach((track) => connection.addTrack(track, stream));
+          setPeerConnection(connection);
+
+          const offer = await connection.createOffer();
+          await connection.setLocalDescription(offer);
+          newSocket.emit("offer", { to: from, callId, sdp: offer });
+        } catch (err) {
+          console.error("Failed to create offer", err);
+          setCallError("Unable to connect the call. Please try again.");
+          resetCall();
+        }
+      });
+
+      newSocket.on("offer", async ({ callId, sdp, from }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId) return;
+
+        try {
+          setCallStatus("connecting");
+          setCallMessage("Accepting call...");
+
+          let connection = callState.peerConnection;
+          let stream = callState.localStream;
+
+          if (!connection) {
+            stream = await getLocalMediaStream(callState.callType);
+            setLocalStream(stream);
+
+            connection = createPeerConnection({
+              onIceCandidate: (candidate) => {
+                newSocket.emit("ice-candidate", { to: from, callId, candidate });
+              },
+              onTrack: (stream) => {
+                setRemoteStream(stream);
+              },
+              onConnectionStateChange: (state) => {
+                if (state === "connected") {
+                  setCallStatus("inCall");
+                  setCallMessage("Live call");
+                }
+                if (["disconnected", "failed", "closed"].includes(state)) {
+                  resetCall();
+                }
+              },
+            });
+
+            stream.getTracks().forEach((track) => connection.addTrack(track, stream));
+            setPeerConnection(connection);
+          }
+
+          await connection.setRemoteDescription(sdp);
+          const answer = await connection.createAnswer();
+          await connection.setLocalDescription(answer);
+          newSocket.emit("answer", { to: from, callId, sdp: answer });
+        } catch (err) {
+          console.error("Failed to handle offer", err);
+          setCallError("Could not establish the call.");
+          resetCall();
+        }
+      });
+
+      newSocket.on("answer", async ({ callId, sdp }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId || !callState.peerConnection) return;
+
+        try {
+          await callState.peerConnection.setRemoteDescription(sdp);
+          setCallStatus("inCall");
+          setCallMessage("Live call");
+        } catch (err) {
+          console.error("Failed to set remote answer", err);
+          setCallError("Call setup failed.");
+          resetCall();
+        }
+      });
+
+      newSocket.on("ice-candidate", async ({ callId, candidate }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId || !callState.peerConnection) return;
+
+        try {
+          await callState.peerConnection.addIceCandidate(candidate);
+        } catch (err) {
+          console.warn("Failed to add remote ICE candidate", err);
+        }
+      });
+
+      newSocket.on("reject-call", ({ callId }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId) return;
+        setCallMessage("Call rejected");
+        setTimeout(() => resetCall(), 1400);
+      });
+
+      newSocket.on("end-call", ({ callId }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId) return;
+        setCallMessage("Call ended");
+        setTimeout(() => resetCall(), 900);
+      });
+
+      newSocket.on("user-busy", ({ callId }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId) return;
+        setCallMessage("User is unavailable");
+        setTimeout(() => resetCall(), 1400);
+      });
+
+      newSocket.on("call-timeout", ({ callId }) => {
+        const callState = useCallStore.getState();
+        if (!callState.callId || callState.callId !== callId) return;
+        setCallMessage("Call timed out");
+        setTimeout(() => resetCall(), 1400);
       });
 
       newSocket.onAny((event, data) => {

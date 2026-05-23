@@ -10,7 +10,10 @@ function User({ user }) {
 
     if (!user) return null;
     const isSelected = selectedConversation?._id === user._id;
-    const isOnline = onlineUsers.includes(user._id);
+    const userId = user._id?.toString();
+    const isOnline = userId
+        ? onlineUsers.some((id) => id?.toString() === userId)
+        : false;
     const initial = user.fullName ? user.fullName.charAt(0).toUpperCase() : "?";
 
     const handleClick = async () => {

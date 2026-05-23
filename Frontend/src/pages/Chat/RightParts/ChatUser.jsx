@@ -1,14 +1,16 @@
 import React from "react";
-import { Phone, Video, Search, Info, Settings, MoreVertical } from "lucide-react";
+import { Phone, Video, Search, Settings } from "lucide-react";
 import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
+import useCallStore from "../../../zustand/useCallStore.js";
 import { CiMenuFries } from "react-icons/ci";
 import profile from "../../../assets/Profile.png";
 
 function Chatuser() {
     const { selectedConversation } = useConversation();
-    const { onlineUsers } = useSocketContext();
+    const { onlineUsers, socket } = useSocketContext();
     const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+    const socketReady = Boolean(socket?.connected);
 
     if (!selectedConversation) return null;
 
@@ -16,7 +18,11 @@ function Chatuser() {
         (member) => (member._id || member).toString() !== authUser.user._id.toString()
     );
 
-    const isOnline = onlineUsers.includes(otherUser?._id);
+    const otherUserId = otherUser?._id?.toString();
+    const isOnline = otherUserId
+        ? onlineUsers.some((id) => id?.toString() === otherUserId)
+        : false;
+    const canStartCall = socketReady && isOnline && Boolean(otherUserId);
     const initial = otherUser?.fullName ? otherUser.fullName.charAt(0).toUpperCase() : "?";
 
     return (
@@ -75,10 +81,56 @@ function Chatuser() {
 
             {/* Premium Top Bar Actions (Right Side) */}
             <div className="flex items-center gap-1.5">
-                <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start voice call">
+                <button
+                    onClick={() => {
+                        if (!canStartCall || !otherUser?._id) return;
+                        const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                        if (!caller) return;
+                        const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                        useCallStore.getState().startOutgoingCall({
+                            callId,
+                            callType: "audio",
+                            remoteUser: otherUser,
+                            conversationId: selectedConversation?._id,
+                        });
+                        socket.emit("call-user", {
+                            to: otherUser._id,
+                            callType: "audio",
+                            callId,
+                            conversationId: selectedConversation?._id,
+                            caller: { _id: caller._id, fullName: caller.fullName },
+                        });
+                    }}
+                    disabled={!canStartCall}
+                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}
+                    title={canStartCall ? "Start voice call" : isOnline ? "Connecting..." : "User offline"}
+                >
                     <Phone size={16} />
                 </button>
-                <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start video call">
+                <button
+                    onClick={() => {
+                        if (!canStartCall || !otherUser?._id) return;
+                        const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                        if (!caller) return;
+                        const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                        useCallStore.getState().startOutgoingCall({
+                            callId,
+                            callType: "video",
+                            remoteUser: otherUser,
+                            conversationId: selectedConversation?._id,
+                        });
+                        socket.emit("call-user", {
+                            to: otherUser._id,
+                            callType: "video",
+                            callId,
+                            conversationId: selectedConversation?._id,
+                            caller: { _id: caller._id, fullName: caller.fullName },
+                        });
+                    }}
+                    disabled={!canStartCall}
+                    className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}
+                    title={canStartCall ? "Start video call" : isOnline ? "Connecting..." : "User offline"}
+                >
                     <Video size={16} />
                 </button>
                 <div className="h-4 w-[1px] bg-border-subtle mx-1" />

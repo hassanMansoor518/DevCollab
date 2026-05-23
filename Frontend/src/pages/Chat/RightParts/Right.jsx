@@ -5,6 +5,7 @@ import ChatUser from "./ChatUser";
 import Messages from "./Messages";
 import Typesend from "./Typesend";
 import WorkspaceHeader from "./WorkspaceHeader";
+import CallOverlay from "./CallOverlay";
 import useConversation from "../../../zustand/useConversation.js";
 
 function NoChatSelected() {
@@ -140,6 +141,7 @@ function Right() {
                 <NoChatSelected />
             )}
 
+            <CallOverlay />
         </section>
     );
 }
