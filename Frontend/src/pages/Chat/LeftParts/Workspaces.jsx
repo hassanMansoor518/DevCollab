@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Hash, Folder } from "lucide-react";
+import { Hash } from "lucide-react";
 import useConversation from "../../../zustand/useConversation.js";
 
-function Workspaces() {
+function Workspaces({ searchQuery = "" }) {
     const [workspaces, setWorkspaces] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newWorkspaceName, setNewWorkspaceName] = useState("");
+    const [creating, setCreating] = useState(false);
     const authUser = JSON.parse(localStorage.getItem("ChatApp"));
     const user = authUser?.user;
     const token = authUser?.token; 
@@ -15,8 +18,9 @@ function Workspaces() {
 
     const fetchWorkspaces = async () => {
         try {
+            // Standardized to Vite relative proxy to prevent cross-origin issues
             const res = await axios.get(
-                "http://localhost:3001/api/workspace/all-workspace",
+                "/api/workspace/all-workspace",
                 {
                     withCredentials: true,
                     headers: {
@@ -41,19 +45,59 @@ function Workspaces() {
         setSelectedConversation(null);
     };
 
+    // Filter workspaces based on search query
+    const filteredWorkspaces = workspaces.filter((ws) => {
+        const name = ws?.name || "";
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+
     return (
         <div className="mt-5">
-            <h2 className="px-6 mb-2.5 text-[11px] font-bold tracking-wider uppercase text-text-muted">
-                Workspaces
-            </h2>
+            <div className="flex items-center justify-between px-3 mb-2.5">
+                <h2 className="text-[11px] font-bold tracking-wider uppercase text-text-muted">Workspaces</h2>
+                <button onClick={() => setShowCreateModal(true)} className="text-xs text-primary font-semibold">+ New</button>
+            </div>
+
+            {showCreateModal && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
+                    <div className="bg-card w-full max-w-md rounded-2xl p-6 shadow-xl">
+                        <h3 className="text-lg font-bold mb-2">Create Workspace</h3>
+                        <p className="text-sm text-text-muted mb-4">Create a workspace for team discussions — add a name and optionally invite members.</p>
+
+                        <label className="text-xs text-text-muted">Workspace name</label>
+                        <input value={newWorkspaceName} onChange={(e) => setNewWorkspaceName(e.target.value)} className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-border-subtle bg-input-bg outline-none" placeholder="e.g. Frontend Team" />
+
+                        <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => { setShowCreateModal(false); setNewWorkspaceName(''); }} className="px-3 py-1 rounded-md bg-muted text-sm">Cancel</button>
+                            <button onClick={async () => {
+                                if (!newWorkspaceName.trim()) return alert('Please enter a name');
+                                setCreating(true);
+                                try {
+                                    await axios.post('/api/workspace', { name: newWorkspaceName.trim() }, { withCredentials: true });
+                                    fetchWorkspaces();
+                                    setShowCreateModal(false);
+                                    setNewWorkspaceName('');
+                                } catch (err) {
+                                    console.error('Create workspace failed', err);
+                                    alert('Failed to create workspace');
+                                } finally {
+                                    setCreating(false);
+                                }
+                            }} className="px-3 py-1 rounded-md bg-primary text-white text-sm">{creating ? 'Creating...' : 'Create'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="flex flex-col gap-1 px-2 overflow-y-auto max-h-[30vh] scrollbar-thin">
                 {loading && (
                     <p className="text-text-muted text-xs px-4 py-2 animate-pulse">Loading workspaces...</p>
                 )}
-                {!loading && workspaces.length === 0 && (
-                    <p className="text-text-muted text-xs px-4 py-2">No workspaces found</p>
+                {!loading && filteredWorkspaces.length === 0 && (
+                    <p className="text-text-muted text-xs px-4 py-2">
+                        {searchQuery ? "No matching workspaces found" : "No workspaces found"}
+                    </p>
                 )}
-                {!loading && workspaces.map((ws, idx) => {
+                {!loading && filteredWorkspaces.map((ws, idx) => {
                     const isSelected = selectedWorkspace?._id === ws._id;
                     const workspaceInitial = ws.name ? ws.name.charAt(0).toUpperCase() : "#";
 
@@ -98,4 +142,4 @@ function Workspaces() {
     );
 }
 
-export default Workspaces;
+export default Workspaces;

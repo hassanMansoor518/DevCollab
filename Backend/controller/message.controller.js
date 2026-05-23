@@ -71,5 +71,71 @@ const getMessage = async (req, res) => {
   }
 };
 
+// Update a direct conversation message (only sender)
+const updateMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { message } = req.body;
+    const userId = req.user._id;
 
-module.exports = { sendMessage, getMessage };
+    const existing = await Message.findById(messageId);
+    if (!existing) return res.status(404).json({ message: 'Message not found' });
+
+    if (existing.senderId.toString() !== userId.toString()) return res.status(403).json({ message: 'Forbidden' });
+
+    existing.message = message;
+    await existing.save();
+
+    // notify receiver(s)
+    try {
+      const receiverSocketIds = getReceiverSocketIds(existing.receiverId.toString());
+      if (receiverSocketIds && receiverSocketIds.length) {
+        receiverSocketIds.forEach((sid) => io.to(sid).emit('updateMessage', { message: existing }));
+      }
+    } catch (err) {
+      console.log('Socket emit error on updateMessage', err);
+    }
+
+    res.json(existing);
+  } catch (err) {
+    console.log('Error in updateMessage', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Delete a direct conversation message (only sender)
+const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user._id;
+
+    const existing = await Message.findById(messageId);
+    if (!existing) return res.status(404).json({ message: 'Message not found' });
+
+    if (existing.senderId.toString() !== userId.toString()) return res.status(403).json({ message: 'Forbidden' });
+
+    // remove message document
+    await Message.findByIdAndDelete(messageId);
+
+    // remove from conversation messages array
+    await Conversation.findOneAndUpdate({ messages: messageId }, { $pull: { messages: messageId } });
+
+    // notify receiver
+    try {
+      const receiverSocketIds = getReceiverSocketIds(existing.receiverId.toString());
+      if (receiverSocketIds && receiverSocketIds.length) {
+        receiverSocketIds.forEach((sid) => io.to(sid).emit('deleteMessage', { messageId }));
+      }
+    } catch (err) {
+      console.log('Socket emit error on deleteMessage', err);
+    }
+
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    console.log('Error in deleteMessage', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+module.exports = { sendMessage, getMessage, updateMessage, deleteMessage };

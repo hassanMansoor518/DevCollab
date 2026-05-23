@@ -29,7 +29,7 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
     const fetchActiveTeam = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3001/api/invite/team/active/${currentUserId}`
+          `/api/invite/team/active/${currentUserId}`
         );
         setAllUsers(res.data || []);
       } catch (err) {
@@ -73,7 +73,7 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:3001/api/project", {
+      const res = await axios.post("/api/project", {
         projectName,
         description,
         team,
@@ -97,49 +97,49 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50">
-      <div className="bg-[#0B1120] w-[600px] rounded-2xl p-8 shadow-2xl text-white relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-card w-[600px] rounded-2xl p-8 shadow-popover text-text-primary border border-border-default relative max-h-[90vh] overflow-y-auto">
 
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-gray-400 hover:text-white"
+          className="absolute top-5 right-5 text-text-muted hover:text-text-primary transition"
         >
           <X size={20} />
         </button>
 
         <h2 className="text-2xl font-semibold mb-2">Create New Project</h2>
-        <p className="text-sm text-gray-400 mb-6">
+        <p className="text-sm text-text-secondary mb-6">
           Set up your workspace and invite your team to start building.
         </p>
 
-        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        {error && <p className="text-error text-sm mb-4">{error}</p>}
 
         {/* Project Name */}
-        <label className="text-sm text-gray-300">Project Name</label>
+        <label className="text-sm font-medium text-text-secondary">Project Name</label>
         <input
           type="text"
           placeholder="e.g. Apollo Engine"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
-          className="w-full mt-1 mb-4 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full mt-1 mb-4 px-4 py-2 bg-input-bg rounded-lg border border-border-default focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-text-primary placeholder:text-text-muted transition"
         />
 
         {/* Description */}
-        <label className="text-sm text-gray-300">Description</label>
+        <label className="text-sm font-medium text-text-secondary">Description</label>
         <textarea
           placeholder="Describe the project goals and scope..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full mt-1 mb-4 px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full mt-1 mb-4 px-4 py-2 bg-input-bg rounded-lg border border-border-default focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-text-primary placeholder:text-text-muted transition"
         />
 
         {/* Assign Members */}
-        <label className="text-sm text-gray-300">Assign Members</label>
+        <label className="text-sm font-medium text-text-secondary">Assign Members</label>
         <div className="flex gap-2 mt-2">
           <select
             value={selectedUser}
             onChange={(e) => setSelectedUser(e.target.value)}
-            className="flex-1 px-4 bg-gray-800 rounded-lg border border-gray-700"
+            className="flex-1 px-4 bg-input-bg rounded-lg border border-border-default text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             <option value="">Select team member</option>
             {allUsers.map((user) => (
@@ -150,23 +150,24 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
           </select>
           <button
             onClick={handleAddMember}
-            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition"
           >
             Add
           </button>
         </div>
+        
 
         {/* Member Chips */}
         <div className="flex flex-wrap gap-2 mt-4 mb-6">
           {members.map((member) => (
             <div
               key={member._id}
-              className="flex items-center gap-2 bg-gray-700 px-3 py-1 rounded-full text-sm"
+              className="flex items-center gap-2 bg-surface border border-border-subtle px-3 py-1 rounded-full text-sm text-text-primary"
             >
               {member.fullName}
               <button
                 onClick={() => handleRemoveMember(member._id)}
-                className="text-red-400 hover:text-red-500"
+                className="text-error hover:text-error-hover transition"
               >
                 ×
               </button>
@@ -175,13 +176,13 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
         </div>
 
         {/* GitHub Card */}
-        <div className="bg-[#111827] border border-gray-700 rounded-xl p-4 mb-6">
+        <div className="bg-surface border border-border-subtle rounded-xl p-4 mb-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <FaGithub size={20} />
+              <FaGithub size={20} className="text-text-primary" />
               <div>
-                <p className="font-medium">Connect GitHub Repository</p>
-                <p className="text-xs text-gray-400">
+                <p className="font-medium text-text-primary">Connect GitHub Repository</p>
+                <p className="text-xs text-text-muted">
                   Sync issues, pull requests and commits.
                 </p>
               </div>
@@ -190,6 +191,7 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
               type="checkbox"
               checked={githubConnected}
               onChange={(e) => setGithubConnected(e.target.checked)}
+              className="accent-primary"
             />
           </div>
 
@@ -201,33 +203,33 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
                 placeholder="github.com/username/repository"
                 value={repoURL}
                 onChange={(e) => setRepoURL(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-input-bg rounded-lg border border-border-default outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text-primary placeholder:text-text-muted transition"
               />
 
               {/* ✅ GitHub Token */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">
+                <label className="text-xs font-medium text-text-secondary mb-1 block">
                   GitHub Personal Access Token{" "}
-                  <span className="text-gray-500">(required for private repos)</span>
+                  <span className="text-text-muted">(required for private repos)</span>
                 </label>
                 <input
                   type="password"
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   value={githubToken}
                   onChange={(e) => setGithubToken(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-input-bg rounded-lg border border-border-default outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-text-primary placeholder:text-text-muted transition"
                 />
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-text-muted mt-1">
                   Generate at{" "}
                   <a
                     href="https://github.com/settings/tokens"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-500 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     github.com/settings/tokens
                   </a>{" "}
-                  with <span className="text-gray-400">repo</span> scope.
+                  with <span className="text-text-secondary font-medium">repo</span> scope.
                 </p>
               </div>
             </div>
@@ -235,22 +237,22 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-between items-center">
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+        <div className="flex justify-between items-center pt-2">
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition font-medium">
             Cancel
           </button>
 
           <div className="flex gap-3">
-            <button className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600">
+            <button className="px-4 py-2 bg-surface border border-border-default text-text-primary rounded-lg hover:bg-hover-bg transition">
               Save as Draft
             </button>
             <button
               disabled={saving}
               onClick={handleCreate}
-              className={`px-6 py-2 rounded-lg ${
+              className={`px-6 py-2 rounded-lg text-white font-medium transition ${
                 saving
-                  ? "bg-gray-600 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                  ? "bg-text-muted cursor-not-allowed"
+                  : "bg-primary hover:bg-primary-hover shadow-sm"
               }`}
             >
               {saving ? "Creating..." : "Create Project"}
@@ -259,7 +261,6 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
         </div>
       </div>
       </div>
-
 
   );
 }

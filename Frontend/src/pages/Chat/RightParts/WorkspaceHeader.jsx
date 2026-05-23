@@ -1,17 +1,143 @@
-import React, { useState } from "react";
-import { Phone, Video, Search, Settings, Users, Hash, X, Plus } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Phone, Video, Settings, Users, Hash, Plus, Pencil } from "lucide-react";
+import AddMemberModal from "../../../component/AddMemberModal.jsx";
+import useConversation from "../../../zustand/useConversation.js";
+import { useAuth } from "../../../context/AuthProvider.jsx";
 
 function WorkspaceHeader({ workspace }) {
+    const [authUser] = useAuth();
+    const currentUserId = authUser?.user?._id;
+    const { setSelectedWorkspace, setSelectedConversation } = useConversation();
     const [showMembers, setShowMembers] = useState(false);
+    const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [memberSearch, setMemberSearch] = useState("");
+    const [membersState, setMembersState] = useState(workspace?.members || []);
+    const [workspaceName, setWorkspaceName] = useState(workspace?.name || "");
+    const [nameInput, setNameInput] = useState(workspace?.name || "");
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [renameLoading, setRenameLoading] = useState(false);
+    const [renameError, setRenameError] = useState("");
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [usersError, setUsersError] = useState("");
+
+    useEffect(() => {
+        setMembersState(workspace?.members || []);
+        setWorkspaceName(workspace?.name || "");
+        setNameInput(workspace?.name || "");
+        
+    }, [workspace]);
+
+    useEffect(() => {
+        if (!showAddMemberModal) return;
+
+        const fetchAvailableUsers = async () => {
+            setUsersLoading(true);
+            setUsersError("");
+
+            try {
+                const res = await axios.get("/api/auth/alluser", { withCredentials: true });
+                const allUsers = res.data || [];
+                const existingIds = new Set(
+                    (workspace?.members || []).map((member) => member._id?.toString() || member.toString())
+                );
+                const filtered = allUsers.filter((user) => !existingIds.has(user._id.toString()));
+                setAvailableUsers(filtered);
+            } catch (err) {
+                console.error("Failed to load users", err);
+                setUsersError("Could not load users. Please try again.");
+            } finally {
+                setUsersLoading(false);
+            }
+        };
+
+        fetchAvailableUsers();
+    }, [showAddMemberModal, workspace]);
 
     if (!workspace) return null;
 
     // Filter members if there's search text
-    const filteredMembers = workspace.members?.filter(member => {
+    const filteredMembers = (membersState || []).filter(member => {
         const name = member?.fullName || member?.email || "";
         return name.toLowerCase().includes(memberSearch.toLowerCase());
     }) || [];
+
+    const handleAddMembers = async (ids) => {
+        if (!ids.length) return;
+
+        try {
+            setUsersLoading(true);
+            await Promise.all(
+                ids.map((userId) =>
+                    axios.post(
+                        `/api/workspace/${workspace._id}/add-member`,
+                        { userId },
+                        { withCredentials: true }
+                    )
+                )
+            );
+
+            const updated = await axios.get(`/api/workspace/${workspace._id}`, { withCredentials: true });
+            setMembersState(updated.data.members || []);
+            setSelectedWorkspace(updated.data);
+            setShowAddMemberModal(false);
+        } catch (err) {
+            console.error("Add members failed", err);
+            alert("Unable to add selected members. Please try again.");
+        } finally {
+            setUsersLoading(false);
+        }
+    };
+
+    const saveWorkspaceName = async () => {
+        const trimmedName = nameInput.trim();
+        if (!trimmedName) {
+            setRenameError("Workspace name cannot be empty.");
+            return;
+        }
+        if (trimmedName === workspaceName) {
+            setIsEditingName(false);
+            return;
+        }
+
+        try {
+            setRenameLoading(true);
+            setRenameError("");
+            const res = await axios.put(
+                `/api/workspace/${workspace._id}`,
+                { name: trimmedName },
+                { withCredentials: true }
+            );
+            setWorkspaceName(res.data.name);
+            setNameInput(res.data.name);
+            setSelectedWorkspace(res.data);
+            setIsEditingName(false);
+        } catch (err) {
+            console.error("Rename failed", err);
+            setRenameError("Could not rename workspace. Try again.");
+        } finally {
+            setRenameLoading(false);
+        }
+    };
+
+    const handleMessageMember = async (memberId) => {
+        if (!memberId) return;
+
+        try {
+            const res = await axios.get(`/api/conversation/get-or-create/${memberId}`, { withCredentials: true });
+            setSelectedConversation(res.data);
+            setSelectedWorkspace(null);
+            setShowMembers(false);
+            
+        } catch (err) {
+            console.error("Open message failed", err);
+            alert("Unable to open chat. Please try again.");
+        }
+    };
+
+    const existingMemberIds = new Set((membersState || []).map((member) => member._id?.toString() || member.toString()));
+    const candidateCount = availableUsers.filter((user) => !existingMemberIds.has(user._id.toString())).length;
 
     return (
         <>
@@ -29,7 +155,7 @@ function WorkspaceHeader({ workspace }) {
                     </div>
                     <div>
                         <h1 className="text-sm font-bold text-text-primary tracking-wide leading-tight">
-                            {workspace.name}
+                            {workspaceName}
                         </h1>
                         <span className="text-[10px] text-text-muted font-medium flex items-center gap-1">
                             <Users size={10} />
@@ -40,12 +166,6 @@ function WorkspaceHeader({ workspace }) {
 
                 {/* SaaS Top Bar Actions (Right) */}
                 <div className="flex items-center gap-1.5">
-                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start voice call">
-                        <Phone size={16} />
-                    </button>
-                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Start video call">
-                        <Video size={16} />
-                    </button>
                     <div className="h-4 w-[1px] bg-border-subtle mx-1" />
                     <button 
                         onClick={() => setShowMembers(true)}
@@ -54,7 +174,9 @@ function WorkspaceHeader({ workspace }) {
                     >
                         <Users size={16} />
                     </button>
-                    <button className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Workspace settings">
+                    <button 
+                    onClick={() => setShowMembers(true)}
+                        className="h-9 w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200" title="Workspace settings">
                         <Settings size={16} />
                     </button>
                 </div>
@@ -67,104 +189,226 @@ function WorkspaceHeader({ workspace }) {
                     onClick={() => setShowMembers(false)} // close on outside click
                 >
                     <div
-                        className="bg-card border border-border-subtle rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transform scale-100 transition-all"
+                        className="bg-card border border-border-subtle rounded-2xl w-full max-w-5xl mx-4 shadow-2xl overflow-hidden max-h-[80vh] transform scale-100 transition-all"
                         onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
                     >
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
-                            <div>
-                                <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
-                                    <Hash size={16} className="text-primary" />
-                                    {workspace.name} Members
-                                </h2>
-                                <p className="text-xs text-text-muted mt-0.5">
-                                    {workspace.members?.length} registered members
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setShowMembers(false)}
-                                className="h-8 w-8 rounded-lg flex items-center justify-center text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-
-                        {/* Search members input */}
-                        <div className="px-4 py-2 border-b border-border-subtle bg-sidebar">
-                            <input 
-                                type="text"
-                                placeholder="Search members..."
-                                value={memberSearch}
-                                onChange={(e) => setMemberSearch(e.target.value)}
-                                className="w-full bg-input-bg border border-border-subtle rounded-xl px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-primary transition"
-                            />
-                        </div>
-
-                        {/* Members List */}
-                        <div className="px-4 py-2 overflow-y-auto flex-1 scrollbar-thin">
-                            {filteredMembers.length === 0 && (
-                                <div className="text-center py-8">
-                                    <Users className="mx-auto text-text-disabled mb-2" size={24} />
-                                    <p className="text-text-muted text-xs">
-                                        No members found matching "{memberSearch}"
-                                    </p>
-                                </div>
-                            )}
-                            {filteredMembers.map((member, idx) => {
-                                const name = member?.fullName || member?.email || "Unknown Member";
-                                const initial = name.charAt(0).toUpperCase();
-                                
-                                return (
-                                    <div
-                                        key={member._id || idx}
-                                        className="flex items-center gap-3 px-3 py-2.5 my-1 rounded-xl hover:bg-hover-bg transition-colors"
-                                    >
-                                        {/* Avatar with initial fallback */}
-                                        <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-primary to-info flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0">
-                                            {initial}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <span className="text-sm font-semibold text-text-primary block truncate">
-                                                {name}
-                                            </span>
-                                            {member?.email && (
-                                                <span className="text-[10px] text-text-muted block truncate">
-                                                    {member.email}
-                                                </span>
+                        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] min-h-[60vh]">
+                            <aside className="border-r border-border-subtle bg-surface p-6 flex flex-col gap-6">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex items-center justify-center w-14 h-14 rounded-3xl bg-primary-soft text-primary text-xl font-bold shadow-sm">
+                                        <Hash size={24} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3">
+                                            {isEditingName ? (
+                                                <div className="w-full">
+                                                    <input
+                                                        type="text"
+                                                        value={nameInput}
+                                                        onChange={(e) => setNameInput(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") saveWorkspaceName();
+                                                            if (e.key === "Escape") {
+                                                                setIsEditingName(false);
+                                                                setNameInput(workspaceName);
+                                                            }
+                                                        }}
+                                                        className="w-full rounded-2xl border border-border-subtle bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                                    />
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        <button
+                                                            onClick={saveWorkspaceName}
+                                                            disabled={renameLoading}
+                                                            className="rounded-2xl bg-primary px-3 py-2 text-xs font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                                                        >
+                                                            {renameLoading ? "Saving..." : "Save"}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsEditingName(false);
+                                                                setNameInput(workspaceName);
+                                                            }}
+                                                            className="rounded-2xl border border-border-subtle bg-white px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-hover-bg transition"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                    {renameError && (
+                                                        <p className="mt-2 text-xs text-rose-600">{renameError}</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between gap-3 w-full">
+                                                    <div>
+                                                        <h2 className="text-lg font-bold text-text-primary">{workspaceName}</h2>
+                                                        <p className="text-xs text-text-muted mt-1">{workspace.members?.length} members</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setIsEditingName(true)}
+                                                        className="rounded-full border border-border-subtle bg-white p-2 text-text-muted transition hover:border-primary hover:text-text-primary hover:bg-hover-bg"
+                                                        title="Rename workspace"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
-
-                                        {/* Quick Action visual button */}
-                                        <button className="h-7 px-2.5 rounded-lg border border-border-subtle text-[11px] font-semibold text-text-secondary hover:bg-surface hover:text-primary transition">
-                                            Message
-                                        </button>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                </div>
 
-                        {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t border-border-subtle bg-sidebar flex items-center justify-between">
-                            <button
-                                onClick={() => {
-                                    // Visual mock for adding members
-                                    alert("Invite features are integrated in the project team dashboard!");
-                                }}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover transition"
-                            >
-                                <Plus size={14} />
-                                Invite Member
-                            </button>
-                            <button
-                                onClick={() => setShowMembers(false)}
-                                className="px-4 py-1.5 rounded-xl bg-hover-bg hover:bg-active-bg text-text-secondary transition text-xs font-semibold"
-                            >
-                                Close
-                            </button>
+                                <div className="rounded-3xl border border-border-subtle bg-white p-4 shadow-sm">
+                                    <p className="text-[11px] uppercase tracking-[0.3em] text-text-secondary mb-3">Workspace details</p>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-text-primary">Workspace name</p>
+                                            <p className="text-xs text-text-muted mt-1 truncate">{workspaceName}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-text-primary">Members</p>
+                                            <p className="text-xs text-text-muted mt-1">{workspace.members?.length} team members</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-text-primary">Invite status</p>
+                                            <p className="text-xs text-text-muted mt-1">{candidateCount} candidates available</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => setShowAddMemberModal(true)}
+                                        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-3 py-3 text-xs font-semibold text-white transition hover:bg-primary-hover"
+                                    >
+                                        <Plus size={16} />
+                                        Invite members
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('Delete this workspace? This action is irreversible.')) return;
+                                            try {
+                                                await axios.delete(`/api/workspace/${workspace._id}`, { withCredentials: true });
+                                                alert('Workspace deleted');
+                                                window.location.reload();
+                                            } catch (err) {
+                                                console.error('Delete workspace failed', err);
+                                                alert('Could not delete workspace.');
+                                            }
+                                        }}
+                                        className="w-full rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition"
+                                    >
+                                        Delete workspace
+                                    </button>
+                                    <button
+                                        onClick={() => setShowMembers(false)}
+                                        className="w-full rounded-2xl bg-hover-bg px-3 py-3 text-xs font-semibold text-text-secondary hover:bg-active-bg transition"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+
+                                {usersError && (
+                                    <div className="rounded-3xl border border-rose-100 bg-rose-50 p-4 text-xs text-rose-600">
+                                        {usersError}
+                                    </div>
+                                )}
+                            </aside>
+
+                            <main className="flex flex-col overflow-hidden">
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-text-primary">Workspace members</h3>
+                                        <p className="text-xs text-text-muted mt-1">Search or manage the current team.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAddMemberModal(true)}
+                                        className="inline-flex items-center gap-2 rounded-2xl border border-border-subtle bg-white px-3 py-2 text-xs font-semibold text-text-primary hover:bg-hover-bg transition"
+                                    >
+                                        <Plus size={14} />
+                                        Add members
+                                    </button>
+                                </div>
+
+                                <div className="px-6 py-4 border-b border-border-subtle bg-sidebar">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <input
+                                            type="text"
+                                            placeholder="Search members..."
+                                            value={memberSearch}
+                                            onChange={(e) => setMemberSearch(e.target.value)}
+                                            className="w-full bg-input-bg border border-border-subtle rounded-2xl px-3 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-primary transition"
+                                        />
+                                        <span className="text-xs text-text-secondary">
+                                            {filteredMembers.length} result{filteredMembers.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="px-6 py-4 overflow-y-auto flex-1 scrollbar-thin space-y-3">
+                                    {filteredMembers.length === 0 ? (
+                                        <div className="rounded-3xl border border-border-subtle bg-surface p-6 text-center text-sm text-text-muted">
+                                            No members found for "{memberSearch}".
+                                        </div>
+                                    ) : (
+                                        filteredMembers.map((member, idx) => {
+                                            const name = member?.fullName || member?.email || "Unknown Member";
+                                            const initial = name.charAt(0).toUpperCase();
+
+                                            return (
+                                                <div
+                                                    key={member._id || idx}
+                                                    className="flex items-center gap-3 rounded-3xl border border-border-subtle bg-white p-4 shadow-sm transition hover:border-primary hover:bg-hover-bg"
+                                                >
+                                                    <div className="w-12 h-12 rounded-3xl bg-gradient-to-br from-primary to-info flex items-center justify-center text-white font-semibold text-sm">
+                                                        {initial}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-text-primary truncate">{name}</p>
+                                                        {member?.email && (
+                                                            <p className="text-xs text-text-secondary truncate">{member.email}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {member._id?.toString() !== currentUserId?.toString() && (
+                                                            <button
+                                                                onClick={() => handleMessageMember(member._id)}
+                                                                className="inline-flex items-center justify-center rounded-2xl border border-border-subtle bg-surface px-3 py-2 text-[11px] font-semibold text-text-secondary hover:bg-hover-bg transition"
+                                                            >
+                                                                Message
+                                                            </button>
+                                                        )}
+                                                        <button onClick={async () => {
+                                                            if (!confirm('Remove this member from workspace?')) return;
+                                                            try {
+                                                                const res = await axios.delete(`/api/workspace/${workspace._id}/member/${member._id}`, { withCredentials: true });
+                                                                setMembersState(res.data.members || []);
+                                                                setSelectedWorkspace(res.data);
+                                                            } catch (err) {
+                                                                console.error('Remove member failed', err);
+                                                                alert('Could not remove member.');
+                                                            }
+                                                        }} className="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 transition">
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </main>
                         </div>
                     </div>
                 </div>
+            )}
+            {showAddMemberModal && (
+                <AddMemberModal
+                    allUsers={availableUsers}
+                    onClose={() => setShowAddMemberModal(false)}
+                    onAddMembers={handleAddMembers}
+                    title="Invite to workspace"
+                    subtitle="Search and select users to add to this workspace."
+                    buttonText={usersLoading ? "Adding..." : "Add selected"}
+                />
             )}
         </>
     );

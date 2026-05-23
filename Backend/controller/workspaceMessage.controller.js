@@ -117,8 +117,89 @@ const getRecentActivity = async (req, res) => {
   }
 };
 
+// Update a workspace message (only sender can edit)
+const updateWorkspaceMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { message } = req.body;
+    const userId = req.user._id;
+
+    const existing = await WorkspaceMessage.findById(messageId);
+    if (!existing) return res.status(404).json({ message: "Message not found" });
+
+    if (existing.senderId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    existing.message = message;
+    existing.edited = true;
+    await existing.save();
+
+    await existing.populate("senderId", "fullName");
+
+    // emit update event to workspace members
+    try {
+      const workspace = await Workspace.findById(existing.workspaceId);
+      workspace.members.forEach((memberId) => {
+        const receiverSocketIds = getReceiverSocketIds(memberId.toString());
+        if (receiverSocketIds && receiverSocketIds.length) {
+          receiverSocketIds.forEach((sid) => {
+            io.to(sid).emit("updateWorkspaceMessage", { message: existing, workspaceId: workspace._id.toString() });
+          });
+        }
+      });
+    } catch (err) {
+      console.error("Socket emit error in updateWorkspaceMessage:", err);
+    }
+
+    res.json(existing);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update message" });
+  }
+};
+
+// Delete a workspace message (only sender can delete)
+const deleteWorkspaceMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user._id;
+
+    const existing = await WorkspaceMessage.findById(messageId);
+    if (!existing) return res.status(404).json({ message: "Message not found" });
+
+    if (existing.senderId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    await WorkspaceMessage.findByIdAndDelete(messageId);
+
+    // emit delete event to workspace members
+    try {
+      const workspace = await Workspace.findById(existing.workspaceId);
+      workspace.members.forEach((memberId) => {
+        const receiverSocketIds = getReceiverSocketIds(memberId.toString());
+        if (receiverSocketIds && receiverSocketIds.length) {
+          receiverSocketIds.forEach((sid) => {
+            io.to(sid).emit("deleteWorkspaceMessage", { messageId, workspaceId: workspace._id.toString() });
+          });
+        }
+      });
+    } catch (err) {
+      console.error("Socket emit error in deleteWorkspaceMessage:", err);
+    }
+
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete message" });
+  }
+};
+
 module.exports = {
   sendWorkspaceMessage,
   getWorkspaceMessages,
   getRecentActivity,
+  updateWorkspaceMessage,
+  deleteWorkspaceMessage,
 };

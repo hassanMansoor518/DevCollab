@@ -207,13 +207,13 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
     <div
       className={`${isModal
         ? ""
-        : "min-h-screen bg-[#050816] flex items-center justify-center px-4 py-10 overflow-hidden"
+        : "min-h-screen bg-background flex items-center justify-center px-4 py-10 overflow-hidden"
         } relative`}
     >
       {/* Background Glow */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-600/20 blur-[120px] rounded-full"></div>
+      <div className="absolute top-10 left-10 w-72 h-72 bg-primary/20 blur-[120px] rounded-full"></div>
 
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-indigo-600/20 blur-[120px] rounded-full"></div>
+      <div className="absolute bottom-10 right-10 w-72 h-72 bg-info/20 blur-[120px] rounded-full"></div>
 
       {/* Card */}
       <div className="w-full max-w-md relative z-10">
@@ -221,12 +221,12 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
           onSubmit={handleSubmit(onSubmit)}
           className="
             relative
-            bg-white/5
+            bg-surface/80
             backdrop-blur-2xl
-            border border-white/10
+            border border-border-default
             rounded-[32px]
             px-8 py-8
-            shadow-[0_20px_80px_rgba(0,0,0,0.6)]
+            shadow-popover
             space-y-2
           "
         >
@@ -235,7 +235,7 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
             <button
               type="button"
               onClick={closeModal}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white transition"
+              className="absolute top-5 right-5 text-text-muted hover:text-text-primary transition"
             >
               ✕
             </button>
@@ -244,8 +244,8 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
           {/* Logo */}
           <div className="flex justify-center">
             <div className="flex gap-1">
-              <div className="w-2 h-8 rounded-full bg-blue-500"></div>
-              <div className="w-2 h-8 rounded-full bg-blue-400"></div>
+              <div className="w-2 h-8 rounded-full bg-primary"></div>
+              <div className="w-2 h-8 rounded-full bg-info"></div>
               <div className="w-2 h-8 rounded-full bg-indigo-400"></div>
               <div className="w-2 h-8 rounded-full bg-cyan-400"></div>
             </div>
@@ -253,27 +253,25 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
 
           {/* Heading */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-text-primary">
               Create Account
             </h1>
 
-            <p className="text-gray-400 text-sm">
+            <p className="text-text-secondary text-sm">
               Join DevCollab and start building
             </p>
           </div>
 
-
-
           {/* Error */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl p-3">
+            <div className="bg-error-soft border border-error/20 text-error text-sm rounded-xl p-3">
               {error}
             </div>
           )}
 
           {/* Full Name */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wide font-semibold text-gray-400">
+            <label className="text-xs uppercase tracking-wide font-semibold text-text-muted">
               Full Name
             </label>
 
@@ -283,15 +281,15 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                 h-12
                 px-4
                 rounded-xl
-                bg-white/5
-                border border-white/10
-                focus-within:border-blue-500
+                bg-input-bg
+                border border-border-default
+                focus-within:border-primary
                 focus-within:ring-2
-                focus-within:ring-blue-500/20
+                focus-within:ring-primary/20
                 transition
               "
             >
-              <FiUser className="text-gray-400" />
+              <FiUser className="text-text-muted" />
 
               <input
                 type="text"
@@ -303,14 +301,14 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                   w-full ml-3
                   bg-transparent
                   outline-none
-                  text-white
-                  placeholder:text-gray-500
+                  text-text-primary
+                  placeholder:text-text-muted
                 "
               />
             </div>
 
             {errors.fullname && (
-              <p className="text-red-400 text-sm">
+              <p className="text-error text-sm">
                 {errors.fullname.message}
               </p>
             )}
@@ -318,7 +316,7 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
 
           {/* Email */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wide font-semibold text-gray-400">
+            <label className="text-xs uppercase tracking-wide font-semibold text-text-muted">
               Email
             </label>
 
@@ -328,15 +326,15 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                 h-12
                 px-4
                 rounded-xl
-                bg-white/5
-                border border-white/10
-                focus-within:border-blue-500
+                bg-input-bg
+                border border-border-default
+                focus-within:border-primary
                 focus-within:ring-2
-                focus-within:ring-blue-500/20
+                focus-within:ring-primary/20
                 transition
               "
             >
-              <FiMail className="text-gray-400" />
+              <FiMail className="text-text-muted" />
 
               <input
                 type="email"
@@ -348,14 +346,14 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                   w-full ml-3
                   bg-transparent
                   outline-none
-                  text-white
-                  placeholder:text-gray-500
+                  text-text-primary
+                  placeholder:text-text-muted
                 "
               />
             </div>
 
             {errors.email && (
-              <p className="text-red-400 text-sm">
+              <p className="text-error text-sm">
                 {errors.email.message}
               </p>
             )}
@@ -363,7 +361,7 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
 
           {/* Password */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wide font-semibold text-gray-400">
+            <label className="text-xs uppercase tracking-wide font-semibold text-text-muted">
               Password
             </label>
 
@@ -373,15 +371,15 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                 h-12
                 px-4
                 rounded-xl
-                bg-white/5
-                border border-white/10
-                focus-within:border-blue-500
+                bg-input-bg
+                border border-border-default
+                focus-within:border-primary
                 focus-within:ring-2
-                focus-within:ring-blue-500/20
+                focus-within:ring-primary/20
                 transition
               "
             >
-              <FiLock className="text-gray-400" />
+              <FiLock className="text-text-muted" />
 
               <input
                 type={showPassword ? "text" : "password"}
@@ -393,8 +391,8 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                   w-full ml-3
                   bg-transparent
                   outline-none
-                  text-white
-                  placeholder:text-gray-500
+                  text-text-primary
+                  placeholder:text-text-muted
                 "
               />
 
@@ -403,7 +401,7 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                 onClick={() =>
                   setShowPassword(!showPassword)
                 }
-                className="text-gray-400 hover:text-white transition"
+                className="text-text-muted hover:text-text-primary transition"
               >
                 {showPassword ? (
                   <EyeOff size={18} />
@@ -414,14 +412,13 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
             </div>
 
             {errors.password && (
-              <p className="text-red-400 text-sm">
+              <p className="text-error text-sm">
                 {errors.password.message}
               </p>
             )}
 
-
             <div>
-              <label className="block text-sm text-gray-400 mb-2">
+              <label className="text-xs uppercase tracking-wide font-semibold text-text-muted mb-2 block">
                 Confirm Password
               </label>
 
@@ -431,15 +428,15 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
               h-12
               px-4
               rounded-xl
-              bg-white/5
-              border border-white/10
-              focus-within:border-blue-500
+              bg-input-bg
+              border border-border-default
+              focus-within:border-primary
               focus-within:ring-2
-              focus-within:ring-blue-500/20
+              focus-within:ring-primary/20
               transition
             "
               >
-                <FiLock className="text-gray-400" />
+                <FiLock className="text-text-muted" />
 
                 <input
                   type={
@@ -455,8 +452,8 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                 w-full ml-3
                 bg-transparent
                 outline-none
-                text-white
-                placeholder:text-gray-500
+                text-text-primary
+                placeholder:text-text-muted
               "
                 />
 
@@ -467,7 +464,7 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
                       !showConfirmPassword
                     )
                   }
-                  className="text-gray-400 hover:text-white"
+                  className="text-text-muted hover:text-text-primary"
                 >
                   {showConfirmPassword ? (
                     <EyeOff size={18} />
@@ -480,19 +477,19 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
           </div>
 
           {/* Terms */}
-          <div className="flex items-start gap-3 text-sm text-gray-400">
+          <div className="flex items-start gap-3 text-sm text-text-secondary mt-2">
             <input
               type="checkbox"
-              className="mt-1 accent-blue-500"
+              className="mt-1 accent-primary"
             />
 
             <p className="leading-6">
               I have read and accept the{" "}
-              <span className="text-blue-400 cursor-pointer hover:underline">
+              <span className="text-primary cursor-pointer hover:underline">
                 Terms of Service
               </span>{" "}
               and{" "}
-              <span className="text-blue-400 cursor-pointer hover:underline">
+              <span className="text-primary cursor-pointer hover:underline">
                 Privacy Policy
               </span>
             </p>
@@ -504,11 +501,11 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
             className="
               w-full h-12
               rounded-xl
-              bg-blue-600
-              hover:bg-blue-700
+              bg-primary
+              hover:bg-primary-hover
               transition-all duration-300
               text-white font-semibold
-              shadow-lg shadow-blue-500/30
+              shadow-md
             "
           >
             {isSubmitting
@@ -517,12 +514,12 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
           </button>
 
           {/* Footer */}
-          <p className="text-center text-sm text-gray-400">
+          <p className="text-center text-sm text-text-secondary">
             Already have an account?{" "}
             <button
               type="button"
               onClick={openLogin}
-              className="text-blue-400 hover:text-blue-300 font-medium"
+              className="text-primary hover:text-primary-hover font-medium"
             >
               Sign In
             </button>

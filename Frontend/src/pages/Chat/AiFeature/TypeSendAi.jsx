@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import useSendMessage from "../../../context/useSendMessage.js";
 import useSendAiMessage from "../../../context/useSendAiMessage.jsx";
 import useConversation from "../../../zustand/useConversation.js";
 import { useAuth } from "../../../context/AuthProvider.jsx";
-import { Send, FileUp, Binary, AlertTriangle } from "lucide-react";
+import { Send, FileUp, Binary, AlertTriangle, HelpCircle } from "lucide-react";
 
 function TypeSendAi({ isAiPage = false }) {
     const [text, setText] = useState("");
@@ -69,7 +68,7 @@ function TypeSendAi({ isAiPage = false }) {
 
         try {
             if (isAiPage) {
-                await sendAiMessage(cleanText);
+                await sendAiMessage(cleanText, true);
             } else {
                 await sendMessages(cleanText);
             }
@@ -110,19 +109,9 @@ function TypeSendAi({ isAiPage = false }) {
     const loading = msgLoading || aiLoading;
 
     return (
-        <form className="px-6 pb-3">
+        <form className="px-6 pb-4 select-none">
             <div className="max-w-5xl mx-auto">
-
-                {/* OUTER CONTAINER (NO GLOW VERSION) */}
-                <div className="
-          bg-gradient-to-br from-[#0b1220] to-[#0f172a]
-          border border-[#1f2a44]
-          rounded-2xl
-          shadow-xl
-          p-4
-          transition-all
-        ">
-
+                <div className="bg-surface border border-border-subtle rounded-2xl shadow-lg p-4 transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5">
                     {/* TEXTAREA */}
                     <textarea
                         ref={textareaRef}
@@ -130,21 +119,10 @@ function TypeSendAi({ isAiPage = false }) {
                         onChange={handleChange}
                         placeholder={
                             isAiPage
-                                ? "Ask AI about your code, bugs, architecture..."
+                                ? "Ask AI about your repository code, bug logs, API architectures..."
                                 : "Type a message..."
                         }
-                        className="
-              w-full
-              bg-transparent
-              outline-none
-              text-gray-200
-              placeholder-gray-500
-              text-sm
-              resize-none
-              min-h-[45px]
-              max-h-[180px]
-              leading-6
-            "
+                        className="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted/65 resize-none min-h-[45px] max-h-[180px] leading-6"
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
@@ -154,51 +132,53 @@ function TypeSendAi({ isAiPage = false }) {
                     />
 
                     {/* ACTION BAR */}
-                    <div className="flex justify-between items-center mt-3">
-
+                    <div className="flex justify-between items-center mt-3 border-t border-border-subtle pt-3">
                         <div className="flex gap-2">
-                            <button type="button" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111827] border border-[#243244] text-gray-300 text-xs hover:bg-[#1a2436] transition">
-                                <FileUp size={14} className="text-cyan-400" />
+                            <button 
+                                type="button" 
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-hover-bg border border-border-subtle text-text-secondary text-xs hover:bg-active-bg transition font-semibold"
+                            >
+                                <FileUp size={13} className="text-info" />
                                 Upload
                             </button>
 
-                            <button type="button" onClick={() => insertPrompt("explain")} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111827] border border-[#243244] text-gray-300 text-xs hover:bg-[#1a2436] transition">
-                                <Binary size={14} className="text-blue-400" />
+                            <button 
+                                type="button" 
+                                onClick={() => insertPrompt("explain")} 
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-hover-bg border border-border-subtle text-text-secondary text-xs hover:bg-active-bg transition font-semibold"
+                            >
+                                <Binary size={13} className="text-primary" />
                                 Explain
                             </button>
 
-                            <button type="button" onClick={() => insertPrompt("bug")} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#111827] border border-[#243244] text-gray-300 text-xs hover:bg-[#1a2436] transition">
-                                <AlertTriangle size={14} className="text-red-400" />
+                            <button 
+                                type="button" 
+                                onClick={() => insertPrompt("bug")} 
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-hover-bg border border-border-subtle text-text-secondary text-xs hover:bg-active-bg transition font-semibold"
+                            >
+                                <AlertTriangle size={13} className="text-danger" />
                                 Bugs
                             </button>
                         </div>
 
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="
-                flex items-center justify-center
-                w-10 h-10
-                rounded-xl
-                bg-gradient-to-r from-blue-600 to-indigo-600
-                hover:from-blue-500 hover:to-indigo-500
-                disabled:opacity-40
-                shadow-lg
-                transition
-              "
+                            disabled={loading || !text.trim()}
+                            className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary hover:bg-primary-hover text-white disabled:opacity-30 shadow-md shadow-primary/10 transition duration-300"
                         >
                             {loading ? (
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <Send size={18} />
+                                <Send size={15} />
                             )}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <p className="text-center text-[10px] text-gray-500 mt-2">
-                AI can make mistakes. Verify important outputs.
+            <p className="text-center text-[10px] text-text-muted mt-2.5 font-medium flex items-center justify-center gap-1">
+                <HelpCircle size={10} />
+                AI can make mistakes. Verify important code fragments.
             </p>
         </form>
     );

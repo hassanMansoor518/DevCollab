@@ -31,17 +31,17 @@ function AIMessage({ message }) {
 
                 {/* Message Bubble */}
                 <div
-                    className={`relative rounded-3xl shadow-lg border backdrop-blur-sm transition-all duration-300 ${message.isAI
-                        ? "px-5 py-4 bg-[#111827]/95 text-gray-200 border-gray-700 w-full min-w-0 overflow-hidden"
-                        : "px-7 py-3 bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400/30 w-fit"
+                    className={`relative rounded-3xl shadow-sm border backdrop-blur-sm transition-all duration-300 ${message.isAI
+                        ? "px-5 py-4 bg-surface text-text-primary border-border-default w-full min-w-0 overflow-hidden"
+                        : "px-7 py-3 bg-primary text-white border-primary-hover w-fit"
                         }`}
                 >
                     {/* Header */}
                     <div className="flex items-center gap-2 mb-2">
                         {message.isAI && (
                             <>
-                                <Sparkles size={14} className="text-violet-400" />
-                                <span className="text-xs font-semibold text-violet-300 tracking-wide uppercase">
+                                <Sparkles size={14} className="text-violet-500 dark:text-violet-400" />
+                                <span className="text-xs font-semibold text-violet-600 dark:text-violet-300 tracking-wide uppercase">
                                     AI Assistant
                                 </span>
                             </>
@@ -51,7 +51,7 @@ function AIMessage({ message }) {
                     {/* Text / Markdown Content */}
                     <div className="text-sm leading-7 break-words overflow-x-hidden">
                         {message.isAI ? (
-                            <div className="markdown-body prose prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0">
+                            <div className="markdown-body prose prose-slate dark:prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 text-text-primary">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
@@ -64,14 +64,14 @@ function AIMessage({ message }) {
                                                     className="
     inline-flex
     items-center
-    px-3
-    py-1
-   
-    bg-gradient-to-r
-from-slate-800 to-slate-700
-   
-    text-cyan-300
-    text-sm
+    px-2
+    py-0.5
+    rounded
+    bg-input-bg
+    border
+    border-border-subtle
+    text-primary
+    text-[13px]
     font-mono
   "
                                                     {...props}
@@ -83,14 +83,14 @@ from-slate-800 to-slate-700
                                         p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
                                         ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
                                         ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
-                                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 mt-6 text-white">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-xl font-bold mb-3 mt-5 text-white">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-4 text-white">{children}</h3>,
-                                        a: ({ href, children }) => <a href={href} className="text-blue-400 hover:underline">{children}</a>,
-                                        blockquote: ({ children }) => <blockquote className="border-l-4 border-violet-500 pl-4 py-1 mb-4 bg-violet-500/10 rounded-r-lg italic text-gray-300">{children}</blockquote>,
-                                        table: ({ children }) => <div className="overflow-x-auto mb-4"><table className="min-w-full border border-gray-700 divide-y divide-gray-700">{children}</table></div>,
-                                        th: ({ children }) => <th className="px-4 py-2 bg-gray-800 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">{children}</th>,
-                                        td: ({ children }) => <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-300 border-t border-gray-700">{children}</td>,
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 mt-6 text-text-primary">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-bold mb-3 mt-5 text-text-primary">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-4 text-text-primary">{children}</h3>,
+                                        a: ({ href, children }) => <a href={href} className="text-primary hover:underline">{children}</a>,
+                                        blockquote: ({ children }) => <blockquote className="border-l-4 border-violet-500 pl-4 py-1 mb-4 bg-violet-500/10 rounded-r-lg italic text-text-secondary">{children}</blockquote>,
+                                        table: ({ children }) => <div className="overflow-x-auto mb-4"><table className="min-w-full border border-border-default divide-y divide-border-default">{children}</table></div>,
+                                        th: ({ children }) => <th className="px-4 py-2 bg-hover-bg text-left text-xs font-medium text-text-secondary uppercase tracking-wider">{children}</th>,
+                                        td: ({ children }) => <td className="px-4 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-border-subtle">{children}</td>,
                                     }}
                                 >
                                     {text}
@@ -100,11 +100,6 @@ from-slate-800 to-slate-700
                             <div className="whitespace-pre-wrap">{text}</div>
                         )}
                     </div>
-
-                    {/* Glow Effect */}
-                    {message.isAI && (
-                        <div className="absolute inset-0 rounded-3xl bg-violet-500/5 pointer-events-none" />
-                    )}
                 </div>
             </div>
         </div>
@@ -121,7 +116,7 @@ const CodeBlock = ({ language, value }) => {
     };
 
     return (
-        <div className="my-4 max-w-full overflow-hidden rounded-xl border border-gray-700 bg-[#1E1E1E]">
+        <div className="my-4 max-w-full overflow-hidden rounded-xl border border-border-default bg-[#1E1E1E]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2 bg-[#2D2D2D] border-b border-gray-700">
                 <span className="text-xs font-mono text-gray-400 lowercase">

@@ -47,26 +47,26 @@ function initials(name = "") {
 }
 
 /* ── avatar with real image fallback ── */
-function Avatar({ name, size = 36 }) {
+function Avatar({ name, size = 36, forceInitials = false }) {
     const seed = encodeURIComponent(name || "user");
-    const src = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${seed}&backgroundColor=0d1117`;
+    const src = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${seed}&backgroundColor=transparent`;
     const [failed, setFailed] = useState(false);
+    const showInitials = forceInitials || failed;
+
     return (
         <div
+            className="flex-shrink-0 flex items-center justify-center font-mono font-bold text-white overflow-hidden rounded-full border-2 border-border-default"
             style={{
-                width: size, height: size, borderRadius: "50%",
-                background: failed ? hashColor(name) : "#0d1117",
-                border: "2px solid rgba(255,255,255,0.12)",
-                overflow: "hidden", flexShrink: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: size * 0.35, fontWeight: 700, color: "#fff",
-                fontFamily: "monospace",
+                width: size, height: size,
+                background: showInitials ? hashColor(name) : "var(--color-surface)",
+                fontSize: size * 0.35,
             }}
         >
-            {!failed
-                ? <img src={src} alt={name} style={{ width: "100%", height: "100%" }} onError={() => setFailed(true)} />
-                : initials(name)
-            }
+            {showInitials ? (
+                initials(name)
+            ) : (
+                <img src={src} alt={name} className="w-full h-full object-cover" onError={() => setFailed(true)} />
+            )}
         </div>
     );
 }
@@ -78,18 +78,18 @@ function DiffBar({ added = 0, removed = 0 }) {
     const remW = Math.round((removed / max) * 60);
     const neutral = 60 - addW - remW;
     return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#4ade80", fontSize: 12, fontWeight: 600, minWidth: 36 }}>+{added}</span>
-            <span style={{ color: "#f87171", fontSize: 12, fontWeight: 600, minWidth: 36 }}>-{removed}</span>
-            <div style={{ display: "flex", gap: 2 }}>
+        <div className="flex items-center gap-2">
+            <span className="text-success text-xs font-semibold min-w-[36px]">+{added}</span>
+            <span className="text-error text-xs font-semibold min-w-[36px]">-{removed}</span>
+            <div className="flex gap-[2px]">
                 {Array.from({ length: addW }).map((_, i) => (
-                    <div key={`a${i}`} style={{ width: 7, height: 7, borderRadius: 1, background: "#4ade80" }} />
+                    <div key={`a${i}`} className="w-[7px] h-[7px] rounded-[1px] bg-success" />
                 ))}
                 {Array.from({ length: remW }).map((_, i) => (
-                    <div key={`r${i}`} style={{ width: 7, height: 7, borderRadius: 1, background: "#f87171" }} />
+                    <div key={`r${i}`} className="w-[7px] h-[7px] rounded-[1px] bg-error" />
                 ))}
                 {Array.from({ length: Math.max(neutral, 0) }).map((_, i) => (
-                    <div key={`n${i}`} style={{ width: 7, height: 7, borderRadius: 1, background: "rgba(255,255,255,0.12)" }} />
+                    <div key={`n${i}`} className="w-[7px] h-[7px] rounded-[1px] bg-border-subtle" />
                 ))}
             </div>
         </div>
@@ -103,13 +103,8 @@ function FileChip({ name }) {
     const bg = colors[ext] || "#6b7280";
     const isDeleted = name?.startsWith("-") || false;
     return (
-        <span style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 6, padding: "2px 8px", fontSize: 12, color: isDeleted ? "#f87171" : "#e2e8f0",
-            textDecoration: isDeleted ? "line-through" : "none",
-        }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: bg, flexShrink: 0 }} />
+        <span className={`inline-flex items-center gap-1.5 bg-surface border border-border-default rounded-md px-2 py-0.5 text-xs ${isDeleted ? "text-error line-through" : "text-text-primary"}`}>
+            <span className="w-[7px] h-[7px] rounded-full flex-shrink-0" style={{ background: bg }} />
             {name?.replace(/^-/, "")}
         </span>
     );
@@ -122,78 +117,43 @@ function CommitCard({ commit }) {
     const sha = (commit.sha || "abc1234").slice(0, 7);
 
     return (
-        <div style={{
-            background: "linear-gradient(135deg, rgba(13,27,42,0.9) 0%, rgba(17,24,39,0.9) 100%)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 14, padding: "16px 20px",
-            transition: "border-color 0.2s, box-shadow 0.2s",
-            position: "relative", overflow: "hidden",
-        }}
-            onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "rgba(96,165,250,0.3)";
-                e.currentTarget.style.boxShadow = "0 0 24px rgba(96,165,250,0.07)";
-            }}
-            onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                e.currentTarget.style.boxShadow = "none";
-            }}
-        >
+        <div className="relative bg-card border border-border-default rounded-2xl p-4 transition hover:border-primary/50 hover:shadow-md overflow-hidden group">
             {/* left accent line */}
-            <div style={{
-                position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
-                background: isMerge ? "linear-gradient(to bottom, #a78bfa, #7c3aed)" : "linear-gradient(to bottom, #60a5fa, #3b82f6)",
-                borderRadius: "14px 0 0 14px",
-            }} />
+            <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl ${isMerge ? "bg-gradient-to-b from-purple-400 to-purple-600" : "bg-gradient-to-b from-blue-400 to-blue-600"}`} />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+            <div className="flex justify-between items-start gap-3">
                 {/* left */}
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: 1, minWidth: 0 }}>
+                <div className="flex gap-3 items-start flex-1 min-w-0">
                     {/* commit type icon */}
-                    <div style={{
-                        width: 34, height: 34, borderRadius: "50%",
-                        background: isMerge ? "rgba(139,92,246,0.15)" : "rgba(59,130,246,0.12)",
-                        border: `1px solid ${isMerge ? "rgba(139,92,246,0.3)" : "rgba(59,130,246,0.25)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>
-                        {isMerge
-                            ? <GitMerge size={15} color="#a78bfa" />
-                            : <GitCommit size={15} color="#60a5fa" />
-                        }
+                    <div className={`w-[34px] h-[34px] rounded-full flex items-center justify-center flex-shrink-0 border ${isMerge ? "bg-purple-500/10 border-purple-500/30 text-purple-500" : "bg-primary-soft border-primary/20 text-primary"}`}>
+                        {isMerge ? <GitMerge size={15} /> : <GitCommit size={15} />}
                     </div>
 
-                    <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="min-w-0 flex-1">
                         {/* author row */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <div className="flex items-center gap-2 mb-1.5">
                             <Avatar name={commit.author} size={24} />
-                            <span style={{ color: "#e2e8f0", fontWeight: 600, fontSize: 13 }}>{commit.author || "Unknown"}</span>
-                            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>•</span>
-                            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{timeAgo(commit.date)}</span>
-                            <span style={{
-                                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: 5, padding: "1px 6px", fontSize: 11,
-                                color: "rgba(255,255,255,0.4)", fontFamily: "monospace",
-                            }}>{sha}</span>
+                            <span className="text-text-primary font-semibold text-[13px]">{commit.author || "Unknown"}</span>
+                            <span className="text-text-muted text-xs">•</span>
+                            <span className="text-text-muted text-xs">{timeAgo(commit.date)}</span>
+                            <span className="bg-surface border border-border-default rounded px-1.5 py-[1px] text-[11px] text-text-secondary font-mono">{sha}</span>
                         </div>
 
                         {/* message */}
-                        <p style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 500, marginBottom: 8, lineHeight: 1.4 }}>
+                        <p className="text-text-primary text-[14px] font-medium mb-2 leading-relaxed">
                             {commit.message}
                         </p>
 
                         {/* merge description */}
                         {isMerge && commit.description && (
-                            <div style={{
-                                borderLeft: "3px solid rgba(139,92,246,0.5)",
-                                paddingLeft: 10, marginBottom: 8,
-                                color: "rgba(255,255,255,0.45)", fontSize: 12, fontStyle: "italic",
-                            }}>
+                            <div className="border-l-[3px] border-purple-500/50 pl-2.5 mb-2 text-text-secondary text-xs italic">
                                 {commit.description}
                             </div>
                         )}
 
                         {/* files */}
                         {files.length > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
                                 {files.map((f, i) => <FileChip key={i} name={f} />)}
                             </div>
                         )}
@@ -205,16 +165,7 @@ function CommitCard({ commit }) {
 
                 {/* view diff button */}
                 {commit.url && (
-                    <a href={commit.url} target="_blank" rel="noreferrer" style={{
-                        display: "inline-flex", alignItems: "center", gap: 5,
-                        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "#94a3b8",
-                        textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-                        transition: "background 0.2s, color 0.2s",
-                    }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(96,165,250,0.1)"; e.currentTarget.style.color = "#60a5fa"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#94a3b8"; }}
-                    >
+                    <a href={commit.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-surface border border-border-default hover:bg-primary-soft hover:text-primary hover:border-primary/30 rounded-lg px-3 py-1.5 text-xs text-text-secondary no-underline whitespace-nowrap flex-shrink-0 transition">
                         <ExternalLink size={12} /> View Diff
                     </a>
                 )}
@@ -227,12 +178,12 @@ function CommitCard({ commit }) {
 function DateGroup({ label, commits }) {
     return (
         <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <Calendar size={13} color="#4b5563" />
-                <span style={{ color: "#4b5563", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>{label}</span>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+            <div className="flex items-center gap-2.5 mb-3">
+                <Calendar size={13} className="text-text-muted" />
+                <span className="text-text-muted text-[11px] font-bold tracking-widest uppercase">{label}</span>
+                <div className="flex-1 h-[1px] bg-border-subtle" />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
                 {commits.map((c, i) => <CommitCard key={c.sha || i} commit={c} />)}
             </div>
         </div>
@@ -242,22 +193,12 @@ function DateGroup({ label, commits }) {
 /* ── tab ── */
 function Tab({ icon, label, active, onClick, badge }) {
     return (
-        <div onClick={onClick} style={{
-            display: "flex", alignItems: "center", gap: 7, cursor: "pointer",
-            paddingBottom: 10, borderBottom: active ? "2px solid #60a5fa" : "2px solid transparent",
-            color: active ? "#60a5fa" : "#6b7280", fontSize: 13, fontWeight: 500,
-            transition: "color 0.2s",
-        }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.color = "#e2e8f0"; }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.color = "#6b7280"; }}
-        >
+        <div onClick={onClick} className={`flex items-center gap-2 cursor-pointer pb-2.5 border-b-2 text-[13px] font-medium transition ${active ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"}`}>
             {icon} {label}
             {badge != null && (
-                <span style={{
-                    background: active ? "#1d4ed8" : "rgba(255,255,255,0.08)",
-                    color: active ? "#bfdbfe" : "#6b7280",
-                    borderRadius: 99, padding: "1px 7px", fontSize: 11, fontWeight: 700,
-                }}>{badge}</span>
+                <span className={`rounded-full px-1.5 py-[1px] text-[11px] font-bold ${active ? "bg-primary text-white" : "bg-border-subtle text-text-secondary"}`}>
+                    {badge}
+                </span>
             )}
         </div>
     );
@@ -304,19 +245,34 @@ export default function ProjectCommit() {
     useEffect(() => {
         const fetchProject = async () => {
             try {
-                const res = await axios.get(`http://localhost:3001/api/project/${id}`);
+                const res = await axios.get(`/api/project/${id}`);
                 setProject(res.data.project || res.data);
             } catch { }
         };
         if (id) fetchProject();
     }, [id]);
 
+    /* fetch all team users for mapping member IDs to profiles */
+    const [allUsers, setAllUsers] = useState([]);
+    useEffect(() => {
+        const fetchAllUsers = async () => {
+            try {
+                if (!user?._id) return;
+                const res = await axios.get(`/api/invite/team/active/${user._id}`);
+                setAllUsers(res.data || []);
+            } catch (err) {
+                console.error('Failed to fetch users', err?.message || err);
+            }
+        };
+        fetchAllUsers();
+    }, [user?._id]);
+
     /* fetch commits */
     useEffect(() => {
         const fetchCommits = async () => {
             try {
                 setLoadingCommits(true);
-                const res = await axios.get(`http://localhost:3001/api/project/${id}/commits`, {
+                const res = await axios.get(`/api/project/${id}/commits`, {
                     headers: { Authorization: `Bearer ${authUser.token || ""}` },
                 });
                 const data = res.data.commits || res.data || [];
@@ -333,60 +289,44 @@ export default function ProjectCommit() {
     const grouped = groupByDate(commits);
 
     return (
-        <div style={{ display: "flex", height: "100vh" }}>
+        <div className="flex h-screen bg-background">
             <DashboardLeftSide />
-            <div style={{
-                flex: 1, height: "100vh", overflowY: "auto",
-                background: "linear-gradient(135deg, #050B18 0%, #071428 60%, #030712 100%)",
-                color: "#fff", padding: "24px 32px", fontFamily: "'Inter', sans-serif",
-            }}>
+            <div className="flex-1 h-screen overflow-y-auto bg-background text-text-primary px-8 py-6 font-sans">
                 <DashboardHeader user={user} />
 
                 {/* project card */}
-                <div style={{
-                    marginTop: 32,
-                    background: "linear-gradient(135deg, #0D1B2A 0%, #111827 100%)",
-                    border: "1px solid rgba(255,255,255,0.09)",
-                    borderRadius: 18, padding: "20px 24px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{
-                            width: 48, height: 48, borderRadius: 14,
-                            background: "linear-gradient(135deg,#1d4ed8,#7c3aed)",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: "0 4px 16px rgba(124,58,237,0.35)",
-                        }}>
-                            <GitCommit size={22} color="#fff" />
+                <div className="mt-8 bg-card border border-border-default rounded-[18px] p-5 md:p-6 flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/20 text-white">
+                            <GitCommit size={22} />
                         </div>
                         <div>
-                            <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>
+                            <h1 className="text-lg font-bold text-text-primary m-0">
                                 {project?.projectName || "Project Repository"}
                             </h1>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-                                <span style={{ color: "#6b7280", fontSize: 13 }}>
-                                    Branch: <span style={{ color: "#4ade80", fontWeight: 600 }}>main</span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <span className="w-[7px] h-[7px] rounded-full bg-success inline-block" />
+                                <span className="text-text-secondary text-[13px]">
+                                    Branch: <span className="text-success font-semibold">main</span>
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     {/* stats */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                    <div className="flex items-center gap-6">
                         {[
                             { val: commits.length, label: "Commits" },
                             { val: pullCount, label: "Pull Requests" },
                             { val: memberCount, label: "Members" },
                         ].map((s, i, arr) => (
                             <React.Fragment key={s.label}>
-                                <div style={{ textAlign: "center" }}>
-                                    <p style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 20, margin: 0 }}>{s.val}</p>
-                                    <p style={{ color: "#4b5563", fontSize: 11, margin: 0 }}>{s.label}</p>
+                                <div className="text-center">
+                                    <p className="text-text-primary font-bold text-xl m-0">{s.val}</p>
+                                    <p className="text-text-muted text-[11px] m-0">{s.label}</p>
                                 </div>
                                 {i < arr.length - 1 && (
-                                    <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.07)" }} />
+                                    <div className="w-[1px] h-8 bg-border-subtle" />
                                 )}
                             </React.Fragment>
                         ))}
@@ -394,10 +334,7 @@ export default function ProjectCommit() {
                 </div>
 
                 {/* tabs */}
-                <div style={{
-                    marginTop: 24, borderBottom: "1px solid rgba(255,255,255,0.08)",
-                    display: "flex", gap: 28, paddingBottom: 0,
-                }}>
+                <div className="mt-6 border-b border-border-default flex gap-7 pb-0">
                     <Tab icon={<GitCommit size={15} />} label="Commits" active={activeTab === "commits"}
                         onClick={() => setActiveTab("commits")} badge={commits.length} />
                     <Tab icon={<GitPullRequest size={15} />} label="Pull Requests" active={activeTab === "prs"}
@@ -410,12 +347,11 @@ export default function ProjectCommit() {
 
                 {/* commits tab */}
                 {activeTab === "commits" && (
-                    <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 28 }}>
+                    <div className="mt-6 flex flex-col gap-7">
                         {loadingCommits ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#6b7280", padding: "32px 0" }}>
-                                <RotateCcw size={16} style={{ animation: "spin 1s linear infinite" }} />
+                            <div className="flex items-center gap-2.5 text-text-muted py-8">
+                                <RotateCcw size={16} className="animate-spin" />
                                 Loading commits…
-                                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                             </div>
                         ) : (
                             Object.entries(grouped).map(([label, list]) => (
@@ -427,36 +363,43 @@ export default function ProjectCommit() {
 
                 {/* code tab */}
                 {activeTab === "code" && (
-                    <div style={{ marginTop: 24 }}>
-                        <h2 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Repository Files</h2>
+                    <div className="mt-6">
+                        <h2 className="font-bold text-base mb-3 text-text-primary">Repository Files</h2>
                         <CodeViewer projectId={id} filePath={currentPath} />
                     </div>
                 )}
 
                 {/* pull requests placeholder */}
                 {activeTab === "prs" && (
-                    <div style={{ marginTop: 32, textAlign: "center", color: "#4b5563", padding: "48px 0" }}>
-                        <GitPullRequest size={40} style={{ margin: "0 auto 12px", display: "block", opacity: 0.4 }} />
-                        <p style={{ fontSize: 14 }}>Pull requests view coming soon.</p>
+                    <div className="mt-8 text-center text-text-muted py-12">
+                        <GitPullRequest size={40} className="mx-auto mb-3 block opacity-40" />
+                        <p className="text-sm">Pull requests view coming soon.</p>
                     </div>
                 )}
 
-                {/* members placeholder */}
+                {/* members */}
                 {activeTab === "members" && (
-                    <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 14 }}>
-                        {["Marcus Thorne", "Elena Vance", "DevCollab Bot", "Priya Sharma", "Leo Kim"].map(name => (
-                            <div key={name} style={{
-                                display: "flex", alignItems: "center", gap: 12,
-                                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                                borderRadius: 12, padding: "12px 16px", minWidth: 200,
-                            }}>
-                                <Avatar name={name} size={38} />
-                                <div>
-                                    <p style={{ color: "#e2e8f0", fontWeight: 600, fontSize: 13, margin: 0 }}>{name}</p>
-                                    <p style={{ color: "#4b5563", fontSize: 11, margin: 0 }}>Contributor</p>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="mt-8 flex flex-wrap gap-3.5">
+                        {project?.members && project.members.length > 0 ? (
+                            project.members.map((m) => {
+                                const member = allUsers.find(u => u._id === m) || (authUser?.user && authUser.user._id === m ? authUser.user : (typeof m === 'object' ? m : null));
+                                const name = member ? (member.fullName || member.name) : (typeof m === 'string' ? m : 'Unknown');
+                                const email = member ? member.email : undefined;
+                                const idKey = member?._id || (typeof m === 'string' ? m : JSON.stringify(m));
+
+                                return (
+                                    <div key={idKey} className="flex items-center gap-3 bg-surface border border-border-default rounded-xl px-4 py-3 min-w-[200px]">
+                                        <Avatar name={name} size={38} forceInitials={true} />
+                                        <div>
+                                            <p className="text-text-primary font-semibold text-[13px] m-0">{name}</p>
+                                            {email && <p className="text-text-muted text-[11px] m-0">{email}</p>}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <p className="text-text-muted">No members found for this project.</p>
+                        )}
                     </div>
                 )}
             </div>

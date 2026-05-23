@@ -27,9 +27,7 @@ export default function Left() {
                         </div>
                     </div>
 
-                    <button className="icon-button h-8 w-8 rounded-xl border-border-subtle hover:bg-hover-bg hover:text-primary transition-all duration-300" aria-label="Create workspace">
-                        <FiPlus size={14} />
-                    </button>
+                   
                 </div>
 
                 {/* Search */}

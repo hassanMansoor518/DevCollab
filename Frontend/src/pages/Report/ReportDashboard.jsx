@@ -9,7 +9,7 @@ export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
   const user = authUser?.user;
   const token = authUser?.token;
   useEffect(() => {
@@ -63,37 +63,37 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0B1220] text-white font-[Inter] overflow-hidden">
+    <div className="flex h-screen bg-background text-text-primary overflow-hidden">
       <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined" rel="stylesheet" />
 
       <DashboardLeftSide />
 
-      <div className="flex-1 overflow-y-auto px-8 py-6 bg-[#0B1220]">
+      <div className="flex-1 overflow-y-auto px-8 py-6 bg-background">
         <DashboardHeader user={user} />
 
         <div className="flex justify-between items-end mt-8 mb-8">
           <div>
-            <p className="text-xs text-blue-400 tracking-widest mb-2">
+            <p className="text-xs text-info font-bold tracking-widest mb-2">
               ANALYZER • REPORTS OVERVIEW
             </p>
-            <h1 className="text-4xl font-[Manrope] font-extrabold">
+            <h1 className="text-4xl font-[Manrope] font-extrabold text-text-primary">
               Reports Overview
             </h1>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-text-secondary text-sm mt-1">
               Audit and performance metrics across your connected repositories.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-[#0e1625] p-4 rounded-md border border-[#1f2a44] mb-6">
+        <div className="flex items-center gap-4 bg-surface p-4 rounded-md border border-border-default mb-6">
           <div className="flex items-center gap-2 flex-1">
-            <span className="material-symbols-outlined text-gray-400">search</span>
+            <span className="material-symbols-outlined text-text-muted">search</span>
             <input
               placeholder="Search reports..."
-              className="bg-transparent outline-none text-sm w-full"
+              className="bg-transparent outline-none text-sm w-full text-text-primary placeholder:text-text-muted"
             />
           </div>
-          <button className="flex items-center gap-1 bg-[#0b1220] px-3 py-2 rounded text-sm text-gray-300">
+          <button className="flex items-center gap-1 bg-background border border-border-subtle px-3 py-2 rounded text-sm text-text-secondary hover:bg-hover-bg transition">
             <span className="material-symbols-outlined text-sm">tune</span>
             Status
           </button>
@@ -101,14 +101,14 @@ export default function ReportsPage() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
-            <p className="text-gray-400">Loading reports...</p>
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <p className="text-text-muted">Loading reports...</p>
           </div>
         ) : reports.length === 0 ? (
-          <div className="bg-[#0B1220] p-12 rounded-lg border border-[#1f2a44] text-center">
-            <span className="material-symbols-outlined text-5xl text-gray-600 mb-4">analytics</span>
-            <h3 className="text-xl font-bold">No Reports Yet</h3>
-            <p className="text-gray-400 mt-2">Generate your first AI code audit from the Project view.</p>
+          <div className="bg-card p-12 rounded-lg border border-border-subtle text-center">
+            <span className="material-symbols-outlined text-5xl text-text-muted mb-4">analytics</span>
+            <h3 className="text-xl font-bold text-text-primary">No Reports Yet</h3>
+            <p className="text-text-secondary mt-2">Generate your first AI code audit from the Project view.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -140,19 +140,19 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
   const isCritical = report.riskLevel === "Critical" || report.healthScore < 50;
   const isHealthy = report.healthScore > 80;
 
-  const borderColor = isCritical ? "border-red-500" : isHealthy ? "border-[#00e5ff]" : "border-yellow-500";
-  const badgeColor = isCritical ? "text-red-400" : isHealthy ? "text-[#00e5ff]" : "text-yellow-400";
+  const borderColor = isCritical ? "border-error" : isHealthy ? "border-success" : "border-warning";
+  const badgeColor = isCritical ? "text-error" : isHealthy ? "text-success" : "text-warning";
   const badgeText = isCritical ? "CRITICAL" : isHealthy ? "HEALTHY" : "STABLE";
 
   return (
-    <div className={`bg-[#0e1625] p-6 rounded-lg border-l-4 ${borderColor} hover:bg-[#121b2d] transition-colors group`}>
+    <div className={`bg-card p-6 rounded-lg border-l-4 border-y border-r border-y-border-subtle border-r-border-subtle ${borderColor} hover:bg-hover-bg transition-colors group`}>
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-bold text-lg">{report.title}</h3>
-          <div className="text-gray-400 text-xs mt-1 flex gap-4">
+          <h3 className="font-bold text-lg text-text-primary">{report.title}</h3>
+          <div className="text-text-secondary text-xs mt-1 flex gap-4">
             <span>{new Date(report.createdAt).toLocaleString()}</span>
             <span>{report.language}</span>
-            <span className="text-gray-500 italic">{report.filename}</span>
+            <span className="text-text-muted italic">{report.filename}</span>
           </div>
           <p className={`text-xs mt-3 font-semibold ${badgeColor}`}>
             {badgeText}
@@ -163,26 +163,26 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
           <p className={`text-sm font-bold ${badgeColor}`}>
             Health: {report.healthScore}/100
           </p>
-          <p className="text-xs text-gray-400">{report.totalIssues} Issues Found</p>
+          <p className="text-xs text-text-muted">{report.totalIssues} Issues Found</p>
 
           <div className="flex gap-3 mt-3 justify-end">
             <button
               onClick={onDownload}
-              className="text-gray-400 hover:text-white text-xs flex items-center gap-1 transition-colors"
+              className="text-text-secondary hover:text-primary text-xs flex items-center gap-1 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Download
             </button>
             <button
               onClick={onDelete}
-              className="text-red-400/70 hover:text-red-400 text-xs flex items-center gap-1 transition-colors"
+              className="text-error/70 hover:text-error text-xs flex items-center gap-1 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">delete</span>
               Delete
             </button>
             <button
               onClick={onView}
-              className="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded text-xs hover:bg-indigo-600/40 transition-colors"
+              className="bg-primary-soft text-primary border border-primary/30 px-4 py-2 rounded text-xs hover:bg-primary/20 transition-colors font-semibold"
             >
               View Report
             </button>
@@ -195,25 +195,25 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
 
 function ReportViewModal({ report, onClose, onDownload }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0b1220] w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm dark:bg-black/80">
+      <div className="bg-background w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-border-default shadow-popover flex flex-col">
         {/* MODAL HEADER */}
-        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-[#0e1625]">
+        <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface">
           <div>
-            <h2 className="text-xl font-bold">{report.title}</h2>
-            <p className="text-xs text-gray-400">{report.filename}</p>
+            <h2 className="text-xl font-bold text-text-primary">{report.title}</h2>
+            <p className="text-xs text-text-muted">{report.filename}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={onDownload}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-xs font-semibold transition"
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
             >
               <span className="material-symbols-outlined text-sm">download</span>
               Download PDF
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-text-muted hover:text-text-primary p-1 rounded-md transition"
             >
               <span className="material-symbols-outlined">close</span>
             </button>
@@ -226,8 +226,8 @@ function ReportViewModal({ report, onClose, onDownload }) {
           {/* TOP GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatBox label="Project" value={report.projectName || "N/A"} />
-            <StatBox label="Health Score" value={`${report.healthScore}/100`} color={report.healthScore > 80 ? "text-green-400" : "text-red-400"} />
-            <StatBox label="Risk Level" value={report.riskLevel} color={report.riskLevel === "Critical" ? "text-red-400" : "text-yellow-400"} />
+            <StatBox label="Health Score" value={`${report.healthScore}/100`} color={report.healthScore > 80 ? "text-success" : "text-error"} />
+            <StatBox label="Risk Level" value={report.riskLevel} color={report.riskLevel === "Critical" ? "text-error" : "text-warning"} />
             <StatBox label="Total Issues" value={report.totalIssues} />
           </div>
 
@@ -235,23 +235,23 @@ function ReportViewModal({ report, onClose, onDownload }) {
           <Section title="Code Quality Overview" content={report.codeQualityOverview} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ListSection title="Security Issues" items={report.securityIssues} icon="shield" iconColor="text-red-400" />
-            <ListSection title="Performance Concerns" items={report.performanceConcerns} icon="speed" iconColor="text-yellow-400" />
+            <ListSection title="Security Issues" items={report.securityIssues} icon="shield" iconColor="text-error" />
+            <ListSection title="Performance Concerns" items={report.performanceConcerns} icon="speed" iconColor="text-warning" />
           </div>
 
           <Section title="Maintainability Analysis" content={report.maintainabilityAnalysis} />
 
           {/* BUG BREAKDOWN */}
           <div>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-indigo-400">bug_report</span>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary">
+              <span className="material-symbols-outlined text-primary">bug_report</span>
               Bug Severity Breakdown
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SeverityBox label="Critical" count={report.bugSeverityBreakdown.critical} color="bg-red-500" />
-              <SeverityBox label="High" count={report.bugSeverityBreakdown.high} color="bg-orange-500" />
-              <SeverityBox label="Medium" count={report.bugSeverityBreakdown.medium} color="bg-yellow-500" />
-              <SeverityBox label="Low" count={report.bugSeverityBreakdown.low} color="bg-blue-500" />
+              <SeverityBox label="Critical" count={report.bugSeverityBreakdown.critical} color="bg-error" />
+              <SeverityBox label="High" count={report.bugSeverityBreakdown.high} color="bg-warning" />
+              <SeverityBox label="Medium" count={report.bugSeverityBreakdown.medium} color="bg-info" />
+              <SeverityBox label="Low" count={report.bugSeverityBreakdown.low} color="bg-success" />
             </div>
           </div>
 
@@ -265,10 +265,10 @@ function ReportViewModal({ report, onClose, onDownload }) {
   );
 }
 
-function StatBox({ label, value, color = "text-white" }) {
+function StatBox({ label, value, color = "text-text-primary" }) {
   return (
-    <div className="bg-[#0e1625] p-4 rounded-xl border border-white/5">
-      <p className="text-gray-500 text-xs uppercase tracking-wider">{label}</p>
+    <div className="bg-surface p-4 rounded-xl border border-border-subtle shadow-sm">
+      <p className="text-text-muted text-xs uppercase tracking-wider font-semibold">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
     </div>
   );
@@ -276,12 +276,12 @@ function StatBox({ label, value, color = "text-white" }) {
 
 function SeverityBox({ label, count, color }) {
   return (
-    <div className="bg-[#0e1625] p-3 rounded-lg border border-white/5 flex items-center justify-between">
+    <div className="bg-surface p-3 rounded-lg border border-border-subtle flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-2">
         <div className={`w-2 h-2 rounded-full ${color}`}></div>
-        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-xs text-text-secondary font-medium">{label}</span>
       </div>
-      <span className="font-bold">{count}</span>
+      <span className="font-bold text-text-primary">{count}</span>
     </div>
   );
 }
@@ -289,32 +289,32 @@ function SeverityBox({ label, count, color }) {
 function Section({ title, content }) {
   return (
     <div>
-      <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-        <span className="material-symbols-outlined text-indigo-400">segment</span>
+      <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-text-primary">
+        <span className="material-symbols-outlined text-primary">segment</span>
         {title}
       </h3>
-      <p className="text-gray-300 text-sm leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
+      <p className="text-text-secondary text-sm leading-relaxed bg-surface p-4 rounded-xl border border-border-subtle">
         {content || "No data available."}
       </p>
     </div>
   );
 }
 
-function ListSection({ title, items, icon, iconColor = "text-indigo-400" }) {
+function ListSection({ title, items, icon, iconColor = "text-primary" }) {
   return (
     <div>
-      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+      <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-text-primary">
         <span className={`material-symbols-outlined ${iconColor}`}>{icon}</span>
         {title}
       </h3>
       <ul className="space-y-2">
         {items && items.length > 0 ? items.map((item, i) => (
-          <li key={i} className="flex gap-3 text-sm text-gray-300 bg-white/5 p-3 rounded-lg border border-white/5">
-            <span className="text-indigo-400 font-bold">•</span>
+          <li key={i} className="flex gap-3 text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border-subtle">
+            <span className={`${iconColor} font-bold`}>•</span>
             {item}
           </li>
         )) : (
-          <li className="text-gray-500 text-sm italic">None identified.</li>
+          <li className="text-text-muted text-sm italic">None identified.</li>
         )}
       </ul>
     </div>

@@ -186,25 +186,24 @@ const Login = ({ isModal, closeModal, openSignup }) => {
     <div
       className={`${isModal
         ? ""
-        : "min-h-screen bg-[#050816] flex items-center justify-center px-4 py-10 overflow-hidden"
+        : "min-h-screen bg-background flex items-center justify-center px-4 py-10 overflow-hidden"
         } relative`}
     >
       {/* Background Glow */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-600/20 blur-[120px] rounded-full"></div>
-
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-indigo-600/20 blur-[120px] rounded-full"></div>
+      <div className="absolute top-10 left-10 w-72 h-72 bg-primary/20 blur-[120px] rounded-full"></div>
+      <div className="absolute bottom-10 right-10 w-72 h-72 bg-info/20 blur-[120px] rounded-full"></div>
 
       <div className="w-full max-w-md relative z-10">
         <form
           onSubmit={handelSubmit}
           className="
           relative
-          bg-white/5
+          bg-surface/80
           backdrop-blur-2xl
-          border border-white/10
+          border border-border-default
           rounded-[32px]
           px-8 py-8
-          shadow-[0_20px_80px_rgba(0,0,0,0.6)]
+          shadow-popover
           space-y-3
         "
         >
@@ -213,7 +212,7 @@ const Login = ({ isModal, closeModal, openSignup }) => {
             <button
               type="button"
               onClick={closeModal}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white transition"
+              className="absolute top-5 right-5 text-text-muted hover:text-text-primary transition"
             >
               ✕
             </button>
@@ -222,8 +221,8 @@ const Login = ({ isModal, closeModal, openSignup }) => {
           {/* Logo */}
           <div className="flex justify-center">
             <div className="flex gap-1">
-              <div className="w-2 h-8 rounded-full bg-blue-500"></div>
-              <div className="w-2 h-8 rounded-full bg-blue-400"></div>
+              <div className="w-2 h-8 rounded-full bg-primary"></div>
+              <div className="w-2 h-8 rounded-full bg-info"></div>
               <div className="w-2 h-8 rounded-full bg-indigo-400"></div>
               <div className="w-2 h-8 rounded-full bg-cyan-400"></div>
             </div>
@@ -231,11 +230,10 @@ const Login = ({ isModal, closeModal, openSignup }) => {
 
           {/* Heading */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-text-primary">
               Welcome Back
             </h1>
-
-            <p className="text-gray-400 text-sm">
+            <p className="text-text-secondary text-sm">
               Login to continue to DevCollab
             </p>
           </div>
@@ -248,18 +246,19 @@ const Login = ({ isModal, closeModal, openSignup }) => {
               className="
                           w-full h-12
                           rounded-xl
-                          bg-white/5
-                          border border-white/10
-                          hover:bg-white/10
-                          hover:border-white/20
+                          bg-surface
+                          border border-border-default
+                          hover:bg-hover-bg
+                          hover:border-border-strong
                           transition-all duration-300
                           flex items-center justify-center gap-3
-                          text-white font-medium
+                          text-text-primary font-medium
                           disabled:opacity-50 disabled:cursor-not-allowed
+                          shadow-sm
                         "
             >
               {oauthLoading === "google" ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-border-default border-t-primary rounded-full animate-spin"></div>
               ) : (
                 <FcGoogle size={20} />
               )}
@@ -273,20 +272,21 @@ const Login = ({ isModal, closeModal, openSignup }) => {
               className="
                           w-full h-12
                           rounded-xl
-                          bg-white/5
-                          border border-white/10
-                          hover:bg-white/10
-                          hover:border-white/20
+                          bg-surface
+                          border border-border-default
+                          hover:bg-hover-bg
+                          hover:border-border-strong
                           transition-all duration-300
                           flex items-center justify-center gap-3
-                          text-white font-medium
+                          text-text-primary font-medium
                           disabled:opacity-50 disabled:cursor-not-allowed
+                          shadow-sm
                         "
             >
               {oauthLoading === "github" ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-border-default border-t-primary rounded-full animate-spin"></div>
               ) : (
-                <FaGithub size={18} />
+                <FaGithub size={18} className="text-text-primary" />
               )}
               {oauthLoading === "github" ? "Connecting..." : "Continue with GitHub"}
             </button>
@@ -294,44 +294,40 @@ const Login = ({ isModal, closeModal, openSignup }) => {
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-[1px] bg-white/10"></div>
-
-            <span className="text-xs text-gray-500">
+            <div className="flex-1 h-[1px] bg-border-subtle"></div>
+            <span className="text-xs text-text-muted">
               or sign up with email
             </span>
-
-            <div className="flex-1 h-[1px] bg-white/10"></div>
+            <div className="flex-1 h-[1px] bg-border-subtle"></div>
           </div>
 
           {/* Error */}
           {errors && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl p-3">
+            <div className="bg-error-soft border border-error/20 text-error text-sm rounded-xl p-3">
               {errors}
             </div>
           )}
 
           {/* Email */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wide font-semibold text-gray-400">
+            <label className="text-xs uppercase tracking-wide font-semibold text-text-muted">
               Email
             </label>
-
             <div
               className="
               flex items-center
               h-12
               px-4
               rounded-xl
-              bg-white/5
-              border border-white/10
-              focus-within:border-blue-500
+              bg-input-bg
+              border border-border-default
+              focus-within:border-primary
               focus-within:ring-2
-              focus-within:ring-blue-500/20
+              focus-within:ring-primary/20
               transition
             "
             >
-              <FiMail className="text-gray-400" />
-
+              <FiMail className="text-text-muted" />
               <input
                 type="email"
                 name="email"
@@ -341,8 +337,8 @@ const Login = ({ isModal, closeModal, openSignup }) => {
                 w-full ml-3
                 bg-transparent
                 outline-none
-                text-white
-                placeholder:text-gray-500
+                text-text-primary
+                placeholder:text-text-muted
               "
               />
             </div>
@@ -350,26 +346,24 @@ const Login = ({ isModal, closeModal, openSignup }) => {
 
           {/* Password */}
           <div className="space-y-2">
-            <label className="text-xs uppercase tracking-wide font-semibold text-gray-400">
+            <label className="text-xs uppercase tracking-wide font-semibold text-text-muted">
               Password
             </label>
-
             <div
               className="
               flex items-center
               h-12
               px-4
               rounded-xl
-              bg-white/5
-              border border-white/10
-              focus-within:border-blue-500
+              bg-input-bg
+              border border-border-default
+              focus-within:border-primary
               focus-within:ring-2
-              focus-within:ring-blue-500/20
+              focus-within:ring-primary/20
               transition
             "
             >
-              <FiLock className="text-gray-400" />
-
+              <FiLock className="text-text-muted" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -379,15 +373,14 @@ const Login = ({ isModal, closeModal, openSignup }) => {
                 w-full ml-3
                 bg-transparent
                 outline-none
-                text-white
-                placeholder:text-gray-500
+                text-text-primary
+                placeholder:text-text-muted
               "
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-gray-400 hover:text-white transition"
+                className="text-text-muted hover:text-text-primary transition"
               >
                 {showPassword ? (
                   <EyeOff size={18} />
@@ -396,22 +389,20 @@ const Login = ({ isModal, closeModal, openSignup }) => {
                 )}
               </button>
             </div>
-
           </div>
 
           {/* Remember + Forgot */}
           <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-text-secondary cursor-pointer">
               <input
                 type="checkbox"
-                className="accent-blue-500"
+                className="accent-primary"
               />
               Remember me
             </label>
-
             <button
               type="button"
-              className="text-blue-400 hover:text-blue-300"
+              className="text-primary hover:text-primary-hover font-medium"
             >
               Forgot password?
             </button>
@@ -423,23 +414,23 @@ const Login = ({ isModal, closeModal, openSignup }) => {
             className="
             w-full h-12
             rounded-xl
-            bg-blue-600
-            hover:bg-blue-700
+            bg-primary
+            hover:bg-primary-hover
             transition-all duration-300
             text-white font-semibold
-            shadow-lg shadow-blue-500/30
+            shadow-md
           "
           >
             Login
           </button>
 
           {/* Footer */}
-          <p className="text-center text-sm text-gray-400">
+          <p className="text-center text-sm text-text-secondary">
             Don't have an account?{" "}
             <button
               type="button"
               onClick={openSignup}
-              className="text-blue-400 hover:text-blue-300 font-medium"
+              className="text-primary hover:text-primary-hover font-medium"
             >
               Sign up
             </button>

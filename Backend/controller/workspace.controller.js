@@ -77,9 +77,70 @@ const deleteWorkspace = async (req, res) => {
   }
 };
 
+// Create workspace
+const createWorkspace = async (req, res) => {
+  try {
+    const { name, projectId } = req.body;
+
+    const workspace = new Workspace({
+      name: name || "New Workspace",
+      projectId: projectId || null,
+      members: [req.user._id],
+    });
+
+    await workspace.save();
+
+    const populated = await Workspace.findById(workspace._id).populate("members");
+
+    res.status(201).json(populated);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create workspace" });
+  }
+};
+
+// Remove member from workspace
+const removeMember = async (req, res) => {
+  try {
+    const { workspaceId, userId } = req.params;
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+    workspace.members = workspace.members.filter((m) => m.toString() !== userId.toString());
+    await workspace.save();
+
+    const updated = await Workspace.findById(workspaceId).populate("members");
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to remove member" });
+  }
+};
+
+// Update workspace (rename)
+const updateWorkspace = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const { name } = req.body;
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+    if (name) workspace.name = name;
+    await workspace.save();
+
+    const updated = await Workspace.findById(workspaceId).populate("members");
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update workspace" });
+  }
+};
+
 module.exports = {
   getWorkspace,
   addMember,
   getAllWorkspace,
   deleteWorkspace,
+  createWorkspace,
+  updateWorkspace,
+  removeMember,
 };

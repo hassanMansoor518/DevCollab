@@ -1,46 +1,68 @@
 import React from "react";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import Notification from "./Notification";
+import ThemeToggle from "./ThemeToggle.jsx";
 
-export default function DashboardHeader({
-  user
-
-}) {
+export default function DashboardHeader({ user }) {
   return (
     <>
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
+      {/* TOP BAR */}
+      <div className="flex items-center justify-between mb-8">
+
+        {/* SEARCH */}
         <div className="flex items-center gap-6 w-1/2">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-text-muted" />
+
             <input
-              className="w-full bg-[#0B1120] border border-[#1C2333] rounded-lg pl-10 pr-4 py-2 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="
+                w-full
+                bg-surface
+                border border-border-default
+                rounded-lg
+                pl-10 pr-4 py-2 text-sm
+                text-text-primary
+                placeholder:text-text-muted
+                outline-none
+                transition
+                focus:border-primary
+                focus:ring-2
+                focus:ring-primary/20
+              "
               placeholder="Search projects, files or discussions..."
             />
           </div>
         </div>
 
+        {/* RIGHT SIDE */}
         <div className="flex items-center gap-6">
-          <div className="bg-green-900/40 text-green-400 text-xs px-3 py-1 rounded-full border border-green-700">
-            ● GITHUB CONNECTED
+          <ThemeToggle />
+          
+          {/* STATUS BADGE */}
+          <div className="badge badge-success px-3 py-1.5 rounded-full">
+            <span className="mr-1">●</span> GITHUB CONNECTED
           </div>
 
+          {/* NOTIFICATION */}
           <Notification currentUserId={user?._id} />
 
-          <div className="flex items-center gap-3">
+          {/* USER INFO */}
+          <div className="flex items-center gap-3 pl-4 border-l border-border-subtle">
             <div className="text-right">
-              <p className="text-sm font-semibold">{user?.fullName}</p>
-              <p className="text-xs text-gray-400">Lead Developer</p>
+              <p className="text-sm font-semibold text-text-primary">
+                {user?.fullName}
+              </p>
+              <p className="text-xs text-text-muted">
+                Lead Developer
+              </p>
             </div>
-            <div className="w-8 h-8 bg-[#1E293B] rounded-lg flex items-center justify-center font-bold">
-              {user?.fullName?.[0]}
+
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold bg-primary-soft text-primary">
+              {user?.fullName?.[0]?.toUpperCase()}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Header Section */}
-
     </>
   );
 }

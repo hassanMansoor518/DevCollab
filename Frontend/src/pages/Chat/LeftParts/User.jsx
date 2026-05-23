@@ -5,7 +5,7 @@ import { useSocketContext } from "../../../context/SocketContext.jsx";
 import profile from "../../../assets/Profile.png";
 
 function User({ user }) {
-    const { selectedConversation, setSelectedConversation } = useConversation();
+    const { selectedConversation, setSelectedConversation, setSelectedWorkspace } = useConversation();
     const { onlineUsers } = useSocketContext();
 
     if (!user) return null;
@@ -29,6 +29,7 @@ function User({ user }) {
 
             const conversation = await res.json();
             setSelectedConversation(conversation);
+            setSelectedWorkspace(null); // ✅ Clear active workspace to ensure clean direct message routing
 
         } catch (err) {
             console.error("Error getting/creating conversation:", err);
@@ -59,7 +60,7 @@ function User({ user }) {
             {/* Avatar / Initials Fallback */}
             <div className="relative flex-shrink-0">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white overflow-hidden shadow-sm
-                    ${isSelected ? "bg-white/20" : "bg-gradient-to-tr from-primary to-info"}
+					${isSelected ? "bg-white/20" : "bg-gradient-to-tr from-primary to-info"}
                 `}>
                     {profile ? (
                         <img
@@ -107,4 +108,3 @@ function User({ user }) {
 }
 
 export default User;
-

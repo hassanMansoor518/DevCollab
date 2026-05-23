@@ -29,7 +29,7 @@ export default function AIAssistant() {
   }, [selectedProject?._id, fetchHistory, clearMessages]);
 
   return (
-    <div className="flex flex-col max-w-10xl h-screen bg-[#0B1220] text-text-primary overflow-hidden">
+    <div className="flex flex-col max-w-10xl h-screen bg-background text-text-primary overflow-hidden">
 
       {/* ================= HEADER ================= */}
       <div className="shrink-0 px-6 py-4 border-b border-border-subtle backdrop-blur-xl sticky top-0 z-50">
@@ -61,24 +61,24 @@ export default function AIAssistant() {
                 icon={<Lightbulb size={24} />}
                 title="Explain Code"
                 desc="Deconstruct complex logic into plain English explanations."
-                iconColor="text-cyan-400"
-                bgColor="bg-cyan-400/10"
+                iconColor="text-cyan-500 dark:text-cyan-400"
+                bgColor="bg-cyan-500/10"
               />
 
               <Card
                 icon={<Bug size={24} />}
                 title="Detect Bugs"
                 desc="Find issues, bugs and performance problems."
-                iconColor="text-purple-400"
-                bgColor="bg-purple-400/10"
+                iconColor="text-purple-500 dark:text-purple-400"
+                bgColor="bg-purple-500/10"
               />
 
               <Card
                 icon={<Rocket size={24} />}
                 title="Improve Code"
                 desc="Optimize performance and clean architecture."
-                iconColor="text-blue-400"
-                bgColor="bg-blue-400/10"
+                iconColor="text-blue-500 dark:text-blue-400"
+                bgColor="bg-blue-500/10"
               />
 
             </div>
@@ -101,7 +101,7 @@ export default function AIAssistant() {
 /* ================= CARD ================= */
 function Card({ icon, title, desc, iconColor, bgColor }) {
   return (
-    <div className="bg-card border border-border-subtle rounded-2xl px-8 py-6 text-left hover:bg-hover-bg transition">
+    <div className="bg-card border border-border-subtle rounded-2xl px-8 py-6 text-left hover:bg-hover-bg transition shadow-sm">
 
       <div className={`p-4 rounded-xl ${bgColor} ${iconColor} mb-4 w-fit`}>
         {icon}

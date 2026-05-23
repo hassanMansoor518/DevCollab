@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useSocketContext } from "./SocketContext";
 import useConversation from "../zustand/useConversation.js";
-import sound from "../assets/notification.mp3";
 
 const useGetSocketMessage = () => {
   const { socket } = useSocketContext();
@@ -10,7 +9,7 @@ const useGetSocketMessage = () => {
     setMessage,
     selectedConversation,
     setTypingState,
-    setOnlineUsers, // new: Zustand state for online users
+    setOnlineUsers,
   } = useConversation();
 
   useEffect(() => {
@@ -25,8 +24,6 @@ const useGetSocketMessage = () => {
         selectedConversation._id &&
         conversationId === selectedConversation._id
       ) {
-        const notification = new Audio(sound);
-        notification.play();
         setMessage([...messages, incomingMessage]);
       }
     };
@@ -49,13 +46,13 @@ const useGetSocketMessage = () => {
 
     // ====== 3️⃣ Handle Online Users ======
     const onlineHandler = (users) => {
-      setOnlineUsers(users); // users = array of online userIds
+      setOnlineUsers(users);
     };
 
     // ====== Socket Listeners ======
     socket.on("newMessage", messageHandler);
     socket.on("typing", typingHandler);
-    socket.on("updateUsers", onlineHandler); // new listener
+    socket.on("updateUsers", onlineHandler);
 
     return () => {
       socket.off("newMessage", messageHandler);
@@ -68,7 +65,7 @@ const useGetSocketMessage = () => {
     setMessage,
     selectedConversation,
     setTypingState,
-    setOnlineUsers, // include new setter
+    setOnlineUsers,
   ]);
 };
 

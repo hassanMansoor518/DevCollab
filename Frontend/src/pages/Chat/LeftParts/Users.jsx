@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import User from "./User";
 
-function Users() {
+function Users({ searchQuery = "" }) {
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -12,8 +12,9 @@ function Users() {
   // Fetch all active users
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`http://localhost:3001/api/invite/team/active/${user._id}`);
-      setAllUsers(res.data); // assuming res.data is an array of users
+      // Standardized to Vite relative proxy to prevent cross-origin issues
+      const res = await axios.get(`/api/invite/team/active/${user._id}`);
+      setAllUsers(res.data); 
     } catch (err) {
       console.error("Failed to fetch users:", err);
     } finally {
@@ -27,17 +28,20 @@ function Users() {
     }
   }, [user?._id]);
 
+  // Real-time search query filtering
+  const filteredUsers = allUsers.filter((u) => {
+    const fullName = u?.fullName || "";
+    const email = u?.email || "";
+    return (
+      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
   return (
     <div className="mt-6">
       {/* Section Title */}
-      <h2 className="
-        px-6 mb-2.5
-        text-[11px] 
-        font-bold 
-        tracking-wider 
-        uppercase 
-        text-text-muted
-      ">
+      <h2 className="px-6 mb-2.5 text-[11px] font-bold tracking-wider uppercase text-text-muted">
         Direct Messages
       </h2>
 
@@ -51,12 +55,14 @@ function Users() {
           </div>
         )}
 
-        {!loading && allUsers.length === 0 && (
-          <p className="text-text-muted text-xs px-6 py-2">No active users found</p>
+        {!loading && filteredUsers.length === 0 && (
+          <p className="text-text-muted text-xs px-6 py-2">
+            {searchQuery ? "No matching contacts found" : "No active users found"}
+          </p>
         )}
 
-        {!loading && Array.isArray(allUsers) &&
-          allUsers.map((userItem, index) => (
+        {!loading && Array.isArray(filteredUsers) &&
+          filteredUsers.map((userItem, index) => (
             <User key={userItem._id || index} user={userItem} />
           ))
         }
@@ -66,4 +72,3 @@ function Users() {
 }
 
 export default Users;
-

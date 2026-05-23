@@ -23,7 +23,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
 
         try {
             const response = await axios.post(
-                `http://localhost:3001/api/report/${projectId}/generate`,
+                `/api/report/${projectId}/generate`,
                 {
                     filename,
                     language,
@@ -45,10 +45,10 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
     };
 
     return (
-        < div className="flex-1 overflow-y-auto px-5 py-4 space-y-6" >
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
 
             {/* HEALTH SCORE */}
-            < div >
+            <div>
                 <div className="flex items-center justify-between">
                     <span className="text-xs text-text-secondary">Health Score</span>
                     <span className="text-xs text-text-muted">Updated now</span>
@@ -72,7 +72,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                                 cx="32"
                                 cy="32"
                                 r="28"
-                                stroke={healthScore > 80 ? "#10b981" : healthScore > 50 ? "#f59e0b" : "#ef4444"}
+                                stroke={healthScore > 80 ? "var(--color-success)" : healthScore > 50 ? "var(--color-warning)" : "var(--color-error)"}
                                 strokeWidth="4"
                                 strokeDasharray={circumference}
                                 strokeDashoffset={strokeDashoffset}
@@ -102,7 +102,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                 <div className="mt-4 grid grid-cols-2 gap-3">
                     <div>
                         <p className="text-xs text-text-muted">Complexity</p>
-                        <p className="text-sm text-green-400 font-medium">{complexity || "N/A"}</p>
+                        <p className="text-sm text-success font-medium">{complexity || "N/A"}</p>
                     </div>
                     <div>
                         <p className="text-xs text-text-muted">Issues</p>
@@ -112,10 +112,10 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             </div>
 
             {/* DIVIDER */}
-            < div className="border-t border-border-subtle" />
+            <div className="border-t border-border-subtle" />
 
             {/* ISSUES */}
-            < div >
+            <div>
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xs text-text-secondary uppercase tracking-wide">
                         Issues
@@ -140,7 +140,7 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                     </div>
 
                 </div>
-            </div >
+            </div>
 
             {/* SUGGESTIONS */}
             {suggestions && suggestions.length > 0 && (
@@ -160,17 +160,17 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             )}
 
             {/* DIVIDER */}
-            < div className="border-t border-border-subtle" />
+            <div className="border-t border-border-subtle" />
 
-            < div >
+            <div>
                 <button
                     onClick={handleGenerateReport}
                     disabled={isGenerating}
-                    className="text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded disabled:opacity-50 flex items-center gap-2"
+                    className="text-sm text-primary hover:bg-primary-soft bg-transparent border border-primary/20 px-3 py-1 rounded disabled:opacity-50 flex items-center gap-2 transition"
                 >
                     {isGenerating ? (
                         <>
-                            <div className="animate-spin w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                            <div className="animate-spin w-3 h-3 border-2 border-primary border-t-transparent rounded-full"></div>
                             Generating...
                         </>
                     ) : (
@@ -178,13 +178,13 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
                     )}
                 </button>
                 {reportStatus && (
-                    <p className={`text-[10px] mt-2 ${reportStatus.success ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-[10px] mt-2 ${reportStatus.success ? 'text-success' : 'text-error'}`}>
                         {reportStatus.message}
                     </p>
                 )}
-            </div >
+            </div>
 
-        </div >
+        </div>
     )
 }
 
@@ -206,26 +206,26 @@ const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
 
     const styles = {
         high: {
-            border: "border-red-500/60",
-            badge: "bg-red-500 text-white",
+            border: "border-error/60",
+            badge: "bg-error text-white",
         },
         medium: {
-            border: "border-gray-400/40",
-            badge: "bg-gray-500 text-white",
+            border: "border-warning/60",
+            badge: "bg-warning text-white",
         },
         low: {
-            border: "border-blue-400/40",
-            badge: "bg-blue-500 text-white",
+            border: "border-info/60",
+            badge: "bg-info text-white",
         },
     };
 
-    const s = styles[severity];
+    const s = styles[severity] || styles.medium;
 
     return (
         <div
             className={`relative bg-surface rounded-lg p-4
       border-l-2 ${s.border} 
-      border-l-4 border-border-subtle shadow-md`}
+      border border-border-subtle shadow-md`}
         >
             {/* TOP ROW */}
             <div className="flex items-center justify-between mb-2">
@@ -257,11 +257,11 @@ const IssueCard = ({ severity, title, description, line, hasFix, onFix }) => {
                 <button
                     onClick={handleFix}
                     disabled={isFixing}
-                    className="flex items-center gap-1 text-xs text-blue-400 mt-2 hover:underline disabled:opacity-50 disabled:no-underline"
+                    className="flex items-center gap-1 text-xs text-primary mt-2 hover:underline disabled:opacity-50 disabled:no-underline"
                 >
                     {isFixing ? (
                         <>
-                            <div className="animate-spin w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                            <div className="animate-spin w-3 h-3 border-2 border-primary border-t-transparent rounded-full"></div>
                             Applying fix...
                         </>
                     ) : (
