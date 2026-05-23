@@ -1,34 +1,67 @@
 const Workspace = require("../model/workspace.model");
 
-// Get single workspace
+const isSameId = (a, b) => a?.toString() === b?.toString();
+
+const isMember = (workspace, userId) =>
+  workspace.members.some((memberId) => isSameId(memberId, userId));
+
+const isAdmin = (workspace, userId) => {
+  if (workspace.admins?.some((adminId) => isSameId(adminId, userId))) return true;
+  return !workspace.admins?.length && isSameId(workspace.members?.[0], userId);
+};
+
+const ensureLegacyAdmin = async (workspace) => {
+  if (!workspace.admins?.length && workspace.members?.length) {
+    workspace.admins = [workspace.members[0]];
+    await workspace.save();
+  }
+  return workspace;
+};
+
+const populateWorkspace = (id) =>
+  Workspace.findById(id).populate("members", "fullName email").populate("admins", "fullName email");
+
+const requireWorkspaceMember = async (workspaceId, userId) => {
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace) return { error: { status: 404, message: "Workspace not found" } };
+  await ensureLegacyAdmin(workspace);
+  if (!isMember(workspace, userId)) {
+    return { error: { status: 403, message: "You are not a member of this workspace" } };
+  }
+  return { workspace };
+};
+
+const requireWorkspaceAdmin = async (workspaceId, userId) => {
+  const result = await requireWorkspaceMember(workspaceId, userId);
+  if (result.error) return result;
+  if (!isAdmin(result.workspace, userId)) {
+    return { error: { status: 403, message: "Only workspace admins can perform this action" } };
+  }
+  return result;
+};
+
 const getWorkspace = async (req, res) => {
   try {
-    const workspace = await Workspace.findById(req.params.workspaceId)
-      .populate("members");
+    const result = await requireWorkspaceMember(req.params.workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
 
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
-
+    const workspace = await populateWorkspace(result.workspace._id);
     res.json(workspace);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch workspace" });
   }
 };
 
-// Add member (optimized + safe)
 const addMember = async (req, res) => {
   try {
     const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: "userId is required" });
 
-    const workspace = await Workspace.findById(req.params.workspaceId);
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    const result = await requireWorkspaceAdmin(req.params.workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
 
-    const alreadyMember = workspace.members.some(
-      (m) => m.toString() === userId.toString()
-    );
+    const { workspace } = result;
+    const alreadyMember = isMember(workspace, userId);
 
     if (alreadyMember) {
       return res.status(400).json({ message: "User already a member" });
@@ -37,22 +70,21 @@ const addMember = async (req, res) => {
     workspace.members.push(userId);
     await workspace.save();
 
-    const updatedWorkspace = await Workspace.findById(workspace._id).populate("members");
-
-    res.json(updatedWorkspace);
+    res.json(await populateWorkspace(workspace._id));
   } catch (err) {
     res.status(500).json({ message: "Failed to add member" });
   }
 };
 
-// Get all workspaces for user
 const getAllWorkspace = async (req, res) => {
   try {
     const userId = req.user._id;
+    const workspaces = await Workspace.find({ members: userId })
+      .populate("members", "fullName email")
+      .populate("admins", "fullName email")
+      .sort({ updatedAt: -1 });
 
-    const workspaces = await Workspace.find({
-      members: userId,
-    }).populate("members");
+    await Promise.all(workspaces.map((workspace) => ensureLegacyAdmin(workspace)));
 
     res.json(workspaces);
   } catch (err) {
@@ -60,78 +92,114 @@ const getAllWorkspace = async (req, res) => {
   }
 };
 
-// ✅ DELETE WORKSPACE (NEW)
 const deleteWorkspace = async (req, res) => {
   try {
-    const workspace = await Workspace.findById(req.params.workspaceId);
-
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    const result = await requireWorkspaceAdmin(req.params.workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
 
     await Workspace.findByIdAndDelete(req.params.workspaceId);
-
     res.json({ message: "Workspace deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete workspace" });
   }
 };
 
-// Create workspace
 const createWorkspace = async (req, res) => {
   try {
     const { name, projectId } = req.body;
+    const creatorId = req.user._id;
 
     const workspace = new Workspace({
       name: name || "New Workspace",
       projectId: projectId || null,
-      members: [req.user._id],
+      members: [creatorId],
+      admins: [creatorId],
     });
 
     await workspace.save();
-
-    const populated = await Workspace.findById(workspace._id).populate("members");
-
-    res.status(201).json(populated);
+    res.status(201).json(await populateWorkspace(workspace._id));
   } catch (err) {
     res.status(500).json({ message: "Failed to create workspace" });
   }
 };
 
-// Remove member from workspace
 const removeMember = async (req, res) => {
   try {
     const { workspaceId, userId } = req.params;
 
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+    const result = await requireWorkspaceAdmin(workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
 
-    workspace.members = workspace.members.filter((m) => m.toString() !== userId.toString());
+    const { workspace } = result;
+
+    if (isSameId(userId, req.user._id)) {
+      return res.status(400).json({ message: "Admins cannot remove themselves from workspace" });
+    }
+
+    const remainingAdmins = workspace.admins.filter((adminId) => !isSameId(adminId, userId));
+    if (!remainingAdmins.length && workspace.admins.some((adminId) => isSameId(adminId, userId))) {
+      return res.status(400).json({ message: "Workspace must have at least one admin" });
+    }
+
+    workspace.members = workspace.members.filter((memberId) => !isSameId(memberId, userId));
+    workspace.admins = remainingAdmins;
     await workspace.save();
 
-    const updated = await Workspace.findById(workspaceId).populate("members");
-    res.json(updated);
+    res.json(await populateWorkspace(workspaceId));
   } catch (err) {
     res.status(500).json({ message: "Failed to remove member" });
   }
 };
 
-// Update workspace (rename)
 const updateWorkspace = async (req, res) => {
   try {
     const { workspaceId } = req.params;
     const { name } = req.body;
 
-    const workspace = await Workspace.findById(workspaceId);
-    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+    const result = await requireWorkspaceAdmin(workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
 
-    if (name) workspace.name = name;
-    await workspace.save();
+    if (name) result.workspace.name = name;
+    await result.workspace.save();
 
-    const updated = await Workspace.findById(workspaceId).populate("members");
-    res.json(updated);
+    res.json(await populateWorkspace(workspaceId));
   } catch (err) {
     res.status(500).json({ message: "Failed to update workspace" });
+  }
+};
+
+const updateAdmin = async (req, res) => {
+  try {
+    const { workspaceId, userId } = req.params;
+    const { isAdmin: shouldBeAdmin } = req.body;
+
+    const result = await requireWorkspaceAdmin(workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+
+    const { workspace } = result;
+    if (!isMember(workspace, userId)) {
+      return res.status(400).json({ message: "User must be a workspace member before becoming admin" });
+    }
+
+    if (shouldBeAdmin) {
+      if (!workspace.admins.some((adminId) => isSameId(adminId, userId))) {
+        workspace.admins.push(userId);
+      }
+    } else {
+      if (isSameId(userId, req.user._id)) {
+        return res.status(400).json({ message: "Admins cannot remove their own admin access" });
+      }
+      const nextAdmins = workspace.admins.filter((adminId) => !isSameId(adminId, userId));
+      if (!nextAdmins.length) {
+        return res.status(400).json({ message: "Workspace must have at least one admin" });
+      }
+      workspace.admins = nextAdmins;
+    }
+
+    await workspace.save();
+    res.json(await populateWorkspace(workspaceId));
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update admin rights" });
   }
 };
 
@@ -143,4 +211,5 @@ module.exports = {
   createWorkspace,
   updateWorkspace,
   removeMember,
+  updateAdmin,
 };

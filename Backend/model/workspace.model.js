@@ -13,6 +13,12 @@ const workspaceSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    admins: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );

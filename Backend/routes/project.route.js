@@ -54,6 +54,8 @@ router.post("/", async (req, res) => {
     console.log("Incoming Body:", req.body);
 
     const { projectName, description, team, visibility, members, githubRepo } = req.body;
+    const cleanMembers = Array.isArray(members) ? members.filter(Boolean) : [];
+    const creatorId = cleanMembers[0];
 
     if (!projectName) {
       return res.status(400).json({ error: "Project name is required" });
@@ -71,7 +73,7 @@ router.post("/", async (req, res) => {
       description,
       team,
       visibility,
-      members: Array.isArray(members) ? members.filter(Boolean) : [],
+      members: cleanMembers,
       githubRepo: cleanRepo,
       githubData,
     });
@@ -84,6 +86,7 @@ router.post("/", async (req, res) => {
         name: projectName + " Workspace",
         projectId: newProject._id,
         members: newProject.members,
+        admins: creatorId ? [creatorId] : newProject.members.slice(0, 1),
       });
 
       newProject.workspace = workspace._id;

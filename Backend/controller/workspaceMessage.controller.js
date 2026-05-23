@@ -159,7 +159,7 @@ const updateWorkspaceMessage = async (req, res) => {
   }
 };
 
-// Delete a workspace message (only sender can delete)
+// Delete a workspace message (sender or workspace admin can delete)
 const deleteWorkspaceMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -168,7 +168,14 @@ const deleteWorkspaceMessage = async (req, res) => {
     const existing = await WorkspaceMessage.findById(messageId);
     if (!existing) return res.status(404).json({ message: "Message not found" });
 
-    if (existing.senderId.toString() !== userId.toString()) {
+    const workspace = await Workspace.findById(existing.workspaceId);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+    const adminIds = workspace.admins?.length ? workspace.admins : workspace.members.slice(0, 1);
+    const isWorkspaceAdmin = adminIds.some((adminId) => adminId.toString() === userId.toString());
+    const isSender = existing.senderId.toString() === userId.toString();
+
+    if (!isSender && !isWorkspaceAdmin) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
@@ -176,7 +183,6 @@ const deleteWorkspaceMessage = async (req, res) => {
 
     // emit delete event to workspace members
     try {
-      const workspace = await Workspace.findById(existing.workspaceId);
       workspace.members.forEach((memberId) => {
         const receiverSocketIds = getReceiverSocketIds(memberId.toString());
         if (receiverSocketIds && receiverSocketIds.length) {

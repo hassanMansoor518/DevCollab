@@ -14,6 +14,7 @@ const {
   createWorkspace,
   updateWorkspace,
   removeMember,
+  updateAdmin,
 } = require("../controller/workspace.controller");
 
 // Get all workspaces for logged-in user
@@ -33,6 +34,9 @@ router.delete("/:workspaceId", protectRoute, deleteWorkspace);
 
 // Remove member from workspace
 router.delete("/:workspaceId/member/:userId", protectRoute, removeMember);
+
+// Grant or revoke workspace admin rights
+router.patch("/:workspaceId/admin/:userId", protectRoute, updateAdmin);
 
 // Update workspace (rename)
 router.put("/:workspaceId", protectRoute, updateWorkspace);

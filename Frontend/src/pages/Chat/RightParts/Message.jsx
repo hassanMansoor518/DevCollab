@@ -18,7 +18,7 @@ const FileIcon = ({ filename }) => {
 };
 
 function Message({ message }) {
-    const { selectedConversation } = useConversation();
+    const { selectedConversation, selectedWorkspace } = useConversation();
     const authUser = JSON.parse(localStorage.getItem("ChatApp"));
 
     if (!message) return null;
@@ -30,6 +30,12 @@ function Message({ message }) {
             : message.senderId?.toString();
 
     const itsMe = senderIdStr === authUser.user._id.toString();
+    const workspaceAdminIds = (selectedWorkspace?.admins || []).map((admin) => admin._id?.toString?.() || admin.toString?.());
+    const isWorkspaceAdmin = Boolean(
+        selectedWorkspace &&
+        (workspaceAdminIds.includes(authUser.user._id.toString()) ||
+            (!workspaceAdminIds.length && (selectedWorkspace.members?.[0]?._id?.toString?.() || selectedWorkspace.members?.[0]?.toString?.()) === authUser.user._id.toString()))
+    );
 
     const formattedTime = message.createdAt
         ? new Date(message.createdAt).toLocaleTimeString([], {
@@ -164,7 +170,7 @@ function Message({ message }) {
                         </p>
                         <span className="text-[10px] text-text-muted">{formattedTime}</span>
 
-                        {itsMe && (
+                        {(itsMe || (message.workspaceId && isWorkspaceAdmin)) && (
                             <div className="ml-2 relative">
                                 <button onClick={() => setShowMenu((s) => !s)} className="p-1 rounded-md text-text-muted hover:bg-hover-bg">
                                     <MoreHorizontal size={14} />
@@ -172,10 +178,12 @@ function Message({ message }) {
 
                                 {showMenu && (
                                     <div ref={menuRef} className="absolute right-0 mt-2 w-36 bg-card border border-border-subtle rounded-lg shadow-lg z-30">
-                                        <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-hover-bg flex items-center gap-2">
-                                            <Edit size={14} />
-                                            <span className="text-sm">Edit</span>
-                                        </button>
+                                        {itsMe && (
+                                            <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-hover-bg flex items-center gap-2">
+                                                <Edit size={14} />
+                                                <span className="text-sm">Edit</span>
+                                            </button>
+                                        )}
                                         <button onClick={async () => {
                                             if (!confirm('Delete this message?')) return;
                                             setShowMenu(false);
