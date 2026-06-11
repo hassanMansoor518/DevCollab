@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FiBell } from "react-icons/fi";
 import axios from "axios";
 import ReceiverPendingInvites from "../pages/Dashboard/ReceiverPendingInvites";
@@ -6,6 +6,7 @@ import ReceiverPendingInvites from "../pages/Dashboard/ReceiverPendingInvites";
 const Notification = ({ currentUserId }) => {
     const [showInvites, setShowInvites] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
+    const dropdownRef = useRef(null);
 
     // Fetch pending invites count
     const fetchPendingCount = async () => {
@@ -21,7 +22,23 @@ const Notification = ({ currentUserId }) => {
         if (currentUserId) {
             fetchPendingCount();
         }
-    }, [currentUserId]);
+
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowInvites(false);
+            }
+        };
+
+        if (showInvites) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [currentUserId, showInvites]);
 
     // Update count after accept/decline
     const handleUpdateCount = (newCount) => {
@@ -29,7 +46,7 @@ const Notification = ({ currentUserId }) => {
     };
 
     return (
-        <div className="relative cursor-pointer">
+        <div className="relative cursor-pointer" ref={dropdownRef}>
             {/* Bell Icon */}
             <FiBell
                 className="text-gray-400 hover:text-white transition"

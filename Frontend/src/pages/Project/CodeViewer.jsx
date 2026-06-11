@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import Editor, { useMonaco } from "@monaco-editor/react";
+import Editor, { useMonaco, DiffEditor } from "@monaco-editor/react";
+
 
 import {
   Folder,
@@ -26,6 +27,8 @@ export default function CodeViewer({ projectId }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
+  const [diffMode, setDiffMode] = useState(false);
+const [originalCode, setOriginalCode] = useState("");
 
   /* ---------------- MONACO THEME ---------------- */
   useEffect(() => {
@@ -187,7 +190,7 @@ export default function CodeViewer({ projectId }) {
     <div className="h-[650px] flex rounded-2xl overflow-hidden bg-background text-text-primary border border-border-subtle">
 
       {/* LEFT SIDEBAR */}
-      <div className="w-72 flex flex-col bg-sidebar border-r border-border-subtle">
+      <div className="w-64 flex flex-col bg-sidebar border-r border-border-subtle">
 
         {/* HEADER */}
         <div className="flex items-center justify-between p-3 border-b border-border-subtle">
@@ -280,6 +283,18 @@ export default function CodeViewer({ projectId }) {
         <div className="flex-1">
           {loading ? (
             <div className="p-4 text-text-secondary">Loading...</div>
+          ) : diffMode ? (   // ⭐ NEW STATE
+            <DiffEditor
+              height="100%"
+              original={originalCode}   // before fix
+              modified={code}           // after fix
+              language={getLanguage(activeTab)}
+              theme="devcollab-dark"
+              options={{
+                renderSideBySide: true,
+                minimap: { enabled: false },
+              }}
+            />
           ) : activeTab ? (
             <Editor
               height="100%"
@@ -299,12 +314,16 @@ export default function CodeViewer({ projectId }) {
 
       {/* RIGHT AI PANEL */}
       <AiCodeReviewer
-        filename={activeTab}
-        code={code}
-        language={getLanguage(activeTab)}
-        onApplyFix={setCode}
-        projectId={projectId}
-      />
+  filename={activeTab}
+  code={code}
+  language={getLanguage(activeTab)}
+  projectId={projectId}
+  onApplyFix={(newCode) => {
+    setOriginalCode(code);  // BEFORE FIX
+    setCode(newCode);       // AFTER FIX
+    setDiffMode(true);      // SHOW DIFF
+  }}
+/>
     </div>
   );
 }

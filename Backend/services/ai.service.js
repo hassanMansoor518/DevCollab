@@ -16,7 +16,25 @@ const ai = new GoogleGenAI({
 // MODEL
 // =========================
 function getModel() {
-  return "gemini-3-flash-preview";
+  return "gemini-2.5-flash";
+}
+
+// =========================
+// RETRY WRAPPER
+// =========================
+async function generateWithRetry(model, contents, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await ai.models.generateContent({ model, contents });
+    } catch (err) {
+      if (err.status === 503 && i < maxRetries - 1) {
+        console.warn(`Gemini API 503 Error. Retrying in ${Math.pow(2, i)} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 // =========================
@@ -38,8 +56,8 @@ CORE RULES:
 
     if (projectContext) {
       const { name, githubRepo, structure, summary } = projectContext;
-      const structureList = structure 
-        ? structure.slice(0, 150).map(f => `- ${f.path} (${f.type})`).join('\n') 
+      const structureList = structure
+        ? structure.slice(0, 150).map(f => `- ${f.path} (${f.type})`).join('\n')
         : 'Not available';
 
       systemPrompt += `
@@ -54,7 +72,7 @@ ${structureList}
     }
 
     // Format chat history for context
-    const historyContext = chatHistory.length > 0 
+    const historyContext = chatHistory.length > 0
       ? chatHistory.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.message}`).join('\n\n')
       : "No previous messages in this session.";
 
@@ -69,10 +87,7 @@ ${prompt}
 
 Assistant:`;
 
-    const response = await ai.models.generateContent({
-      model: getModel(),
-      contents: finalPrompt,
-    });
+    const response = await generateWithRetry(getModel(), finalPrompt);
 
     return response.text;
   } catch (err) {
@@ -108,10 +123,7 @@ Provide:
 6. Risk level
 `;
 
-    const response = await ai.models.generateContent({
-      model: getModel(),
-      contents: prompt,
-    });
+    const response = await generateWithRetry(getModel(), prompt);
 
     return response.text;
   } catch (err) {
@@ -159,10 +171,7 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: getModel(),
-      contents: prompt,
-    });
+    const response = await generateWithRetry(getModel(), prompt);
 
     let rawText = response.text;
 
@@ -213,10 +222,7 @@ Code:
 ${trimmedCode}
 `;
 
-    const response = await ai.models.generateContent({
-      model: getModel(),
-      contents: prompt,
-    });
+    const response = await generateWithRetry(getModel(), prompt);
 
     let fixedCode = response.text;
 
@@ -271,10 +277,7 @@ Provide a strict JSON response. The output MUST be valid JSON matching this stru
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: getModel(),
-      contents: prompt,
-    });
+    const response = await generateWithRetry(getModel(), prompt);
 
     let rawText = response.text;
 

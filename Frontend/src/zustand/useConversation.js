@@ -34,10 +34,11 @@
 
 import { create } from "zustand";
 
-const useConversation = create((set, get) => ({
+const useConversation = create((set) => ({
   selectedConversation: null,
   selectedWorkspace: null,
   messages: [],
+  editingMessage: null,
 
   setSelectedConversation: (selectedConversation) =>
     set({ selectedConversation }),
@@ -51,6 +52,8 @@ const useConversation = create((set, get) => ({
     set((state) => ({
       messages: [...state.messages, message],
     })),
+
+  setEditingMessage: (message) => set({ editingMessage: message }),
 }));
 
 export default useConversation;

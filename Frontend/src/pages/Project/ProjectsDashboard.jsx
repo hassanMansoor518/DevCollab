@@ -126,85 +126,87 @@ export default function ProjectsDashboard() {
       <DashboardLeftSide />
 
       {/* ===== Main Content ===== */}
-      <div className="flex-1 h-screen overflow-y-auto px-8 py-6">
+      <div className="flex-1 h-screen overflow-y-auto px-5 py-6">
+        <div className="max-w-[1400px] w-full mx-auto">
+          {/* Top Header */}
+          <DashboardHeader user={user} />
 
-        {/* Top Header */}
-        <DashboardHeader user={user} />
-
-        {/* ===== Page Title Section ===== */}
-        <div className="mt-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-text-primary">Projects</h1>
-            <p className="text-text-secondary text-sm mt-2">
-              Manage and track your team's development lifecycle.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white transition px-6 py-3 rounded-xl shadow-md"
-          >
-            <Plus className="w-5 h-5" />
-            Create Project
-          </button>
-        </div>
-
-        {/* ===== Projects Grid ===== */}
-        <div className="mt-8 grid grid-cols-3 gap-6">
-          {loading ? (
-            <p className="text-text-muted">Loading projects...</p>
-          ) : projects.length > 0 ? (
-            projects.map((proj) => (
-              <ProjectCard
-                key={proj._id}
-                project={proj}
-                onClick={() => navigate(`/project/${proj._id}`)}
-                onEdit={(e) => {
-                  e.stopPropagation();
-                  setEditingProject(proj);
-                }}
-                onDelete={(e) => handleDelete(proj._id, e)}
-              />
-            ))
-          ) : (
-            <p className="text-text-secondary col-span-3 text-center mt-10">
-              No projects found.
-            </p>
-          )}
-
-          {/* ===== New Project Card ===== */}
-          <div
-            onClick={() => setIsModalOpen(true)}
-            className="border border-dashed border-border-strong rounded-2xl flex flex-col items-center justify-center h-[280px] bg-surface hover:border-primary transition cursor-pointer"
-          >
-            <div className="w-14 h-14 bg-hover-bg rounded-full flex items-center justify-center mb-4 text-text-muted">
-              <Plus className="w-6 h-6" />
+          {/* ===== Page Title Section ===== */}
+          <div className="mt-10 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary">Projects</h1>
+              <p className="text-text-secondary text-sm mt-2">
+                Manage and track your team's development lifecycle.
+              </p>
             </div>
-            <p className="font-semibold text-text-primary">Start New Project</p>
-            <p className="text-text-muted text-sm mt-1">Templates available</p>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white transition px-6 py-3 rounded-xl shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Create Project
+            </button>
+          </div>
+
+          {/* ===== Projects Grid ===== */}
+          <div className="mt-8 grid grid-cols-3 gap-6">
+            {loading ? (
+              <p className="text-text-muted">Loading projects...</p>
+            ) : projects.length > 0 ? (
+              projects.map((proj) => (
+                <ProjectCard
+                  key={proj._id}
+                  project={proj}
+                  onClick={() => navigate(`/project/${proj._id}`)}
+                  onEdit={(e) => {
+                    e.stopPropagation();
+                    setEditingProject(proj);
+                  }}
+                  onDelete={(e) => handleDelete(proj._id, e)}
+                />
+              ))
+            ) : (
+              <p className="text-text-secondary col-span-3 text-center mt-10">
+                No projects found.
+              </p>
+            )}
+
+            {/* ===== New Project Card ===== */}
+            <div
+              onClick={() => setIsModalOpen(true)}
+              className="border border-dashed border-border-strong rounded-2xl flex flex-col items-center justify-center h-[280px] bg-surface hover:border-primary transition cursor-pointer"
+            >
+              <div className="w-14 h-14 bg-hover-bg rounded-full flex items-center justify-center mb-4 text-text-muted">
+                <Plus className="w-6 h-6" />
+              </div>
+              <p className="font-semibold text-text-primary">Start New Project</p>
+              <p className="text-text-muted text-sm mt-1">Templates available</p>
+            </div>
           </div>
         </div>
+
+        {/* ===== Create Modal ===== */}
+        {isModalOpen && (
+          <CreateProjectModal
+            onClose={() => setIsModalOpen(false)}
+            allUsers={allUsers}
+            addProjectToList={addProjectToList}
+          />
+        )}
+
+        {/* ===== Edit Modal ===== */}
+        {editingProject && (
+          <EditProjectModal
+            project={editingProject}
+            allUsers={allUsers}
+            currentUserId={user._id}
+            onClose={() => setEditingProject(null)}
+            onSave={handleEditSave}
+          />
+        )}
       </div>
 
-      {/* ===== Create Modal ===== */}
-      {isModalOpen && (
-        <CreateProjectModal
-          onClose={() => setIsModalOpen(false)}
-          allUsers={allUsers}
-          addProjectToList={addProjectToList}
-        />
-      )}
-
-      {/* ===== Edit Modal ===== */}
-      {editingProject && (
-        <EditProjectModal
-          project={editingProject}
-          allUsers={allUsers}
-          currentUserId={user._id}
-          onClose={() => setEditingProject(null)}
-          onSave={handleEditSave}
-        />
-      )}
     </div>
   );
 }
@@ -312,6 +314,7 @@ function EditProjectModal({ project, allUsers, currentUserId, onClose, onSave })
     }
     onSave({ projectName: name, description: desc, members: selectedIds });
   };
+
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -424,5 +427,7 @@ function EditProjectModal({ project, allUsers, currentUserId, onClose, onSave })
         </div>
       </div>
     </div>
+
   );
+
 }

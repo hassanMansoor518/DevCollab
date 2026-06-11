@@ -62,9 +62,7 @@ function Message({ message }) {
         ? senderName.charAt(0).toUpperCase()
         : authUser.user.fullName?.charAt(0).toUpperCase();
 
-    const { messages, setMessage } = useConversation();
-    const [isEditing, setIsEditing] = useState(false);
-    const [editText, setEditText] = useState(message.message);
+    const { messages, setMessage, setEditingMessage } = useConversation();
     const [actionLoading, setActionLoading] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
@@ -179,7 +177,7 @@ function Message({ message }) {
                                 {showMenu && (
                                     <div ref={menuRef} className="absolute right-0 mt-2 w-36 bg-card border border-border-subtle rounded-lg shadow-lg z-30">
                                         {itsMe && (
-                                            <button onClick={() => { setIsEditing(true); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-hover-bg flex items-center gap-2">
+                                            <button onClick={() => { setEditingMessage(message); setShowMenu(false); }} className="w-full text-left px-3 py-2 hover:bg-hover-bg flex items-center gap-2">
                                                 <Edit size={14} />
                                                 <span className="text-sm">Edit</span>
                                             </button>
@@ -219,34 +217,7 @@ function Message({ message }) {
                                 : "bg-muted text-text-primary border-border-subtle rounded-tl-none"
                             }`}
                     >
-                        {isEditing ? (
-                            <div className="flex flex-col gap-2">
-                                <textarea className="w-full p-2 rounded-md text-sm" rows={4} value={editText} onChange={(e) => setEditText(e.target.value)} />
-                                <div className="flex gap-2 justify-end">
-                                    <button onClick={() => { setIsEditing(false); setEditText(message.message); }} className="text-sm px-3 py-1 rounded-md bg-muted">Cancel</button>
-                                    <button onClick={async () => {
-                                        setActionLoading(true);
-                                        try {
-                                            let res;
-                                            if (message.workspaceId) {
-                                                res = await axios.put(`/api/workspace/message/${message._id}`, { message: editText }, { withCredentials: true });
-                                            } else {
-                                                res = await axios.put(`/api/message/${message._id}`, { message: editText }, { withCredentials: true });
-                                            }
-
-                                            const updated = res.data;
-                                            const newMsgs = (messages || []).map((m) => (m._id === updated._id ? updated : m));
-                                            setMessage(newMsgs);
-                                            setIsEditing(false);
-                                        } catch (err) {
-                                            console.error('Edit failed', err);
-                                        } finally {
-                                            setActionLoading(false);
-                                        }
-                                    }} className="text-sm px-3 py-1 rounded-md bg-primary text-white">{actionLoading ? '...' : 'Save'}</button>
-                                </div>
-                            </div>
-                        ) : attachment.hasAttachment ? (
+                        {attachment.hasAttachment ? (
                             <div className="flex flex-col gap-2.5">
                                 {/* Visual File Rendering */}
                                 {attachment.isImage ? (

@@ -11,7 +11,6 @@ export default function ReportsPage() {
 
   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
   const user = authUser?.user;
-  const token = authUser?.token;
   useEffect(() => {
     fetchReports();
   }, []);
@@ -47,7 +46,8 @@ export default function ReportsPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Report_${filename.split('/').pop()}_${Date.now()}.pdf`);
+      const safeFilename = filename || 'Report';
+      link.setAttribute('download', `Report_${safeFilename.split('/').pop()}_${Date.now()}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -68,8 +68,9 @@ export default function ReportsPage() {
 
       <DashboardLeftSide />
 
-      <div className="flex-1 overflow-y-auto px-8 py-6 bg-background">
-        <DashboardHeader user={user} />
+      <div className="flex-1 overflow-y-auto px-5 py-6 bg-background">
+        <div className="max-w-[1400px] w-full mx-auto">
+          <DashboardHeader user={user} />
 
         <div className="flex justify-between items-end mt-8 mb-8">
           <div>
@@ -123,6 +124,7 @@ export default function ReportsPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {isViewModalOpen && selectedReport && (
@@ -248,10 +250,10 @@ function ReportViewModal({ report, onClose, onDownload }) {
               Bug Severity Breakdown
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SeverityBox label="Critical" count={report.bugSeverityBreakdown.critical} color="bg-error" />
-              <SeverityBox label="High" count={report.bugSeverityBreakdown.high} color="bg-warning" />
-              <SeverityBox label="Medium" count={report.bugSeverityBreakdown.medium} color="bg-info" />
-              <SeverityBox label="Low" count={report.bugSeverityBreakdown.low} color="bg-success" />
+              <SeverityBox label="Critical" count={report.bugSeverityBreakdown?.critical || 0} color="bg-error" />
+              <SeverityBox label="High" count={report.bugSeverityBreakdown?.high || 0} color="bg-warning" />
+              <SeverityBox label="Medium" count={report.bugSeverityBreakdown?.medium || 0} color="bg-info" />
+              <SeverityBox label="Low" count={report.bugSeverityBreakdown?.low || 0} color="bg-success" />
             </div>
           </div>
 

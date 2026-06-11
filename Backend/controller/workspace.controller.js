@@ -132,17 +132,25 @@ const removeMember = async (req, res) => {
 
     const { workspace } = result;
 
-    if (isSameId(userId, req.user._id)) {
-      return res.status(400).json({ message: "Admins cannot remove themselves from workspace" });
-    }
-
+    const removingSelf = isSameId(userId, req.user._id);
+    const isLeavingAdmin = removingSelf && isAdmin(workspace, userId);
     const remainingAdmins = workspace.admins.filter((adminId) => !isSameId(adminId, userId));
-    if (!remainingAdmins.length && workspace.admins.some((adminId) => isSameId(adminId, userId))) {
-      return res.status(400).json({ message: "Workspace must have at least one admin" });
+
+    if (removingSelf) {
+      if (isLeavingAdmin && !remainingAdmins.length) {
+        return res.status(400).json({ message: "Assign another admin before leaving or delete workspace." });
+      }
+    } else {
+      if (!remainingAdmins.length && workspace.admins.some((adminId) => isSameId(adminId, userId))) {
+        return res.status(400).json({ message: "Workspace must have at least one admin" });
+      }
     }
 
     workspace.members = workspace.members.filter((memberId) => !isSameId(memberId, userId));
-    workspace.admins = remainingAdmins;
+    if (workspace.admins.some((adminId) => isSameId(adminId, userId))) {
+      workspace.admins = remainingAdmins;
+    }
+
     await workspace.save();
 
     res.json(await populateWorkspace(workspaceId));

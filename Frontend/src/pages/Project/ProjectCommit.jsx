@@ -291,7 +291,7 @@ export default function ProjectCommit() {
     return (
         <div className="flex h-screen bg-background">
             <DashboardLeftSide />
-            <div className="flex-1 h-screen overflow-y-auto bg-background text-text-primary px-8 py-6 font-sans">
+            <div className="flex-1 h-screen overflow-y-auto bg-background text-text-primary px-2 py-6 font-sans">
                 <DashboardHeader user={user} />
 
                 {/* project card */}
@@ -334,7 +334,7 @@ export default function ProjectCommit() {
                 </div>
 
                 {/* tabs */}
-                <div className="mt-6 border-b border-border-default flex gap-7 pb-0">
+                <div className="mt-6 border-b border-border-default flex gap-7 pb-0  px-6 ">
                     <Tab icon={<GitCommit size={15} />} label="Commits" active={activeTab === "commits"}
                         onClick={() => setActiveTab("commits")} badge={commits.length} />
                     <Tab icon={<GitPullRequest size={15} />} label="Pull Requests" active={activeTab === "prs"}
@@ -347,7 +347,7 @@ export default function ProjectCommit() {
 
                 {/* commits tab */}
                 {activeTab === "commits" && (
-                    <div className="mt-6 flex flex-col gap-7">
+                    <div className="mt-6 px-3 flex flex-col gap-7">
                         {loadingCommits ? (
                             <div className="flex items-center gap-2.5 text-text-muted py-8">
                                 <RotateCcw size={16} className="animate-spin" />
@@ -363,9 +363,8 @@ export default function ProjectCommit() {
 
                 {/* code tab */}
                 {activeTab === "code" && (
-                    <div className="mt-6">
-                        <h2 className="font-bold text-base mb-3 text-text-primary">Repository Files</h2>
-                        <CodeViewer projectId={id} filePath={currentPath} />
+                    <div className="mt-4  ">
+                           <CodeViewer projectId={id} filePath={currentPath} />
                     </div>
                 )}
 

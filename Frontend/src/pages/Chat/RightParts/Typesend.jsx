@@ -4,7 +4,8 @@ import useSendMessage from "../../../context/useSendMessage.js";
 import useSendAiMessage from "../../../context/useSendAiMessage.jsx";
 import useConversation from "../../../zustand/useConversation.js";
 import { useAuth } from "../../../context/AuthProvider.jsx";
-import { Smile, AtSign, Plus, Send, Sparkles, Loader2, X, File, FileText, Image as ImageIcon } from "lucide-react";
+import { Smile, AtSign, Plus, Send, Sparkles, Loader2, X, File, FileText, Image as ImageIcon, Edit } from "lucide-react";
+import axios from "axios";
 
 // List of popular modern emojis for the quick picker
 const POPULAR_EMOJIS = [
@@ -25,11 +26,12 @@ function Typesend() {
     const { socket } = useSocketContext();
     const { sendMessages, loading: msgLoading } = useSendMessage();
     const { sendAiMessage, loading: aiLoading } = useSendAiMessage();
-    const { selectedConversation, selectedWorkspace } = useConversation();
+    const { selectedConversation, selectedWorkspace, editingMessage, setEditingMessage, messages, setMessage } = useConversation();
     const [authUser] = useAuth();
 
     const isAiMessageActive = text.toLowerCase().startsWith("@ai");
-    const isLoading = msgLoading || aiLoading;
+    const [isSendingEdit, setIsSendingEdit] = useState(false);
+    const isLoading = msgLoading || aiLoading || isSendingEdit;
 
     // Close emoji picker on click outside
     const emojiPickerRef = useRef(null);
@@ -42,6 +44,14 @@ function Typesend() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (editingMessage) {
+            setText(editingMessage.message);
+        } else {
+            setText("");
+        }
+    }, [editingMessage]);
 
     const emitTyping = (isTyping) => {
         if (!socket || !selectedConversation?._id) return;
@@ -74,6 +84,29 @@ function Typesend() {
         let payload = cleanText;
         if (hasAttachment) {
             payload = `[File: ${selectedFile.name}|${selectedFile.size}](${selectedFile.base64})${cleanText ? "\n\n" + cleanText : ""}`;
+        }
+
+        if (editingMessage) {
+            setIsSendingEdit(true);
+            try {
+                let res;
+                if (editingMessage.workspaceId) {
+                    res = await axios.put(`/api/workspace/message/${editingMessage._id}`, { message: payload }, { withCredentials: true });
+                } else {
+                    res = await axios.put(`/api/message/${editingMessage._id}`, { message: payload }, { withCredentials: true });
+                }
+                const updated = res.data;
+                const newMsgs = (messages || []).map((m) => (m._id === updated._id ? updated : m));
+                setMessage(newMsgs);
+                setEditingMessage(null);
+                setText("");
+                setSelectedFile(null);
+            } catch (err) {
+                console.error('Edit failed', err);
+            } finally {
+                setIsSendingEdit(false);
+            }
+            return;
         }
 
         const isAiMessage = payload.toLowerCase().startsWith("@ai");
@@ -178,6 +211,22 @@ function Typesend() {
             />
 
             {/* ATTACHMENT BADGE DRAFT VIEW */}
+            {editingMessage && !selectedFile && (
+                <div className="absolute left-6 bottom-[105%] bg-card border border-border-subtle shadow-lg px-4 py-2 rounded-2xl flex items-center justify-between gap-4 animate-slide-in z-30">
+                    <div className="flex items-center gap-2">
+                        <Edit size={14} className="text-primary" />
+                        <span className="text-xs font-semibold text-text-primary">Editing message</span>
+                    </div>
+                    <button 
+                        type="button" 
+                        onClick={() => { setEditingMessage(null); setText(""); }} 
+                        className="p-1 rounded text-text-muted hover:bg-hover-bg transition"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
+
             {selectedFile && (
                 <div className="absolute left-6 bottom-[105%] bg-card border border-border-subtle shadow-lg p-2.5 rounded-2xl flex items-center gap-3 animate-slide-in max-w-sm z-30">
                     <div className="p-2 rounded-lg bg-primary-soft text-primary shrink-0">
