@@ -15,6 +15,8 @@ const {
   updateWorkspace,
   removeMember,
   updateAdmin,
+  transferOwnership,
+  updateWorkspaceSettings,
 } = require("../controller/workspace.controller");
 
 // Get all workspaces for logged-in user
@@ -40,5 +42,11 @@ router.patch("/:workspaceId/admin/:userId", protectRoute, updateAdmin);
 
 // Update workspace (rename)
 router.put("/:workspaceId", protectRoute, updateWorkspace);
+
+// Transfer ownership of workspace
+router.post("/:workspaceId/transfer", protectRoute, transferOwnership);
+
+// Update workspace settings
+router.put("/:workspaceId/settings", protectRoute, updateWorkspaceSettings);
 
 module.exports = router;

@@ -27,6 +27,7 @@ const systemActivitySchema = new mongoose.Schema({
   },
   metadata: {
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
+    workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace" },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     reportId: { type: mongoose.Schema.Types.ObjectId, ref: "Report" },
     extraInfo: Object

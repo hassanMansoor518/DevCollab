@@ -26,4 +26,20 @@ const getActivities = async (req, res) => {
   }
 };
 
-module.exports = { getActivities };
+const getWorkspaceActivities = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const activities = await SystemActivity.find({
+      "metadata.workspaceId": workspaceId
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("Error fetching workspace activities:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = { getActivities, getWorkspaceActivities };

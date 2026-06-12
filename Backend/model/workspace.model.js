@@ -7,6 +7,10 @@ const workspaceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
     },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -19,6 +23,10 @@ const workspaceSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    settings: {
+      allowMemberInvites: { type: Boolean, default: false },
+      messageRetentionDays: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
 );

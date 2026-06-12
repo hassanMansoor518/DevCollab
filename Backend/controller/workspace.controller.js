@@ -11,8 +11,16 @@ const isAdmin = (workspace, userId) => {
 };
 
 const ensureLegacyAdmin = async (workspace) => {
+  let updated = false;
   if (!workspace.admins?.length && workspace.members?.length) {
     workspace.admins = [workspace.members[0]];
+    updated = true;
+  }
+  if (!workspace.owner && workspace.admins?.length) {
+    workspace.owner = workspace.admins[0];
+    updated = true;
+  }
+  if (updated) {
     await workspace.save();
   }
   return workspace;
@@ -36,6 +44,15 @@ const requireWorkspaceAdmin = async (workspaceId, userId) => {
   if (result.error) return result;
   if (!isAdmin(result.workspace, userId)) {
     return { error: { status: 403, message: "Only workspace admins can perform this action" } };
+  }
+  return result;
+};
+
+const requireWorkspaceOwner = async (workspaceId, userId) => {
+  const result = await requireWorkspaceMember(workspaceId, userId);
+  if (result.error) return result;
+  if (!isSameId(result.workspace.owner, userId)) {
+    return { error: { status: 403, message: "Only workspace owners can perform this action" } };
   }
   return result;
 };
@@ -112,6 +129,7 @@ const createWorkspace = async (req, res) => {
     const workspace = new Workspace({
       name: name || "New Workspace",
       projectId: projectId || null,
+      owner: creatorId,
       members: [creatorId],
       admins: [creatorId],
     });
@@ -211,6 +229,52 @@ const updateAdmin = async (req, res) => {
   }
 };
 
+const transferOwnership = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const { newOwnerId } = req.body;
+
+    const result = await requireWorkspaceOwner(workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+
+    const { workspace } = result;
+
+    if (!isMember(workspace, newOwnerId)) {
+      return res.status(400).json({ message: "New owner must be a member of the workspace" });
+    }
+
+    workspace.owner = newOwnerId;
+    
+    if (!workspace.admins.some((adminId) => isSameId(adminId, newOwnerId))) {
+      workspace.admins.push(newOwnerId);
+    }
+
+    await workspace.save();
+    res.json(await populateWorkspace(workspaceId));
+  } catch (err) {
+    res.status(500).json({ message: "Failed to transfer ownership" });
+  }
+};
+
+const updateWorkspaceSettings = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const { settings } = req.body;
+
+    const result = await requireWorkspaceAdmin(workspaceId, req.user._id);
+    if (result.error) return res.status(result.error.status).json({ message: result.error.message });
+
+    if (settings) {
+      result.workspace.settings = { ...result.workspace.settings, ...settings };
+    }
+    await result.workspace.save();
+
+    res.json(await populateWorkspace(workspaceId));
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update workspace settings" });
+  }
+};
+
 module.exports = {
   getWorkspace,
   addMember,
@@ -220,4 +284,6 @@ module.exports = {
   updateWorkspace,
   removeMember,
   updateAdmin,
+  transferOwnership,
+  updateWorkspaceSettings,
 };

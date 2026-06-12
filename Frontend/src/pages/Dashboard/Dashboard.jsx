@@ -217,7 +217,7 @@ const Dashboard = () => {
 
             <div className="flex flex-col h-full overflow-hidden">
               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="bg-card border border-border-subtle rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                <div className="bg-card border border-border-subtle rounded-2xl p-5 mt-6 shadow-sm relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
                   <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-text-primary">
                     <FiActivity className="text-primary" /> My Workspace Summary
