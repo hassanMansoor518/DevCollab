@@ -28,7 +28,9 @@ const Dashboard = () => {
     projects: 0,
     members: 0,
     reviews: 0,
-    reports: 0
+    reports: 0,
+    workspaces: 0,
+    tasks: 0
   });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,17 +43,20 @@ const Dashboard = () => {
     try {
       setLoading(true);
 
-      const [reportsRes, projectsRes, activityRes] = await Promise.all([
+      const [reportsRes, projectsRes, activityRes, workspaceRes] = await Promise.all([
         axios.get("/api/report", { headers: { Authorization: `Bearer ${token}` } }),
         axios.get("/api/project", { headers: { Authorization: `Bearer ${token}` } }),
         axios.get("/api/activity", { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get("/api/workspace/all-workspace", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       const reports = reportsRes.data.reports || [];
       const projects = projectsRes.data || [];
       const systemActivities = activityRes.data || [];
+      const workspaces = workspaceRes.data || [];
 
       // Calculate unique team members across the user's projects
+
       const uniqueMembers = new Set();
       projects.forEach(p => {
         if (p.members) {
@@ -76,7 +81,9 @@ const Dashboard = () => {
         projects: projects.length,
         members: uniqueMembers.size,
         reviews: reports.length,
-        reports: reports.length
+        reports: reports.length,
+        workspaces: workspaces.length,
+        tasks: 0 // Placeholder as there is no task model
       });
 
     } catch (err) {
@@ -224,22 +231,25 @@ const Dashboard = () => {
                   </h3>
                   <div className="text-sm text-text-secondary space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Avg. Health Score</span>
-                      <span className="text-success font-bold">88/100</span>
+                      <span className="font-medium">Total Workspaces</span>
+                      <span className="text-info font-bold">{stats.workspaces}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Deploy Readiness</span>
-                      <span className="text-info font-bold">OPTIMAL</span>
+                      <span className="font-medium">Active Projects</span>
+                      <span className="text-success font-bold">{stats.projects}</span>
                     </div>
-                    <div className="pt-4 border-t border-border-subtle space-y-2">
-                      <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Workspace Stats</p>
-                      <p>• {stats.projects} Active Repositories</p>
-                      <p>• {stats.reports} Technical Audits</p>
-                      <p>• {stats.members} Collaborators</p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Team Members</span>
+                      <span className="text-warning font-bold">{stats.members}</span>
                     </div>
-                    <button className="w-full mt-4 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">
-                      Security Dashboard
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Tasks</span>
+                      <span className="text-error font-bold">{stats.tasks}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Recent Activity</span>
+                      <span className="text-primary font-bold">{activities.length}</span>
+                    </div>
                   </div>
                 </div>
                 <ActiveTeam currentUserId={user?._id} />

@@ -13,14 +13,14 @@ const staggerChildren = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="relative py-24 px-6 bg-[#0B1120]">
+    <section id="features" className="relative py-24 px-6 bg-background">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-14">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
               Everything you need to build
             </h2>
-            <p className="text-slate-400 max-w-2xl text-sm md:text-base">
+            <p className="text-text-secondary max-w-2xl text-sm md:text-base">
               We've integrated every part of the development cycle into a single
               cohesive experience. No more context switching.
             </p>
@@ -36,12 +36,12 @@ export default function FeaturesSection() {
             { icon: "⚡", title: "Blazing Fast", desc: "Built on a modern rust-based architecture ensuring zero latency in your workflow." },
             { icon: "📊", title: "Analytics", desc: "Deep insights into team velocity, code quality trends, and deployment frequencies." }
           ].map((feature, i) => (
-            <motion.div key={i} className="group bg-gradient-to-br from-[#0F172A] to-[#0B1120] border border-slate-800 p-8 rounded-2xl hover:-translate-y-2 hover:border-blue-500/40 transition-all duration-300 shadow-lg" variants={fadeInUp}>
-              <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 text-2xl mb-6 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+            <motion.div key={i} className="group bg-card border border-border-default p-8 rounded-2xl hover:-translate-y-2 hover:border-primary/40 transition-all duration-300 shadow-lg" variants={fadeInUp}>
+              <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-primary-soft text-primary text-2xl mb-6 border border-primary/20 group-hover:bg-primary/20 transition-colors">
                 {feature.icon}
               </div>
-              <h3 className="font-semibold text-xl mb-3 text-white group-hover:text-blue-400 transition-colors">{feature.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
+              <h3 className="font-semibold text-xl mb-3 text-text-primary group-hover:text-primary transition-colors">{feature.title}</h3>
+              <p className="text-sm text-text-secondary leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </motion.div>

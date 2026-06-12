@@ -187,6 +187,7 @@ export const downloadReport = async (req, res) => {
     doc.text(`Language: ${report.language}`);
     doc.text(`Health Score: ${report.healthScore}/100`);
     doc.text(`Risk Level: ${report.riskLevel}`);
+    doc.text(`Total Issues: ${report.totalIssues || 0}`);
     doc.text(`Date Generated: ${new Date(report.createdAt).toLocaleString()}`);
     doc.moveDown();
 
@@ -235,10 +236,22 @@ export const downloadReport = async (req, res) => {
     // Bug Breakdown
     doc.fontSize(14).fillColor("#333333").text("Bug Severity Breakdown", { underline: true });
     doc.fontSize(10).fillColor("#000000").moveDown(0.5);
-    doc.text(`Critical: ${report.bugSeverityBreakdown.critical}`);
-    doc.text(`High: ${report.bugSeverityBreakdown.high}`);
-    doc.text(`Medium: ${report.bugSeverityBreakdown.medium}`);
-    doc.text(`Low: ${report.bugSeverityBreakdown.low}`);
+    doc.text(`Critical: ${report.bugSeverityBreakdown?.critical || 0}`);
+    doc.text(`High: ${report.bugSeverityBreakdown?.high || 0}`);
+    doc.text(`Medium: ${report.bugSeverityBreakdown?.medium || 0}`);
+    doc.text(`Low: ${report.bugSeverityBreakdown?.low || 0}`);
+    doc.moveDown();
+
+    // Suggested Fixes
+    doc.fontSize(14).fillColor("#333333").text("Suggested Fixes", { underline: true });
+    doc.fontSize(10).fillColor("#000000").moveDown(0.5);
+    if (report.suggestedFixes && report.suggestedFixes.length > 0) {
+      report.suggestedFixes.forEach((fix, i) => {
+        doc.text(`${i + 1}. ${fix}`);
+      });
+    } else {
+      doc.text("No specific fixes suggested.");
+    }
     doc.moveDown();
 
     // Recommendations

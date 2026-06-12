@@ -53,7 +53,7 @@ export default function DashboardHeader({ user }) {
                 {user?.fullName}
               </p>
               <p className="text-xs text-text-muted">
-                Lead Developer
+                {user?.email || "Member"}
               </p>
             </div>
 

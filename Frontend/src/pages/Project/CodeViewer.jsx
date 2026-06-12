@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import AiCodeReviewer from "../../component/AiCodeReviewer";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function CodeViewer({ projectId }) {
   const monaco = useMonaco();
@@ -28,7 +29,8 @@ export default function CodeViewer({ projectId }) {
   const [loading, setLoading] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
   const [diffMode, setDiffMode] = useState(false);
-const [originalCode, setOriginalCode] = useState("");
+  const [originalCode, setOriginalCode] = useState("");
+  const { isDark } = useTheme();
 
   /* ---------------- MONACO THEME ---------------- */
   useEffect(() => {
@@ -243,7 +245,7 @@ const [originalCode, setOriginalCode] = useState("");
       </div>
 
       {/* CENTER (EDITOR) */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
 
         {/* TABS */}
         <div className="flex border-b border-border-subtle overflow-x-auto">
@@ -289,7 +291,7 @@ const [originalCode, setOriginalCode] = useState("");
               original={originalCode}   // before fix
               modified={code}           // after fix
               language={getLanguage(activeTab)}
-              theme="devcollab-dark"
+              theme={isDark ? "devcollab-dark" : "vs-light"}
               options={{
                 renderSideBySide: true,
                 minimap: { enabled: false },
@@ -298,7 +300,7 @@ const [originalCode, setOriginalCode] = useState("");
           ) : activeTab ? (
             <Editor
               height="100%"
-              theme="devcollab-dark"
+              theme={isDark ? "devcollab-dark" : "vs-light"}
               language={getLanguage(activeTab)}
               value={code}
               onChange={(v) => setCode(v || "")}

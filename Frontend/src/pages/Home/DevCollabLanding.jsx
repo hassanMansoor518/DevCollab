@@ -27,7 +27,7 @@ export default function DevCollabLanding() {
   return (
 
 
-    <div className="relative min-h-screen bg-[#0B1120] text-white">
+    <div className="relative min-h-screen bg-background text-text-primary">
 
       {/* ===== BLUR WRAPPER ===== */}
       <div
@@ -36,32 +36,32 @@ export default function DevCollabLanding() {
 
         {/* ================= NAVBAR ================= */}
         <motion.nav
-          className="flex items-center justify-between px-18 py-8 border-b border-slate-800"
+          className="flex items-center justify-between px-18 py-8 border-b border-border-default"
           initial="hidden"
           animate="visible"
           variants={staggerChildren}
         >
           <motion.div className="flex items-center gap-2" variants={fadeInUp}>
-            <div className="bg-blue-600 p-2 rounded-md">
+            <div className="bg-blue-600 p-2 rounded-md text-white">
               <Code2 size={18} />
             </div>
             <span className="font-semibold text-xl">DevCollab</span>
           </motion.div>
 
           <motion.div
-            className="hidden md:flex gap-8 text-sm text-slate-300"
+            className="hidden md:flex gap-8 text-sm text-text-secondary"
             variants={fadeInUp}
           >
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#projects" className="hover:text-white transition-colors">Projects</a>
-            <a href="#teams" className="hover:text-white transition-colors">Teams</a>
-            <a href="#ai" className="hover:text-white transition-colors">AI Features</a>
+            <a href="#features" className="hover:text-text-primary transition-colors">Features</a>
+            <a href="#projects" className="hover:text-text-primary transition-colors">Projects</a>
+            <a href="#teams" className="hover:text-text-primary transition-colors">Teams</a>
+            <a href="#ai" className="hover:text-text-primary transition-colors">AI Features</a>
           </motion.div>
 
           {/* ===== LOGIN + SIGNUP BUTTONS ===== */}
           <motion.div className="flex items-center gap-4" variants={fadeInUp}>
             <button
-              className="text-sm text-slate-300 hover:text-white"
+              className="text-sm text-text-secondary hover:text-text-primary"
               onClick={() => {
                 setShowSignup(false);
                 setShowLogin(true);
@@ -72,7 +72,7 @@ export default function DevCollabLanding() {
             </button>
 
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded-lg font-medium"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium"
               onClick={() => {
                 setShowLogin(false);
                 setShowSignup(true);
@@ -113,7 +113,7 @@ export default function DevCollabLanding() {
 
             {/* Subtext */}
             <motion.p
-              className="text-slate-400 max-w-2xl mx-auto mt-6 text-sm md:text-base"
+              className="text-text-muted max-w-2xl mx-auto mt-6 text-sm md:text-base"
               variants={fadeInUp}
             >
               The unified workspace for modern engineering teams. Real-time chat,
@@ -124,7 +124,7 @@ export default function DevCollabLanding() {
             {/* Buttons */}
             <motion.div className="mt-8 flex justify-center gap-4" variants={fadeInUp}>
               <button
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium shadow-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg"
                 onClick={() => {
                   setShowLogin(true);
                   setShowSignup(false);
@@ -133,7 +133,7 @@ export default function DevCollabLanding() {
                 Get Started Free
               </button>
 
-              <button className="border border-slate-700 px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-slate-800">
+              <button className="border border-border-default px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-hover-bg">
                 <BookOpen size={16} />
                 Book Demo
               </button>
@@ -142,18 +142,18 @@ export default function DevCollabLanding() {
 
           {/* ================= PREVIEW CARD ================= */}
           <motion.div className="mt-20 max-w-6xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerChildren}>
-            <motion.div className="bg-[#0F172A] border border-slate-800 rounded-2xl shadow-[0_0_80px_rgba(59,130,246,0.08)] overflow-hidden" variants={fadeInUp}>
+            <motion.div className="bg-card border border-border-default rounded-2xl shadow-[var(--shadow-popover)] overflow-hidden" variants={fadeInUp}>
 
               {/* ================= TOP BAR ================= */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#111827]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface">
                 <div className="flex gap-6 text-sm">
-                  <span className="text-white font-medium border-b-2 border-blue-500 pb-1 flex items-center gap-1">
+                  <span className="text-text-primary font-medium border-b-2 border-primary pb-1 flex items-center gap-1">
                     <FaProjectDiagram /> Projects
                   </span>
-                  <span className="text-slate-400 hover:text-white cursor-pointer flex items-center gap-1">
+                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1">
                     <FaServer /> Pipeline
                   </span>
-                  <span className="text-slate-400 hover:text-white cursor-pointer flex items-center gap-1">
+                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1">
                     <FaGithub /> Pull Requests
                   </span>
                 </div>
@@ -165,58 +165,58 @@ export default function DevCollabLanding() {
               <div className="grid grid-cols-12">
 
                 {/* ===== LEFT MINI SIDEBAR ===== */}
-                <div className="col-span-2 border-r border-slate-800 bg-[#0B1120] p-4 flex flex-col justify-between text-xs">
+                <div className="col-span-2 border-r border-border-subtle bg-background p-4 flex flex-col justify-between text-xs">
 
                   {/* Sidebar Menu */}
                   <div className="space-y-3">
-                    <div className="bg-blue-600/10 text-blue-400 px-3 py-2 rounded-md flex items-center gap-2">
+                    <div className="bg-primary-soft text-primary px-3 py-2 rounded-md flex items-center gap-2">
                       <FaProjectDiagram /> Projects
                     </div>
-                    <div className="text-slate-400 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer flex items-center gap-2">
+                    <div className="text-text-secondary px-3 py-2 rounded-md hover:bg-hover-bg cursor-pointer flex items-center gap-2">
                       <FaComments /> Conversations
                     </div>
-                    <div className="text-slate-400 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer flex items-center gap-2">
+                    <div className="text-text-secondary px-3 py-2 rounded-md hover:bg-hover-bg cursor-pointer flex items-center gap-2">
                       <FaCode /> Ai Assistant
                     </div>
-                    <div className="text-slate-400 px-3 py-2 rounded-md hover:bg-slate-800 cursor-pointer flex items-center gap-2">
+                    <div className="text-text-secondary px-3 py-2 rounded-md hover:bg-hover-bg cursor-pointer flex items-center gap-2">
                       <FaCog /> Settings
                     </div>
                   </div>
 
                   {/* User Login at Bottom */}
-                  <div className="mt-6 flex items-center gap-2 px-3 py-2 border-t border-slate-800">
+                  <div className="mt-6 flex items-center gap-2 px-3 py-2 border-t border-border-subtle">
                     <img
                       src="https://i.pravatar.cc/24?img=12"
                       alt="Alex"
                       className="w-7 h-7 rounded-full" />
                     <div>
-                      <span className="text-white text-xs">Hassan Mansoor</span>
-                      <div className="text-slate-400 text-xs">Developer</div>
+                      <span className="text-text-primary text-xs">Hassan Mansoor</span>
+                      <div className="text-text-muted text-xs">Developer</div>
                     </div>
                   </div>
                 </div>
 
                 {/* ===== MIDDLE SECTION ===== */}
-                <div className="col-span-6 p-6 space-y-6 border-r border-slate-800">
+                <div className="col-span-6 p-6 space-y-6 border-r border-border-subtle">
                   {/* Active Repositories */}
                   <div>
-                    <h4 className="text-sm text-white font-semibold mb-4 flex items-center gap-2">
+                    <h4 className="text-sm text-text-primary font-semibold mb-4 flex items-center gap-2">
                       <FaGithub /> Active Repositories
                     </h4>
                     <div className="space-y-3 text-xs">
-                      <div className="flex justify-between items-center bg-[#111827] px-4 py-3 rounded-lg border border-slate-800">
-                        <span className="text-slate-300 flex items-center gap-2">
+                      <div className="flex justify-between items-center bg-surface px-4 py-3 rounded-lg border border-border-default">
+                        <span className="text-text-secondary flex items-center gap-2">
                           <FaGithub /> core-api-service
                         </span>
-                        <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px]">
+                        <span className="bg-success-soft text-success px-2 py-0.5 rounded text-[10px]">
                           STABLE
                         </span>
                       </div>
-                      <div className="flex justify-between items-center bg-[#111827] px-4 py-3 rounded-lg border border-slate-800">
-                        <span className="text-slate-300 flex items-center gap-2">
+                      <div className="flex justify-between items-center bg-surface px-4 py-3 rounded-lg border border-border-default">
+                        <span className="text-text-secondary flex items-center gap-2">
                           <FaGithub /> mobile-client-app
                         </span>
-                        <span className="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded text-[10px]">
+                        <span className="bg-warning-soft text-warning px-2 py-0.5 rounded text-[10px]">
                           BUILDING
                         </span>
                       </div>
@@ -224,45 +224,45 @@ export default function DevCollabLanding() {
                   </div>
 
                   {/* ===== Code Block ===== */}
-                  <div className="bg-[#0F172A] rounded-xl border border-slate-800 overflow-hidden shadow-sm">
+                  <div className="bg-card rounded-xl border border-border-subtle overflow-hidden shadow-sm">
                     {/* Header Bar */}
-                    <div className="flex items-center gap-2 px-4 py-2 bg-[#111827] border-b border-slate-800">
-                      <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                      <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                      <span className="ml-2 text-xs text-slate-400 font-mono">deploy.js</span>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-surface border-b border-border-default">
+                      <span className="w-3 h-3 bg-error rounded-full"></span>
+                      <span className="w-3 h-3 bg-warning rounded-full"></span>
+                      <span className="w-3 h-3 bg-success rounded-full"></span>
+                      <span className="ml-2 text-xs text-text-muted font-mono">deploy.js</span>
                     </div>
                     {/* Code Content */}
-                    <pre className="p-5 font-mono text-xs leading-6 text-white overflow-x-auto">
+                    <pre className="p-5 font-mono text-xs leading-6 text-text-primary overflow-x-auto">
                       <code>
                         <span className="text-purple-400">const</span>{" "}
-                        <span className="text-blue-400">deploy</span>{" "}
-                        <span className="text-white">=</span>{" "}
+                        <span className="text-info">deploy</span>{" "}
+                        <span className="text-text-primary">=</span>{" "}
                         <span className="text-purple-400">async</span>{" "}
-                        <span className="text-white">() {"=> {"}</span>
+                        <span className="text-text-primary">() {"=> {"}</span>
                         {"\n"}
-                        <span className="text-slate-400"> // Initialize deployment layer</span>
+                        <span className="text-text-muted"> // Initialize deployment layer</span>
                         {"\n"}
-                        <span className="text-green-400">  await build();</span>
+                        <span className="text-success">  await build();</span>
                         {"\n"}
-                        <span className="text-yellow-400">  console.log('Server initialized');</span>
+                        <span className="text-warning">  console.log('Server initialized');</span>
                         {"\n"}
-                        <span className="text-white">{"}"}</span>
+                        <span className="text-text-primary">{"}"}</span>
                       </code>
                     </pre>
                   </div>
                 </div>
 
                 {/* ===== RIGHT AI PANEL ===== */}
-                <div className="col-span-4 p-6 bg-[#0B1120]">
-                  <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <div className="col-span-4 p-6 bg-background">
+                  <h4 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
                     <AiOutlineRobot /> DevCollab AI
                   </h4>
-                  <div className="bg-[#111827] border border-slate-800 rounded-lg p-4 text-xs text-slate-300 mb-6">
+                  <div className="bg-surface border border-border-subtle rounded-lg p-4 text-xs text-text-secondary mb-6">
                     I see an opportunity to improve your authentication layer.
                     Consider implementing token refresh logic and role validation.
                   </div>
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs py-2.5 rounded-lg transition flex items-center justify-center gap-2">
+                  <button className="w-full bg-primary hover:bg-primary-hover text-white text-xs py-2.5 rounded-lg transition flex items-center justify-center gap-2">
                     <AiOutlineRobot /> Ask DevCollab AI
                   </button>
                 </div>
@@ -280,27 +280,27 @@ export default function DevCollabLanding() {
         <AIFeaturesSection />
 
         {/* ================= FOOTER ================= */}
-        <motion.footer className="bg-[#0B1120]" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
-          <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-400">
+        <motion.footer className="bg-background border-t border-border-default" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+          <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-sm text-text-secondary">
             {/* Left Side */}
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <div className="bg-blue-600 p-1.5 rounded-md">
+              <div className="bg-primary p-1.5 rounded-md">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 text-white">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L9 21l-4 1 1-4 10.862-13.513z" />
                 </svg>
               </div>
-              <span className="text-slate-300 font-medium">DevCollab</span>
+              <span className="text-text-primary font-medium">DevCollab</span>
             </div>
 
             {/* Right Links */}
             <div className="flex gap-8">
-              <a href="#" className="hover:text-white transition">Documentation</a>
-              <a href="#" className="hover:text-white transition">Privacy</a>
-              <a href="#" className="hover:text-white transition">Security</a>
-              <a href="#" className="hover:text-white transition">Twitter</a>
+              <a href="#" className="hover:text-text-primary transition">Documentation</a>
+              <a href="#" className="hover:text-text-primary transition">Privacy</a>
+              <a href="#" className="hover:text-text-primary transition">Security</a>
+              <a href="#" className="hover:text-text-primary transition">Twitter</a>
             </div>
 
-            <div className="text-center py-4 text-xs text-slate-500">
+            <div className="text-center py-4 text-xs text-text-muted">
               © 2026 DevCollab. Built for developers.
             </div>
           </div>

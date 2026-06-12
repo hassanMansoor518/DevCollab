@@ -129,7 +129,7 @@ export default function AiAssistantHeader({ user }) {
                 {/* RIGHT SIDE */}
                 <div className="flex items-center gap-6">
                     <ThemeToggle />
-                    
+
                     <div className="badge badge-success px-3 py-1.5 rounded-full">
                         <span className="mr-1">●</span> GITHUB CONNECTED
                     </div>
