@@ -32,7 +32,10 @@ async function registerUser(req, res) {
   const token = jwt.sign({
     id: user._id
   }, process.env.JWT_SECRET);
-  res.cookie("token", token);
+  res.cookie("token", token, {
+    sameSite: "none",
+    secure: true
+  });
 
   
 
@@ -80,10 +83,14 @@ async function loginUser(req, res) {
       id: user._id
     }, process.env.JWT_SECRET);
 
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true
+    });
 
     return res.status(200).json({
       message: "user login successfully",
+      token,
       user: {
         _id: user._id,
         email: user.email,
@@ -99,7 +106,10 @@ async function loginUser(req, res) {
 }
 
 function logoutUser(req, res) {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    sameSite: "none",
+    secure: true
+  });
   res.status(200).json({
     message: "User is logout"
   })

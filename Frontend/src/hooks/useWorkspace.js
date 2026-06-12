@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const api = axios.create({ withCredentials: true });
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+const api = axios.create({ baseURL: API_URL, withCredentials: true });
 
 export const workspaceKeys = {
   all: ['workspaces'],

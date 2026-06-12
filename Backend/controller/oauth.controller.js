@@ -47,7 +47,10 @@ async function googleAuth(req, res) {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true
+    });
 
     return res.status(200).json({
       message: "Google login successful",
@@ -144,7 +147,10 @@ async function githubAuth(req, res) {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true
+    });
 
     return res.status(200).json({
       message: "GitHub login successful",

@@ -17,6 +17,8 @@ import {
 import AiCodeReviewer from "../../component/AiCodeReviewer";
 import { useTheme } from "../../context/ThemeContext";
 
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
 export default function CodeViewer({ projectId }) {
   const monaco = useMonaco();
 
@@ -81,7 +83,7 @@ export default function CodeViewer({ projectId }) {
         setLoading(true);
 
         const res = await axios.get(
-          `http://localhost:3001/api/project/${projectId}/contents`,
+          `${API_URL}/api/project/${projectId}/contents`,
           { params: { path } }
         );
 
@@ -132,7 +134,7 @@ export default function CodeViewer({ projectId }) {
     if (!window.confirm("Delete this file/folder?")) return;
 
     await axios.delete(
-      `http://localhost:3001/api/project/${projectId}/delete-file`,
+      `${API_URL}/api/project/${projectId}/delete-file`,
       { data: { path } }
     );
 
@@ -144,7 +146,7 @@ export default function CodeViewer({ projectId }) {
     if (!name) return;
 
     await axios.post(
-      `http://localhost:3001/api/project/${projectId}/create-file`,
+      `${API_URL}/api/project/${projectId}/create-file`,
       {
         path: currentPath ? `${currentPath}/${name}` : name,
         content: "",
@@ -176,7 +178,7 @@ export default function CodeViewer({ projectId }) {
   /* ---------------- SAVE ---------------- */
   const saveFile = async () => {
     await axios.put(
-      `http://localhost:3001/api/project/${projectId}/update-file`,
+      `${API_URL}/api/project/${projectId}/update-file`,
       {
         path: activeTab,
         content: code,

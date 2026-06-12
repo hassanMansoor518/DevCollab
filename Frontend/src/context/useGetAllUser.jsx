@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 import { useState } from 'react'
 import Cookies from 'js-cookie'
 
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
 function useGetAllUser() {
    
     const [allUser , setAllUser] = useState([])
@@ -14,7 +16,7 @@ function useGetAllUser() {
         setLoading(true)
 
         try {
-            const response = await fetch("/api/auth/allUser", {
+            const response = await fetch(`${API_URL}/api/auth/allUser`, {
                 credentials: "include",
             })
 

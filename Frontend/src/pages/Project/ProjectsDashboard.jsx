@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
 import CreateProjectModal from "./CreateProjectModel";
 import DashboardHeader from "../../component/DashboardHeader";
+import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
 
 export default function ProjectsDashboard() {
@@ -23,43 +24,39 @@ export default function ProjectsDashboard() {
   const [allUsers, setAllUsers] = useState([]);
   const [editingProject, setEditingProject] = useState(null);
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
-  const user = authUser?.user;
-  const token = authUser?.token;
+  const [authData] = useAuth();
+  const user = authData?.user;
+  const token = authData?.token;
 
-  /* ================= Fetch Users ================= */
-  const fetchAllUsers = async () => {
-    if (!user?._id) return;
-    try {
-      const res = await axios.get(
-        `/api/invite/team/active/${user._id}`
-      );
-      setAllUsers(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch users:", err.message);
-    }
-  };
-
-  /* ================= Fetch Projects ================= */
-  const fetchProjects = async () => {
+  /* ================= Fetch Dashboard Data ================= */
+  const loadData = async () => {
     if (!user?._id) return;
     setLoading(true);
     try {
-      // Backend already filters by user membership
-      const res = await axios.get("/api/project", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const [usersRes, projectsRes] = await Promise.all([
+        axios.get(`/api/invite/team/active/${user._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get("/api/project", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const team = usersRes.data || [];
+      setAllUsers(team);
 
       const usersWithCurrent = [
-        ...allUsers,
+        ...team,
         { _id: user._id, fullName: user.fullName },
       ];
 
-      const projectsData = res.data
+      const projectsData = projectsRes.data
         ?.map((proj) => {
           const updatedMembers = proj.members?.map((id) => {
             const member = usersWithCurrent.find((u) => u._id === id);
-            return member ? member.fullName : "Unknown User";
+            if (member) return member.fullName;
+            const isObjectId = /^[a-f\d]{24}$/i.test(id);
+            return isObjectId ? "Unknown User" : id;
           });
           return { ...proj, members: updatedMembers || [] };
         })
@@ -67,11 +64,15 @@ export default function ProjectsDashboard() {
 
       setProjects(projectsData || []);
     } catch (err) {
-      console.error("Failed to fetch projects:", err.message);
+      console.error("Failed to load dashboard data:", err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, [user?._id]);
 
   /* ================= Add Project ================= */
   const addProjectToList = (project) => {
@@ -102,23 +103,13 @@ export default function ProjectsDashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      fetchProjects(); // Refresh list to update all members
+      loadData(); // Refresh list to update all members
       setEditingProject(null);
     } catch (err) {
       console.error("Failed to edit project:", err.message);
       alert("Failed to save changes.");
     }
   };
-
-  useEffect(() => {
-    fetchAllUsers();
-  }, []);
-
-  useEffect(() => {
-    if (allUsers.length > 0) {
-      fetchProjects();
-    }
-  }, [allUsers]);
 
   return (
     <div className="flex h-screen bg-background text-text-primary">

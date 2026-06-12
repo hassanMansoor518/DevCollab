@@ -4,6 +4,8 @@ import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import profile from "../../../assets/Profile.png";
 
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
 function User({ user }) {
     const { selectedConversation, setSelectedConversation, setSelectedWorkspace } = useConversation();
     const { onlineUsers } = useSocketContext();
@@ -20,7 +22,7 @@ function User({ user }) {
         if (!user?._id) return;
 
         try {
-            const res = await fetch(`/api/conversation/get-or-create/${user._id}`, {
+            const res = await fetch(`${API_URL}/api/conversation/get-or-create/${user._id}`, {
                 credentials: "include",
             });
 

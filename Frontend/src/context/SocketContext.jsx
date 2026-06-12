@@ -54,6 +54,8 @@ export const SocketProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
 
+  const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
   const {
     receiveIncomingCall,
     setLocalStream,
@@ -70,7 +72,7 @@ export const SocketProvider = ({ children }) => {
     if (authUser?.user?._id) {
       console.log("🔌 Initializing socket for user:", authUser.user._id);
 
-      const newSocket = io("http://localhost:3001", {
+      const newSocket = io(API_URL, {
         withCredentials: true,
         autoConnect: true,
         transports: ["websocket"],

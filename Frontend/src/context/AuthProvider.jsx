@@ -4,9 +4,10 @@ import Cookies from "js-cookie";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const token = Cookies.get("token") || localStorage.getItem("token");
+  const chatAppRaw = localStorage.getItem("ChatApp");
+  const initialAuth = chatAppRaw ? JSON.parse(chatAppRaw) : (Cookies.get("token") || localStorage.getItem("token") || null);
 
-  const [authUser, setAuthUser] = useState(token || null);
+  const [authUser, setAuthUser] = useState(initialAuth);
 
   return (
     <AuthContext.Provider value={[authUser, setAuthUser]}>

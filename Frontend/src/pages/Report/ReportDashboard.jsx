@@ -3,6 +3,8 @@ import DashboardHeader from "../../component/DashboardHeader";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
 import axios from "axios";
 
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
 export default function ReportsPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ export default function ReportsPage() {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:3001/api/report", { withCredentials: true });
+      const response = await axios.get(`${API_URL}/api/report`, { withCredentials: true });
       setReports(response.data.reports || []);
     } catch (err) {
       console.error("Error fetching reports:", err);
@@ -30,7 +32,7 @@ export default function ReportsPage() {
   const deleteReport = async (reportId) => {
     if (!window.confirm("Are you sure you want to delete this report?")) return;
     try {
-      await axios.delete(`http://localhost:3001/api/report/${reportId}`, { withCredentials: true });
+      await axios.delete(`${API_URL}/api/report/${reportId}`, { withCredentials: true });
       setReports(reports.filter(r => r._id !== reportId));
     } catch (err) {
       console.error("Error deleting report:", err);
@@ -39,7 +41,7 @@ export default function ReportsPage() {
 
   const downloadReport = async (reportId, filename) => {
     try {
-      const response = await axios.get(`http://localhost:3001/api/report/${reportId}/download`, {
+      const response = await axios.get(`${API_URL}/api/report/${reportId}/download`, {
         withCredentials: true,
         responseType: 'blob'
       });

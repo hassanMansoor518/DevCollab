@@ -20,7 +20,7 @@ connectDB();
 const Port = process.env.PORT
 
 app.use(cors({
-  origin: "http://localhost:4002",
+  origin: "http://localhost:4002" || "https://ai-powered-chat-application-sigma.vercel.app/",
   credentials: true
 }));
 

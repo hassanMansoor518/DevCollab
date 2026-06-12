@@ -6,6 +6,8 @@ import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+
 export default function Logout({ collapsed }) {
     const [loading, setLoading] = useState(false);
 
@@ -16,7 +18,7 @@ export default function Logout({ collapsed }) {
 
         try {
             const res = await axios.post(
-                "http://localhost:3001/api/auth/user/logout",
+                `${API_URL}/api/auth/user/logout`,
                 {},
                 {
                     withCredentials: true,
