@@ -295,7 +295,7 @@ export default function ProjectCommit() {
                 <DashboardHeader user={user} />
 
                 {/* project card */}
-                <div className="mt-8 bg-card border border-border-default rounded-[18px] p-5 md:p-6 flex justify-between items-center shadow-sm">
+                <div className="mt-8 bg-card border border-border-default rounded-[18px] p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/20 text-white">
                             <GitCommit size={22} />
@@ -314,7 +314,7 @@ export default function ProjectCommit() {
                     </div>
 
                     {/* stats */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
                         {[
                             { val: commits.length, label: "Commits" },
                             { val: pullCount, label: "Pull Requests" },
@@ -334,7 +334,7 @@ export default function ProjectCommit() {
                 </div>
 
                 {/* tabs */}
-                <div className="mt-6 border-b border-border-default flex gap-7 pb-0  px-6 ">
+                <div className="mt-6 border-b border-border-default flex gap-5 sm:gap-7 pb-0 px-2 sm:px-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
                     <Tab icon={<GitCommit size={15} />} label="Commits" active={activeTab === "commits"}
                         onClick={() => setActiveTab("commits")} badge={commits.length} />
                     <Tab icon={<GitPullRequest size={15} />} label="Pull Requests" active={activeTab === "prs"}
@@ -364,7 +364,7 @@ export default function ProjectCommit() {
                 {/* code tab */}
                 {activeTab === "code" && (
                     <div className="mt-4  ">
-                           <CodeViewer projectId={id} filePath={currentPath} />
+                        <CodeViewer projectId={id} filePath={currentPath} />
                     </div>
                 )}
 

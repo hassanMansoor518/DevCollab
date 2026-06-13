@@ -191,10 +191,10 @@ export default function CodeViewer({ projectId }) {
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="h-[650px] flex rounded-2xl overflow-hidden bg-background text-text-primary border border-border-subtle">
+    <div className="h-auto lg:h-[650px] flex flex-col lg:flex-row rounded-2xl overflow-hidden bg-background text-text-primary border border-border-subtle">
 
       {/* LEFT SIDEBAR */}
-      <div className="w-64 flex flex-col bg-sidebar border-r border-border-subtle">
+      <div className="w-full lg:w-64 h-[200px] lg:h-auto flex flex-col bg-sidebar border-b lg:border-b-0 lg:border-r border-border-subtle shrink-0">
 
         {/* HEADER */}
         <div className="flex items-center justify-between p-3 border-b border-border-subtle">
@@ -247,7 +247,7 @@ export default function CodeViewer({ projectId }) {
       </div>
 
       {/* CENTER (EDITOR) */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-[500px] shrink-0">
 
         {/* TABS */}
         <div className="flex border-b border-border-subtle overflow-x-auto">
@@ -284,30 +284,34 @@ export default function CodeViewer({ projectId }) {
         )}
 
         {/* EDITOR */}
-        <div className="flex-1">
+        <div className="flex-1 relative min-h-[400px]">
           {loading ? (
             <div className="p-4 text-text-secondary">Loading...</div>
           ) : diffMode ? (   // ⭐ NEW STATE
-            <DiffEditor
-              height="100%"
-              original={originalCode}   // before fix
-              modified={code}           // after fix
-              language={getLanguage(activeTab)}
-              theme={isDark ? "devcollab-dark" : "vs-light"}
-              options={{
-                renderSideBySide: true,
-                minimap: { enabled: false },
-              }}
-            />
+            <div className="absolute inset-0">
+              <DiffEditor
+                height="100%"
+                original={originalCode}   // before fix
+                modified={code}           // after fix
+                language={getLanguage(activeTab)}
+                theme={isDark ? "devcollab-dark" : "vs-light"}
+                options={{
+                  renderSideBySide: true,
+                  minimap: { enabled: false },
+                }}
+              />
+            </div>
           ) : activeTab ? (
-            <Editor
-              height="100%"
-              theme={isDark ? "devcollab-dark" : "vs-light"}
-              language={getLanguage(activeTab)}
-              value={code}
-              onChange={(v) => setCode(v || "")}
-              options={{ minimap: { enabled: false } }}
-            />
+            <div className="absolute inset-0">
+              <Editor
+                height="100%"
+                theme={isDark ? "devcollab-dark" : "vs-light"}
+                language={getLanguage(activeTab)}
+                value={code}
+                onChange={(v) => setCode(v || "")}
+                options={{ minimap: { enabled: false } }}
+              />
+            </div>
           ) : (
             <div className="p-6 text-text-secondary">
               Select a file to start coding 🚀

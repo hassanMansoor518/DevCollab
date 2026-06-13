@@ -68,10 +68,14 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
     // local copy state for safe update
     const [codeState, setCodeState] = useState(code);
 
+    React.useEffect(() => {
+        setCodeState(code);
+    }, [code]);
+
     const isEmpty = !loading && !analysisResult && !error;
 
     return (
-        <div className="w-[380px] h-full bg-gradient-to-b from-surface to-surface/80 border-l border-border-subtle flex flex-col shadow-lg">
+        <div className="w-full lg:w-[380px] h-[500px] lg:h-full bg-gradient-to-b from-surface to-surface/80 border-t lg:border-t-0 lg:border-l border-border-subtle flex flex-col shadow-lg shrink-0">
 
             {/* HEADER */}
             <div className="px-5 py-4 border-b border-border-subtle bg-surface/60 backdrop-blur">

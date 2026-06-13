@@ -96,8 +96,8 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50">
-      <div className="bg-card w-[600px] rounded-2xl p-8 shadow-popover text-text-primary border border-border-default relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+      <div className="bg-card w-full max-w-[600px] rounded-2xl p-5 sm:p-8 shadow-popover text-text-primary border border-border-default relative max-h-[90vh] overflow-y-auto">
 
         {/* Close */}
         <button
@@ -135,11 +135,11 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
 
         {/* Assign Members */}
         <label className="text-sm font-medium text-text-secondary">Assign Members</label>
-        <div className="flex gap-2 mt-2">
+        <div className="flex flex-col sm:flex-row gap-2 mt-2">
           <select
             value={selectedUser}
             onChange={(e) => setSelectedUser(e.target.value)}
-            className="flex-1 px-4 bg-input-bg rounded-lg border border-border-default text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="flex-1 py-2 px-4 bg-input-bg rounded-lg border border-border-default text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             <option value="">Select team member</option>
             {allUsers.map((user) => (
@@ -150,12 +150,12 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
           </select>
           <button
             onClick={handleAddMember}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition w-full sm:w-auto"
           >
             Add
           </button>
         </div>
-        
+
 
         {/* Member Chips */}
         <div className="flex flex-wrap gap-2 mt-4 mb-6">
@@ -237,30 +237,29 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-between items-center pt-2">
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition font-medium">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 pt-4">
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition font-medium w-full sm:w-auto text-center">
             Cancel
           </button>
 
-          <div className="flex gap-3">
-            <button className="px-4 py-2 bg-surface border border-border-default text-text-primary rounded-lg hover:bg-hover-bg transition">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <button className="px-4 py-2 bg-surface border border-border-default text-text-primary rounded-lg hover:bg-hover-bg transition w-full sm:w-auto">
               Save as Draft
             </button>
             <button
               disabled={saving}
               onClick={handleCreate}
-              className={`px-6 py-2 rounded-lg text-white font-medium transition ${
-                saving
+              className={`px-6 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto ${saving
                   ? "bg-text-muted cursor-not-allowed"
                   : "bg-primary hover:bg-primary-hover shadow-sm"
-              }`}
+                }`}
             >
               {saving ? "Creating..." : "Create Project"}
             </button>
           </div>
         </div>
       </div>
-      </div>
+    </div>
 
   );
 }

@@ -13,10 +13,10 @@ function AIMessage({ message }) {
 
     return (
         <div
-            className={`flex w-full ${message.isAI ? "justify-start" : "justify-end"}`}
+            className={`flex w-full min-w-0 ${message.isAI ? "justify-start" : "justify-end"}`}
         >
             <div
-                className={`flex gap-3 w-full max-w-4xl min-w-0 ${message.isAI ? "flex-row" : "flex-row-reverse"
+                className={`flex gap-2 sm:gap-3 w-full max-w-[95%] sm:max-w-[85%] min-w-0 ${message.isAI ? "flex-row" : "flex-row-reverse"
                     }`}
             >
                 {/* Avatar */}
@@ -31,10 +31,11 @@ function AIMessage({ message }) {
 
                 {/* Message Bubble */}
                 <div
-                    className={`relative rounded-3xl shadow-sm border backdrop-blur-sm transition-all duration-300 ${message.isAI
-                        ? "px-5 py-4 bg-surface text-text-primary border-border-default w-full min-w-0 overflow-hidden"
-                        : "px-7 py-3 bg-primary text-white border-primary-hover w-fit"
-                        }`}
+                    className={`relative rounded-3xl shadow-sm border backdrop-blur-sm transition-all duration-300 min-w-0 ${
+                        message.isAI
+                        ? "px-3 sm:px-5 py-3 sm:py-4 bg-surface text-text-primary border-border-default w-full overflow-hidden"
+                        : "px-4 sm:px-7 py-2 sm:py-3 bg-primary text-white border-primary-hover w-fit max-w-[85vw] sm:max-w-none"
+                    }`}
                 >
                     {/* Header */}
                     <div className="flex items-center gap-2 mb-2">
@@ -49,7 +50,7 @@ function AIMessage({ message }) {
                     </div>
 
                     {/* Text / Markdown Content */}
-                    <div className="text-sm leading-7 break-words overflow-x-hidden">
+                    <div className="text-sm leading-7 break-words min-w-0" style={{ overflowWrap: "anywhere" }}>
                         {message.isAI ? (
                             <div className="markdown-body prose prose-slate dark:prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 text-text-primary">
                                 <ReactMarkdown

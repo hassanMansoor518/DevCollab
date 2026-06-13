@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import DashboardHeader from "../../component/DashboardHeader";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
 import axios from "axios";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
 
@@ -70,62 +72,62 @@ export default function ReportsPage() {
 
       <DashboardLeftSide />
 
-      <div className="flex-1 overflow-y-auto px-5 py-6 bg-background">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 sm:py-6 bg-background">
         <div className="max-w-[1400px] w-full mx-auto">
           <DashboardHeader user={user} />
 
-        <div className="flex justify-between items-end mt-8 mb-8">
-          <div>
-            <p className="text-xs text-info font-bold tracking-widest mb-2">
-              ANALYZER • REPORTS OVERVIEW
-            </p>
-            <h1 className="text-4xl font-[Manrope] font-extrabold text-text-primary">
-              Reports Overview
-            </h1>
-            <p className="text-text-secondary text-sm mt-1">
-              Audit and performance metrics across your connected repositories.
-            </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-6 sm:mt-8 mb-6 sm:mb-8 gap-4 sm:gap-0">
+            <div>
+              <p className="text-[10px] sm:text-xs text-info font-bold tracking-widest mb-1 sm:mb-2">
+                ANALYZER • REPORTS OVERVIEW
+              </p>
+              <h1 className="text-2xl sm:text-4xl font-[Manrope] font-extrabold text-text-primary">
+                Reports Overview
+              </h1>
+              <p className="text-text-secondary text-xs sm:text-sm mt-1">
+                Audit and performance metrics across your connected repositories.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4 bg-surface p-4 rounded-md border border-border-default mb-6">
-          <div className="flex items-center gap-2 flex-1">
-            <span className="material-symbols-outlined text-text-muted">search</span>
-            <input
-              placeholder="Search reports..."
-              className="bg-transparent outline-none text-sm w-full text-text-primary placeholder:text-text-muted"
-            />
-          </div>
-          <button className="flex items-center gap-1 bg-background border border-border-subtle px-3 py-2 rounded text-sm text-text-secondary hover:bg-hover-bg transition">
-            <span className="material-symbols-outlined text-sm">tune</span>
-            Status
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-            <p className="text-text-muted">Loading reports...</p>
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="bg-card p-12 rounded-lg border border-border-subtle text-center">
-            <span className="material-symbols-outlined text-5xl text-text-muted mb-4">analytics</span>
-            <h3 className="text-xl font-bold text-text-primary">No Reports Yet</h3>
-            <p className="text-text-secondary mt-2">Generate your first AI code audit from the Project view.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reports.map((report) => (
-              <ReportCard
-                key={report._id}
-                report={report}
-                onView={() => openViewModal(report)}
-                onDelete={() => deleteReport(report._id)}
-                onDownload={() => downloadReport(report._id, report.filename)}
+          <div className="flex items-center gap-4 bg-surface p-4 rounded-md border border-border-default mb-6">
+            <div className="flex items-center gap-2 flex-1">
+              <span className="material-symbols-outlined text-text-muted">search</span>
+              <input
+                placeholder="Search reports..."
+                className="bg-transparent outline-none text-sm w-full text-text-primary placeholder:text-text-muted"
               />
-            ))}
+            </div>
+            <button className="flex items-center gap-1 bg-background border border-border-subtle px-3 py-2 rounded text-sm text-text-secondary hover:bg-hover-bg transition">
+              <span className="material-symbols-outlined text-sm">tune</span>
+              Status
+            </button>
           </div>
-        )}
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+              <p className="text-text-muted">Loading reports...</p>
+            </div>
+          ) : reports.length === 0 ? (
+            <div className="bg-card p-12 rounded-lg border border-border-subtle text-center">
+              <span className="material-symbols-outlined text-5xl text-text-muted mb-4">analytics</span>
+              <h3 className="text-xl font-bold text-text-primary">No Reports Yet</h3>
+              <p className="text-text-secondary mt-2">Generate your first AI code audit from the Project view.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reports.map((report) => (
+                <ReportCard
+                  key={report._id}
+                  report={report}
+                  onView={() => openViewModal(report)}
+                  onDelete={() => deleteReport(report._id)}
+                  onDownload={() => downloadReport(report._id, report.filename)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -133,7 +135,6 @@ export default function ReportsPage() {
         <ReportViewModal
           report={selectedReport}
           onClose={() => setIsViewModalOpen(false)}
-          onDownload={() => downloadReport(selectedReport._id, selectedReport.filename)}
         />
       )}
     </div>
@@ -149,44 +150,48 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
   const badgeText = isCritical ? "CRITICAL" : isHealthy ? "HEALTHY" : "STABLE";
 
   return (
-    <div className={`bg-card p-6 rounded-lg border-l-4 border-y border-r border-y-border-subtle border-r-border-subtle ${borderColor} hover:bg-hover-bg transition-colors group`}>
-      <div className="flex justify-between items-start">
-        <div>
+    <div className={`bg-card p-5 sm:p-6 rounded-lg border-l-4 border-y border-r border-y-border-subtle border-r-border-subtle ${borderColor} hover:bg-hover-bg transition-colors group`}>
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
+        <div className="w-full sm:w-auto">
           <h3 className="font-bold text-lg text-text-primary">{report.title}</h3>
-          <div className="text-text-secondary text-xs mt-1 flex gap-4">
-            <span>{new Date(report.createdAt).toLocaleString()}</span>
-            <span>{report.language}</span>
-            <span className="text-text-muted italic">{report.filename}</span>
+          <div className="text-text-secondary text-xs mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>{new Date(report.createdAt).toLocaleDateString()}</span>
+            <span className="capitalize">{report.language}</span>
+            <span className="text-text-muted italic truncate max-w-[200px] sm:max-w-none">{report.filename}</span>
           </div>
-          <p className={`text-xs mt-3 font-semibold ${badgeColor}`}>
+          <p className={`text-xs mt-3 sm:mt-4 font-semibold ${badgeColor}`}>
             {badgeText}
           </p>
         </div>
 
-        <div className="text-right">
-          <p className={`text-sm font-bold ${badgeColor}`}>
-            Health: {report.healthScore}/100
-          </p>
-          <p className="text-xs text-text-muted">{report.totalIssues} Issues Found</p>
+        <div className="text-left sm:text-right w-full sm:w-auto">
+          <div className="flex sm:block items-center justify-between">
+            <p className={`text-sm font-bold ${badgeColor}`}>
+              Health: {report.healthScore}/100
+            </p>
+            <p className="text-xs text-text-muted sm:mt-0.5">{report.totalIssues} Issues Found</p>
+          </div>
 
-          <div className="flex gap-3 mt-3 justify-end">
-            <button
-              onClick={onDownload}
-              className="text-text-secondary hover:text-primary text-xs flex items-center gap-1 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm">download</span>
-              Download
-            </button>
-            <button
-              onClick={onDelete}
-              className="text-error/70 hover:text-error text-xs flex items-center gap-1 transition-colors"
-            >
-              <span className="material-symbols-outlined text-sm">delete</span>
-              Delete
-            </button>
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-3 mt-5 sm:mt-3 w-full sm:w-auto sm:justify-end">
+            <div className="flex items-center gap-6 sm:gap-3 w-full sm:w-auto justify-start">
+              <button
+                onClick={onDownload}
+                className="text-text-secondary hover:text-primary text-sm sm:text-xs flex items-center gap-1 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base sm:text-sm">download</span>
+                Download
+              </button>
+              <button
+                onClick={onDelete}
+                className="text-error/80 hover:text-error text-sm sm:text-xs flex items-center gap-1 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base sm:text-sm">delete</span>
+                Delete
+              </button>
+            </div>
             <button
               onClick={onView}
-              className="bg-primary-soft text-primary border border-primary/30 px-4 py-2 rounded text-xs hover:bg-primary/20 transition-colors font-semibold"
+              className="w-full sm:w-auto bg-primary-soft text-primary border border-primary/30 px-4 py-2.5 sm:py-2 rounded-lg sm:rounded text-sm sm:text-xs hover:bg-primary/20 transition-colors font-bold flex justify-center items-center"
             >
               View Report
             </button>
@@ -197,23 +202,63 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
   );
 }
 
-function ReportViewModal({ report, onClose, onDownload }) {
+function ReportViewModal({ report, onClose }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const isCritical = report.riskLevel === "Critical" || report.healthScore < 50;
+  const isHealthy = report.healthScore > 80;
+  const statusText = isCritical ? "CRITICAL" : isHealthy ? "HEALTHY" : "STABLE";
+  const statusColor = isCritical ? "text-error" : isHealthy ? "text-success" : "text-warning";
+
+  const handleDownloadPDF = () => {
+    // html2canvas fails on oklch() colors used by Tailwind v4. 
+    // window.print() is the most robust way to generate a pixel-perfect, selectable PDF.
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm dark:bg-black/80">
-      <div className="bg-background w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-border-default shadow-popover flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm dark:bg-black/80">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #report-modal-wrapper, #report-modal-wrapper * {
+            visibility: visible;
+          }
+          #report-modal-wrapper {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-height: none !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          #report-modal-scroll-container {
+            overflow: visible !important;
+            max-height: none !important;
+          }
+          .print-hide {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div id="report-modal-wrapper" className="bg-background w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl border border-border-default shadow-popover flex flex-col">
         {/* MODAL HEADER */}
-        <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-surface">
-          <div>
-            <h2 className="text-xl font-bold text-text-primary">{report.title}</h2>
-            <p className="text-xs text-text-muted">{report.filename}</p>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border-subtle flex justify-between items-start sm:items-center bg-surface gap-2 sm:gap-4 print-hide">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary truncate">{report.title}</h2>
+            <p className="text-[10px] sm:text-xs text-text-muted truncate">{report.filename}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
-              onClick={onDownload}
-              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
+              onClick={handleDownloadPDF}
+              className="flex items-center justify-center gap-1 sm:gap-2 bg-primary hover:bg-primary-hover text-white p-2 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold transition shadow-sm"
+              title="Download PDF"
             >
-              <span className="material-symbols-outlined text-sm">download</span>
-              Download PDF
+              <span className="material-symbols-outlined text-sm">print</span>
+              <span className="hidden sm:inline">Save as PDF</span>
             </button>
             <button
               onClick={onClose}
@@ -225,13 +270,13 @@ function ReportViewModal({ report, onClose, onDownload }) {
         </div>
 
         {/* MODAL CONTENT */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
+        <div id="report-modal-scroll-container" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 scrollbar-hide">
 
           {/* TOP GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatBox label="Project" value={report.projectName || "N/A"} />
-            <StatBox label="Health Score" value={`${report.healthScore}/100`} color={report.healthScore > 80 ? "text-success" : "text-error"} />
-            <StatBox label="Risk Level" value={report.riskLevel} color={report.riskLevel === "Critical" ? "text-error" : "text-warning"} />
+            <StatBox label="Health Score" value={`${report.healthScore}/100`} color={statusColor} />
+            <StatBox label="Status" value={statusText} color={statusColor} />
             <StatBox label="Total Issues" value={report.totalIssues} />
           </div>
 

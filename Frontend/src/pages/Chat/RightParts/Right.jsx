@@ -212,11 +212,10 @@ function Right() {
 
                     {/* DIM MESSAGES */}
                     <div
-                        className={`flex-1 overflow-y-auto min-h-0 transition-all duration-300 ${
-                            showSettings
+                        className={`flex-1 overflow-y-auto min-h-0 transition-all duration-300 ${showSettings
                                 ? "opacity-40 pointer-events-none"
                                 : ""
-                        }`}
+                            }`}
                     >
                         <Messages />
                     </div>

@@ -36,7 +36,7 @@ export default function DevCollabLanding() {
 
         {/* ================= NAVBAR ================= */}
         <motion.nav
-          className="flex items-center justify-between px-18 py-8 border-b border-border-default"
+          className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-6 sm:py-8 border-b border-border-default flex-wrap gap-4"
           initial="hidden"
           animate="visible"
           variants={staggerChildren}
@@ -45,11 +45,11 @@ export default function DevCollabLanding() {
             <div className="bg-blue-600 p-2 rounded-md text-white">
               <Code2 size={18} />
             </div>
-            <span className="font-semibold text-xl">DevCollab</span>
+            <span className="font-semibold text-lg sm:text-xl">DevCollab</span>
           </motion.div>
 
           <motion.div
-            className="hidden md:flex gap-8 text-sm text-text-secondary"
+            className="hidden md:flex gap-6 sm:gap-8 text-xs sm:text-sm text-text-secondary"
             variants={fadeInUp}
           >
             <a href="#features" className="hover:text-text-primary transition-colors">Features</a>
@@ -92,7 +92,7 @@ export default function DevCollabLanding() {
           <motion.div initial="hidden" animate="visible" variants={staggerChildren}>
             {/* Small Badge */}
             <motion.div
-              className="inline-block bg-blue-900/30 text-blue-400 px-4 py-1 rounded-full text-xs mb-6"
+              className="inline-block bg-primary-soft text-primary dark:bg-blue-900/30 dark:text-blue-400 border border-primary/20 dark:border-transparent px-4 py-1.5 rounded-full text-xs mb-6 font-medium shadow-sm"
               variants={fadeInUp}
             >
               🚀 We are now live with AI pair programming
@@ -100,7 +100,7 @@ export default function DevCollabLanding() {
 
             {/* Heading */}
             <motion.h1
-              className="text-4xl md:text-6xl font-bold leading-tight"
+              className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight"
               variants={fadeInUp}
             >
               Ship code{" "}
@@ -122,9 +122,9 @@ export default function DevCollabLanding() {
             </motion.p>
 
             {/* Buttons */}
-            <motion.div className="mt-8 flex justify-center gap-4" variants={fadeInUp}>
+            <motion.div className="mt-8 flex flex-col sm:flex-row justify-center gap-4" variants={fadeInUp}>
               <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg w-full sm:w-auto"
                 onClick={() => {
                   setShowLogin(true);
                   setShowSignup(false);
@@ -133,7 +133,7 @@ export default function DevCollabLanding() {
                 Get Started Free
               </button>
 
-              <button className="border border-border-default px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-hover-bg">
+              <button className="border border-border-default px-6 py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-hover-bg w-full sm:w-auto">
                 <BookOpen size={16} />
                 Book Demo
               </button>
@@ -145,27 +145,27 @@ export default function DevCollabLanding() {
             <motion.div className="bg-card border border-border-default rounded-2xl shadow-[var(--shadow-popover)] overflow-hidden" variants={fadeInUp}>
 
               {/* ================= TOP BAR ================= */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface">
-                <div className="flex gap-6 text-sm">
-                  <span className="text-text-primary font-medium border-b-2 border-primary pb-1 flex items-center gap-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-4 border-b border-border-subtle bg-surface gap-4">
+                <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm overflow-x-auto w-full pb-1 sm:pb-0 hide-scrollbar">
+                  <span className="text-text-primary font-medium border-b-2 border-primary pb-1 flex items-center gap-1 whitespace-nowrap">
                     <FaProjectDiagram /> Projects
                   </span>
-                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1">
+                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1 whitespace-nowrap">
                     <FaServer /> Pipeline
                   </span>
-                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1">
+                  <span className="text-text-muted hover:text-text-primary cursor-pointer flex items-center gap-1 whitespace-nowrap">
                     <FaGithub /> Pull Requests
                   </span>
                 </div>
 
-                <span className="text-xs text-green-400">● 2 repositories active</span>
+                <span className="text-xs text-green-400 whitespace-nowrap hidden sm:block">● 2 repositories active</span>
               </div>
 
               {/* ================= CONTENT GRID ================= */}
               <div className="grid grid-cols-12">
 
                 {/* ===== LEFT MINI SIDEBAR ===== */}
-                <div className="col-span-2 border-r border-border-subtle bg-background p-4 flex flex-col justify-between text-xs">
+                <div className="hidden sm:block col-span-2 border-r border-border-subtle bg-background p-4 flex flex-col justify-between text-xs">
 
                   {/* Sidebar Menu */}
                   <div className="space-y-3">
@@ -197,7 +197,7 @@ export default function DevCollabLanding() {
                 </div>
 
                 {/* ===== MIDDLE SECTION ===== */}
-                <div className="col-span-6 p-6 space-y-6 border-r border-border-subtle">
+                <div className="col-span-12 sm:col-span-10 lg:col-span-6 p-4 sm:p-6 space-y-6 border-r border-border-subtle">
                   {/* Active Repositories */}
                   <div>
                     <h4 className="text-sm text-text-primary font-semibold mb-4 flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function DevCollabLanding() {
                 </div>
 
                 {/* ===== RIGHT AI PANEL ===== */}
-                <div className="col-span-4 p-6 bg-background">
+                <div className="hidden lg:block col-span-4 p-6 bg-background">
                   <h4 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
                     <AiOutlineRobot /> DevCollab AI
                   </h4>
@@ -293,7 +293,7 @@ export default function DevCollabLanding() {
             </div>
 
             {/* Right Links */}
-            <div className="flex gap-8">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mb-4 md:mb-0">
               <a href="#" className="hover:text-text-primary transition">Documentation</a>
               <a href="#" className="hover:text-text-primary transition">Privacy</a>
               <a href="#" className="hover:text-text-primary transition">Security</a>

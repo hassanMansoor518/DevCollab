@@ -9,7 +9,7 @@ export default function TeamsSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="max-w-6xl mx-auto text-center mb-16 relative z-10">
-        <div className="inline-block bg-blue-900/30 text-blue-400 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-blue-500/20 mb-6">
+        <div className="inline-block bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-blue-200 dark:border-blue-500/20 shadow-sm dark:shadow-none mb-6">
           Team Collaboration
         </div>
         <h2 className="text-3xl md:text-5xl font-bold text-text-primary mb-6">

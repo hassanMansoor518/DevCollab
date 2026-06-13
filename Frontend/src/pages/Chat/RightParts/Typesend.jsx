@@ -9,7 +9,7 @@ import axios from "axios";
 
 // List of popular modern emojis for the quick picker
 const POPULAR_EMOJIS = [
-    "😀", "😂", "😍", "👍", "🔥", "🎉", "💻", "🚀", 
+    "😀", "😂", "😍", "👍", "🔥", "🎉", "💻", "🚀",
     "❤️", "✨", "👏", "🙌", "🌟", "💡", "🎨", "⚡"
 ];
 
@@ -73,7 +73,7 @@ function Typesend() {
 
     const handleSend = async (e) => {
         e.preventDefault();
-        
+
         const cleanText = text.trim();
         const hasAttachment = !!selectedFile;
 
@@ -200,14 +200,14 @@ function Typesend() {
     return (
         <form
             onSubmit={handleSend}
-            className="px-6 py-4 border-t border-border-subtle bg-surface select-none z-10 relative"
+            className="px-3 sm:px-6 py-3 sm:py-4 border-t border-border-subtle bg-surface select-none z-10 relative"
         >
             {/* FILE INPUT (HIDDEN) */}
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
             />
 
             {/* ATTACHMENT BADGE DRAFT VIEW */}
@@ -217,9 +217,9 @@ function Typesend() {
                         <Edit size={14} className="text-primary" />
                         <span className="text-xs font-semibold text-text-primary">Editing message</span>
                     </div>
-                    <button 
-                        type="button" 
-                        onClick={() => { setEditingMessage(null); setText(""); }} 
+                    <button
+                        type="button"
+                        onClick={() => { setEditingMessage(null); setText(""); }}
                         className="p-1 rounded text-text-muted hover:bg-hover-bg transition"
                     >
                         <X size={14} />
@@ -256,7 +256,7 @@ function Typesend() {
 
             {/* EMOJI PICKER POPOVER */}
             {showEmojiPicker && (
-                <div 
+                <div
                     ref={emojiPickerRef}
                     className="absolute right-20 bottom-[105%] bg-card border border-border-subtle shadow-xl p-3 rounded-2xl grid grid-cols-4 gap-2 animate-fade-in z-30 w-44 backdrop-blur-sm"
                 >
@@ -274,24 +274,24 @@ function Typesend() {
             )}
 
             {/* INPUT FIELD BAR */}
-            <div className={`flex items-center bg-input-bg border rounded-2xl px-4 py-3 shadow-sm transition-all duration-300
-                ${isAiMessageActive 
-                    ? "border-violet-500/40 ring-4 ring-violet-500/5 shadow-violet-500/5" 
+            <div className={`flex items-center bg-input-bg border rounded-2xl px-3 sm:mb-0 mb-5 sm:px-4 py-2 sm:py-3 shadow-sm transition-all duration-300
+                ${isAiMessageActive
+                    ? "border-violet-500/40 ring-4 ring-violet-500/5 shadow-violet-500/5"
                     : "border-border-default focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5"
                 }
             `}>
                 {/* Actions Grid (Left) */}
-                <div className="flex items-center gap-1 mr-3 shrink-0">
-                    <button 
-                        type="button" 
+                <div className="flex items-center gap-1 sm:gap-1.5 mr-2 sm:mr-3 shrink-0">
+                    <button
+                        type="button"
                         onClick={handleTriggerFile}
                         className="h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition"
                         title="Upload file or attachment"
                     >
                         <Plus size={18} />
                     </button>
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`h-8 w-8 flex items-center justify-center rounded-lg transition
                             ${showEmojiPicker ? "bg-hover-bg text-primary" : "text-text-muted hover:bg-hover-bg hover:text-text-primary"}
@@ -300,8 +300,8 @@ function Typesend() {
                     >
                         <Smile size={18} />
                     </button>
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         onClick={handleToggleAi}
                         className={`h-8 w-8 flex items-center justify-center rounded-lg transition
                             ${isAiMessageActive ? "bg-violet-500/10 text-violet-500" : "text-text-muted hover:bg-hover-bg hover:text-text-primary"}
@@ -315,18 +315,19 @@ function Typesend() {
                 {/* Input Area */}
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                     {isAiMessageActive && (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-[10px] font-bold text-white shadow-md shadow-violet-500/10 animate-fade-in shrink-0">
+                        <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-[10px] font-bold text-white shadow-md shadow-violet-500/10 animate-fade-in shrink-0">
                             <Sparkles size={11} className="animate-pulse" />
-                            <span>Gemini Mode</span>
+                            <span className="hidden sm:inline">Gemini Mode</span>
+                            <span className="sm:hidden">AI</span>
                         </div>
                     )}
-                    
+
                     <input
                         type="text"
                         value={text}
                         onChange={handleChange}
                         placeholder={placeholder}
-                        className="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted/65"
+                        className="w-full bg-transparent outline-none text-sm text-text-primary placeholder:text-text-muted/65 min-w-0"
                     />
                 </div>
 
@@ -341,9 +342,9 @@ function Typesend() {
                 <button
                     type="submit"
                     disabled={(!text.trim() && !selectedFile) || isLoading}
-                    className={`ml-2 w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 shadow-sm
-                        ${isAiMessageActive 
-                            ? "bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-violet-600/10" 
+                    className={`ml-1.5 sm:ml-2 w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-300 shrink-0 shadow-sm
+                        ${isAiMessageActive
+                            ? "bg-gradient-to-tr from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-violet-600/10"
                             : "bg-primary hover:bg-primary-hover text-white shadow-primary/10"
                         }
                         disabled:opacity-30 disabled:scale-95 disabled:pointer-events-none

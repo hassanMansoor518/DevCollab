@@ -10,7 +10,7 @@ export default function AIFeaturesSection() {
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row-reverse items-center gap-16">
         
         <motion.div className="lg:w-1/2 space-y-6 relative z-10" initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} viewport={{ once: true }}>
-          <div className="inline-block bg-green-900/30 text-green-400 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-green-500/20">
+          <div className="inline-block bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-green-200 dark:border-green-500/20 shadow-sm dark:shadow-none">
             DevCollab AI
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-text-primary leading-tight">

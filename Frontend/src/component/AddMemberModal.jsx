@@ -100,16 +100,14 @@ export default function AddMemberModal({
                   {/* Add Button */}
                   <button
                     onClick={() => toggleUser(user)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full border ${
-                      isSelected
+                    className={`w-8 h-8 flex items-center justify-center rounded-full border ${isSelected
                         ? "bg-blue-600 border-blue-600"
                         : "border-border-default text-text-secondary hover:text-text-primary"
-                    }`}
+                      }`}
                   >
                     <Plus
-                      className={`w-4 h-4 ${
-                        isSelected ? "text-white" : "currentColor"
-                      }`}
+                      className={`w-4 h-4 ${isSelected ? "text-white" : "currentColor"
+                        }`}
                     />
                   </button>
                 </div>

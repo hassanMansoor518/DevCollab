@@ -138,7 +138,7 @@ const Dashboard = () => {
     <div className="flex h-screen bg-background text-text-primary overflow-hidden">
       <DashboardLeftSide />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-y-auto md:overflow-hidden relative">
         <div className="max-w-[1400px] w-full mx-auto px-5 pt-6 pb-2 shrink-0">
 
           <div className="space-y-2">
@@ -171,14 +171,14 @@ const Dashboard = () => {
         </div>
 
         <div className="max-w-[1400px] w-full mx-auto px-5 pb-6 flex-1 min-h-0">
-          <div className="grid lg:grid-cols-3 gap-4 h-full">
-            <div className="lg:col-span-2 flex flex-col h-full overflow-hidden">
+          <div className="grid lg:grid-cols-3 gap-6 md:gap-4 md:h-full">
+            <div className="lg:col-span-2 flex flex-col md:h-full md:overflow-hidden">
               <div className="flex items-center justify-between mb-2 px-1 shrink-0">
                 <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest my-4">My System Events</h3>
                 <span className="text-[10px] font-bold bg-primary-soft text-primary px-2 py-0.5 rounded border border-primary/20 tracking-wider">LIVE FEED</span>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+              <div className="flex-1 md:overflow-y-auto space-y-4 md:pr-2 custom-scrollbar">
                 {loading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map(i => (
@@ -222,8 +222,8 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col md:h-full md:overflow-hidden">
+              <div className="space-y-4 md:overflow-y-auto md:pr-2 custom-scrollbar">
                 <div className="bg-card border border-border-subtle rounded-2xl p-5 mt-6 shadow-sm relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
                   <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-text-primary">

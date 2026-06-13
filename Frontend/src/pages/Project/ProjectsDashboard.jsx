@@ -123,17 +123,17 @@ export default function ProjectsDashboard() {
           <DashboardHeader user={user} />
 
           {/* ===== Page Title Section ===== */}
-          <div className="mt-10 flex items-center justify-between">
+          <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-text-primary">Projects</h1>
-              <p className="text-text-secondary text-sm mt-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Projects</h1>
+              <p className="text-text-secondary text-xs sm:text-sm mt-1 sm:mt-2">
                 Manage and track your team's development lifecycle.
               </p>
             </div>
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white transition px-6 py-3 rounded-xl shadow-md"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white transition px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-md text-sm sm:text-base font-medium"
             >
               <Plus className="w-5 h-5" />
               Create Project
@@ -141,7 +141,7 @@ export default function ProjectsDashboard() {
           </div>
 
           {/* ===== Projects Grid ===== */}
-          <div className="mt-8 grid grid-cols-3 gap-6">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {loading ? (
               <p className="text-text-muted">Loading projects...</p>
             ) : projects.length > 0 ? (
@@ -158,7 +158,7 @@ export default function ProjectsDashboard() {
                 />
               ))
             ) : (
-              <p className="text-text-secondary col-span-3 text-center mt-10">
+              <p className="text-text-secondary col-span-1 sm:col-span-2 lg:col-span-3 text-center mt-10">
                 No projects found.
               </p>
             )}
@@ -308,8 +308,8 @@ function EditProjectModal({ project, allUsers, currentUserId, onClose, onSave })
 
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-card border border-border-default rounded-2xl p-6 w-[500px] max-h-[90vh] overflow-y-auto shadow-popover">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-card border border-border-default rounded-xl sm:rounded-2xl p-5 sm:p-6 w-full max-w-[500px] max-h-[90vh] overflow-y-auto shadow-popover">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6 border-b border-border-subtle pb-4">

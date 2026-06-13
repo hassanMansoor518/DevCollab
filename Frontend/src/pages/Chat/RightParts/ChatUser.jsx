@@ -8,9 +8,8 @@ import {
     ShieldCheck,
     ArrowRight,
     X,
+    ChevronLeft,
 } from "lucide-react";
-
-import { CiMenuFries } from "react-icons/ci";
 
 import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
@@ -22,7 +21,7 @@ function Chatuser({
     showSettings,
     setShowSettings,
 }) {
-    const { selectedConversation } =
+    const { selectedConversation, setSelectedConversation } =
         useConversation();
 
     const { onlineUsers, socket } =
@@ -69,10 +68,10 @@ function Chatuser({
 
     const isOnline = otherUserId
         ? onlineUsers.some(
-              (id) =>
-                  id?.toString() ===
-                  otherUserId
-          )
+            (id) =>
+                id?.toString() ===
+                otherUserId
+        )
         : false;
 
     const canStartCall =
@@ -82,21 +81,22 @@ function Chatuser({
 
     const initial = otherUser?.fullName
         ? otherUser.fullName
-              .charAt(0)
-              .toUpperCase()
+            .charAt(0)
+            .toUpperCase()
         : "?";
 
     return (
         <>
             {/* HEADER */}
-            <div className="relative flex items-center justify-between h-[70px] px-6 bg-surface border-b border-border-subtle shadow-sm select-none z-20">
-                {/* MOBILE MENU */}
-                <label
-                    htmlFor="my-drawer-2"
-                    className="lg:hidden text-text-muted hover:text-text-primary cursor-pointer mr-4"
+            <div className="relative flex items-center justify-between h-[60px] sm:h-[70px] px-3 sm:px-6 bg-surface border-b border-border-subtle shadow-sm select-none z-20">
+                {/* MOBILE BACK BUTTON */}
+                <button
+                    className="lg:hidden p-2 mr-1 text-text-muted hover:text-text-primary hover:bg-hover-bg rounded-lg transition shrink-0"
+                    onClick={() => setSelectedConversation(null)}
+                    aria-label="Back to contacts"
                 >
-                    <CiMenuFries className="text-xl" />
-                </label>
+                    <ChevronLeft size={20} />
+                </button>
 
                 {/* USER INFO */}
                 <div className="flex items-center gap-3">
@@ -127,11 +127,10 @@ function Chatuser({
 
                         {/* ONLINE */}
                         <span
-                            className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-surface ${
-                                isOnline
+                            className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-surface ${isOnline
                                     ? "bg-success"
                                     : "bg-text-disabled"
-                            }`}
+                                }`}
                         >
                             {isOnline && (
                                 <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-75" />
@@ -147,11 +146,10 @@ function Chatuser({
 
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                    isOnline
+                                className={`w-1.5 h-1.5 rounded-full ${isOnline
                                         ? "bg-success animate-pulse"
                                         : "bg-text-disabled"
-                                }`}
+                                    }`}
                             />
 
                             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
@@ -218,11 +216,10 @@ function Chatuser({
                             );
                         }}
                         disabled={!canStartCall}
-                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                            canStartCall
+                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall
                                 ? "text-text-muted hover:bg-hover-bg hover:text-text-primary"
                                 : "cursor-not-allowed opacity-50"
-                        }`}
+                            }`}
                     >
                         <Phone size={16} />
                     </button>
@@ -280,11 +277,10 @@ function Chatuser({
                             );
                         }}
                         disabled={!canStartCall}
-                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${
-                            canStartCall
+                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall
                                 ? "text-text-muted hover:bg-hover-bg hover:text-text-primary"
                                 : "cursor-not-allowed opacity-50"
-                        }`}
+                            }`}
                     >
                         <Video size={16} />
                     </button>
@@ -312,11 +308,10 @@ function Chatuser({
 
             {/* OVERLAY */}
             <div
-                className={`fixed inset-0 z-40 transition-all duration-300 ${
-                    showSettings
+                className={`fixed inset-0 z-40 transition-all duration-300 ${showSettings
                         ? "visible bg-black/40 backdrop-blur-sm"
                         : "invisible bg-black/0"
-                }`}
+                    }`}
                 onClick={() =>
                     setShowSettings(false)
                 }
@@ -324,11 +319,10 @@ function Chatuser({
 
             {/* SIDEBAR */}
             <aside
-                className={`fixed top-0 right-0 z-50 h-screen w-full max-w-[420px] bg-surface border-l border-border-subtle shadow-2xl transition-transform duration-300 ease-in-out ${
-                    showSettings
+                className={`fixed top-0 right-0 z-50 h-screen w-full max-w-[420px] bg-surface border-l border-border-subtle shadow-2xl transition-transform duration-300 ease-in-out ${showSettings
                         ? "translate-x-0"
                         : "translate-x-full"
-                }`}
+                    }`}
             >
                 {/* TOP */}
                 <div className="sticky top-0 bg-surface border-b border-border-subtle px-5 py-4 z-10">

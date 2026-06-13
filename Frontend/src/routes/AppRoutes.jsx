@@ -43,7 +43,7 @@ function AppRoutes() {
         authUser ? <Ai /> : <Navigate to="/" />
       } />
 
-        <Route path="/report" element={
+      <Route path="/report" element={
         authUser ? <ReportsOverview /> : <Navigate to="/" />
       } />
 
