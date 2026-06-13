@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthProvider";
 import useConversation from "../zustand/useConversation.js";
@@ -53,6 +53,7 @@ export const SocketProvider = ({ children }) => {
   const [authUser] = useAuth();
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [socket, setSocket] = useState(null);
+  const iceCandidateBuffer = useRef([]);
 
   const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
 
@@ -154,6 +155,7 @@ export const SocketProvider = ({ children }) => {
         if (!callState.callId || callState.callId !== callId || callState.callStatus !== "outgoing") return;
 
         try {
+          iceCandidateBuffer.current = [];
           setCallStatus("connecting");
           setCallMessage("Connecting...");
           
@@ -232,6 +234,12 @@ export const SocketProvider = ({ children }) => {
           }
 
           await connection.setRemoteDescription(sdp);
+          
+          while (iceCandidateBuffer.current.length > 0) {
+              const c = iceCandidateBuffer.current.shift();
+              try { await connection.addIceCandidate(c); } catch (e) { console.warn("Buffered ICE failed", e); }
+          }
+
           const answer = await connection.createAnswer();
           await connection.setLocalDescription(answer);
           newSocket.emit("answer", { to: from, callId, sdp: answer });
@@ -248,6 +256,12 @@ export const SocketProvider = ({ children }) => {
 
         try {
           await callState.peerConnection.setRemoteDescription(sdp);
+          
+          while (iceCandidateBuffer.current.length > 0) {
+              const c = iceCandidateBuffer.current.shift();
+              try { await callState.peerConnection.addIceCandidate(c); } catch (e) { console.warn("Buffered ICE failed", e); }
+          }
+          
           setCallStatus("inCall");
           setCallMessage("Live call");
         } catch (err) {
@@ -262,7 +276,11 @@ export const SocketProvider = ({ children }) => {
         if (!callState.callId || callState.callId !== callId || !callState.peerConnection) return;
 
         try {
-          await callState.peerConnection.addIceCandidate(candidate);
+          if (callState.peerConnection.remoteDescription && callState.peerConnection.remoteDescription.type) {
+              await callState.peerConnection.addIceCandidate(candidate);
+          } else {
+              iceCandidateBuffer.current.push(candidate);
+          }
         } catch (err) {
           console.warn("Failed to add remote ICE candidate", err);
         }

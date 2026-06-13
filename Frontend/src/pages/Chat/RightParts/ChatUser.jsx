@@ -192,7 +192,7 @@ function Chatuser({
                                 });
                             } catch (err) {
                                 console.error("Camera/Mic permission denied", err);
-                                alert("Microphone access is required to make audio calls. Please check your browser permissions.");
+                                alert(`Microphone access failed: ${err.message || err.name}. If you are using an in-app browser (like Facebook/Instagram), please open this link in Chrome or Safari.`);
                             }
                         }}
                         disabled={!canStartCall}
@@ -232,7 +232,7 @@ function Chatuser({
                                 });
                             } catch (err) {
                                 console.error("Camera/Mic permission denied", err);
-                                alert("Camera and Microphone access are required to make video calls. Please check your browser permissions.");
+                                alert(`Camera/Microphone access failed: ${err.message || err.name}. If you are using an in-app browser (like Facebook/Instagram), please open this link in Chrome or Safari.`);
                             }
                         }}
                         disabled={!canStartCall}

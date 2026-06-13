@@ -36,8 +36,8 @@ export const getLocalMediaStream = async (callType) => {
     video:
       callType === "video"
         ? {
-            width: 1280,
-            height: 720,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             facingMode: "user",
           }
         : false,
