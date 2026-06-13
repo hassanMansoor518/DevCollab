@@ -156,8 +156,12 @@ export const SocketProvider = ({ children }) => {
         try {
           setCallStatus("connecting");
           setCallMessage("Connecting...");
-          const stream = await getLocalMediaStream(callType);
-          setLocalStream(stream);
+          
+          let stream = callState.localStream;
+          if (!stream) {
+              stream = await getLocalMediaStream(callType);
+              setLocalStream(stream);
+          }
 
           const connection = createPeerConnection({
             onIceCandidate: (candidate) => {

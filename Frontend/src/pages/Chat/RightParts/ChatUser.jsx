@@ -14,6 +14,7 @@ import {
 import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import useCallStore from "../../../zustand/useCallStore.js";
+import { getLocalMediaStream } from "../../../utils/webrtc.js";
 
 import profile from "../../../assets/Profile.png";
 
@@ -165,55 +166,34 @@ function Chatuser({
                 <div className="flex items-center gap-1.5">
                     {/* AUDIO */}
                     <button
-                        onClick={() => {
-                            if (
-                                !canStartCall ||
-                                !otherUser?._id
-                            )
-                                return;
+                        onClick={async () => {
+                            if (!canStartCall || !otherUser?._id) return;
+                            const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                            if (!caller) return;
 
-                            const caller =
-                                JSON.parse(
-                                    localStorage.getItem(
-                                        "ChatApp"
-                                    )
-                                )?.user;
+                            try {
+                                const stream = await getLocalMediaStream("audio");
+                                useCallStore.getState().setLocalStream(stream);
 
-                            if (!caller)
-                                return;
-
-                            const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
-
-                            useCallStore
-                                .getState()
-                                .startOutgoingCall(
-                                    {
-                                        callId,
-                                        callType:
-                                            "audio",
-                                        remoteUser:
-                                            otherUser,
-                                        conversationId:
-                                            selectedConversation?._id,
-                                    }
-                                );
-
-                            socket.emit(
-                                "call-user",
-                                {
-                                    to: otherUser._id,
-                                    callType:
-                                        "audio",
+                                const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                                useCallStore.getState().startOutgoingCall({
                                     callId,
-                                    conversationId:
-                                        selectedConversation?._id,
-                                    caller: {
-                                        _id: caller._id,
-                                        fullName:
-                                            caller.fullName,
-                                    },
-                                }
-                            );
+                                    callType: "audio",
+                                    remoteUser: otherUser,
+                                    conversationId: selectedConversation?._id,
+                                });
+
+                                socket.emit("call-user", {
+                                    to: otherUser._id,
+                                    callType: "audio",
+                                    callId,
+                                    conversationId: selectedConversation?._id,
+                                    caller: { _id: caller._id, fullName: caller.fullName },
+                                });
+                            } catch (err) {
+                                console.error("Camera/Mic permission denied", err);
+                                alert("Microphone access is required to make audio calls. Please check your browser permissions.");
+                            }
                         }}
                         disabled={!canStartCall}
                         className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall
@@ -226,55 +206,34 @@ function Chatuser({
 
                     {/* VIDEO */}
                     <button
-                        onClick={() => {
-                            if (
-                                !canStartCall ||
-                                !otherUser?._id
-                            )
-                                return;
+                        onClick={async () => {
+                            if (!canStartCall || !otherUser?._id) return;
+                            const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                            if (!caller) return;
 
-                            const caller =
-                                JSON.parse(
-                                    localStorage.getItem(
-                                        "ChatApp"
-                                    )
-                                )?.user;
+                            try {
+                                const stream = await getLocalMediaStream("video");
+                                useCallStore.getState().setLocalStream(stream);
 
-                            if (!caller)
-                                return;
-
-                            const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
-
-                            useCallStore
-                                .getState()
-                                .startOutgoingCall(
-                                    {
-                                        callId,
-                                        callType:
-                                            "video",
-                                        remoteUser:
-                                            otherUser,
-                                        conversationId:
-                                            selectedConversation?._id,
-                                    }
-                                );
-
-                            socket.emit(
-                                "call-user",
-                                {
-                                    to: otherUser._id,
-                                    callType:
-                                        "video",
+                                const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                                useCallStore.getState().startOutgoingCall({
                                     callId,
-                                    conversationId:
-                                        selectedConversation?._id,
-                                    caller: {
-                                        _id: caller._id,
-                                        fullName:
-                                            caller.fullName,
-                                    },
-                                }
-                            );
+                                    callType: "video",
+                                    remoteUser: otherUser,
+                                    conversationId: selectedConversation?._id,
+                                });
+
+                                socket.emit("call-user", {
+                                    to: otherUser._id,
+                                    callType: "video",
+                                    callId,
+                                    conversationId: selectedConversation?._id,
+                                    caller: { _id: caller._id, fullName: caller.fullName },
+                                });
+                            } catch (err) {
+                                console.error("Camera/Mic permission denied", err);
+                                alert("Camera and Microphone access are required to make video calls. Please check your browser permissions.");
+                            }
                         }}
                         disabled={!canStartCall}
                         className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall
