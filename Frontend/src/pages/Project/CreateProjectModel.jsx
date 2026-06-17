@@ -250,8 +250,8 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
               disabled={saving}
               onClick={handleCreate}
               className={`px-6 py-2 rounded-lg text-white font-medium transition w-full sm:w-auto ${saving
-                  ? "bg-text-muted cursor-not-allowed"
-                  : "bg-primary hover:bg-primary-hover shadow-sm"
+                ? "bg-text-muted cursor-not-allowed"
+                : "bg-primary hover:bg-primary-hover shadow-sm"
                 }`}
             >
               {saving ? "Creating..." : "Create Project"}

@@ -194,17 +194,17 @@ export default function CodeViewer({ projectId }) {
     <div className="h-auto lg:h-[650px] flex flex-col lg:flex-row rounded-2xl overflow-hidden bg-background text-text-primary border border-border-subtle">
 
       {/* LEFT SIDEBAR */}
-      <div className="w-full lg:w-64 h-[200px] lg:h-auto flex flex-col bg-sidebar border-b lg:border-b-0 lg:border-r border-border-subtle shrink-0">
+      <div className={`w-full lg:w-64 flex flex-col bg-sidebar border-b lg:border-b-0 lg:border-r border-border-subtle shrink-0 ${activeTab ? "hidden md:flex" : "h-auto"}`}>
 
         {/* HEADER */}
-        <div className="flex items-center justify-between p-3 border-b border-border-subtle">
-          <button onClick={goBack}>
+        <div className="flex items-center justify-between p-2 md:p-3 border-b border-border-subtle">
+          <button onClick={goBack} className="p-1 text-text-secondary hover:text-text-primary">
             <ChevronLeft size={16} />
           </button>
 
-          <div className="flex gap-2">
-            <button onClick={createFile}><Plus size={16} /></button>
-            <button onClick={() => fetchFiles(currentPath)}>
+          <div className="flex gap-3 md:gap-2">
+            <button onClick={createFile} className="p-1 text-text-secondary hover:text-text-primary"><Plus size={16} /></button>
+            <button onClick={() => fetchFiles(currentPath)} className="p-1 text-text-secondary hover:text-text-primary">
               <RefreshCcw size={14} />
             </button>
           </div>
@@ -217,26 +217,26 @@ export default function CodeViewer({ projectId }) {
             fileTree.map((item) => (
               <div
                 key={item.path}
-                className="group flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-hover-bg"
+                className={`group flex items-center justify-between px-3 py-2 md:py-1.5 rounded-md transition-colors ${activeTab === item.path ? "bg-primary/20 text-primary" : "hover:bg-hover-bg"}`}
               >
                 <div
                   onClick={() => fetchFiles(item.path)}
-                  className="flex items-center gap-2 cursor-pointer"
+                  className="flex items-center gap-3 md:gap-2 cursor-pointer w-full"
                 >
                   {item.type === "dir" ? (
-                    <Folder size={14} className="text-yellow-400" />
+                    <Folder size={16} className="text-yellow-400 shrink-0" />
                   ) : (
-                    <File size={14} className="text-blue-400" />
+                    <File size={16} className="text-blue-400 shrink-0" />
                   )}
 
-                  <span className="text-sm text-text-secondary group-hover:text-text-primary">
+                  <span className={`text-sm ${activeTab === item.path ? "text-primary font-medium" : "text-text-secondary group-hover:text-text-primary"}`}>
                     {item.name}
                   </span>
                 </div>
 
                 <button
                   onClick={() => deleteItem(item.path)}
-                  className="opacity-0 group-hover:opacity-100 text-red-400"
+                  className="opacity-0 group-hover:opacity-100 text-red-400 p-1"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -247,23 +247,25 @@ export default function CodeViewer({ projectId }) {
       </div>
 
       {/* CENTER (EDITOR) */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-[500px] shrink-0">
+      <div className={`flex-1 flex-col min-w-0 md:min-h-[500px] shrink-0 ${activeTab ? "flex min-h-[70vh]" : "hidden md:flex"}`}>
 
         {/* TABS */}
-        <div className="flex border-b border-border-subtle overflow-x-auto">
+        <div className="flex border-b border-border-subtle overflow-x-auto no-scrollbar">
           {openTabs.map((tab) => (
             <div
               key={tab.path}
               onClick={() => switchTab(tab.path)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm cursor-pointer whitespace-nowrap
+              className={`flex items-center gap-2 px-4 py-3 md:py-2 text-sm cursor-pointer whitespace-nowrap transition-colors
               ${activeTab === tab.path
-                  ? "bg-input-bg border-b-2 border-indigo-500"
+                  ? "bg-input-bg border-b-2 border-primary text-primary"
                   : "text-text-secondary hover:text-text-primary"}`}
             >
-              <File size={12} />
+              <File size={14} className="md:w-3 md:h-3" />
               {tab.name}
 
-              <X size={12} onClick={(e) => closeTab(tab.path, e)} />
+              <button className="ml-1 p-1 md:p-0 text-text-muted hover:text-text-primary" onClick={(e) => closeTab(tab.path, e)}>
+                <X size={14} className="md:w-3 md:h-3" />
+              </button>
             </div>
           ))}
         </div>
@@ -309,12 +311,25 @@ export default function CodeViewer({ projectId }) {
                 language={getLanguage(activeTab)}
                 value={code}
                 onChange={(v) => setCode(v || "")}
-                options={{ minimap: { enabled: false } }}
+                options={{ minimap: { enabled: false }, scrollBeyondLastLine: false }}
               />
             </div>
           ) : (
-            <div className="p-6 text-text-secondary">
-              Select a file to start coding 🚀
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center text-text-secondary">
+               {/* Mobile Card */}
+               <div className="md:hidden flex flex-col items-center justify-center bg-surface/50 border border-border-subtle rounded-xl p-8 w-full max-w-xs mx-auto shadow-sm backdrop-blur-sm mt-4">
+                 <File size={40} className="text-text-muted mb-4 opacity-50" />
+                 <h3 className="text-text-primary font-medium text-lg mb-2">No File Selected</h3>
+                 <p className="text-sm text-text-muted mb-6 leading-relaxed">Choose a file from the explorer<br/>to view and edit code.</p>
+                 <div className="bg-primary/10 text-primary border border-primary/20 px-5 py-2.5 rounded-lg text-sm font-medium">
+                   Browse Files
+                 </div>
+               </div>
+               
+               {/* Desktop standard */}
+               <div className="hidden md:block">
+                 Select a file to start coding 🚀
+               </div>
             </div>
           )}
         </div>

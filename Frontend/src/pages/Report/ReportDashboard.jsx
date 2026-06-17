@@ -12,6 +12,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [autoDownload, setAutoDownload] = useState(false);
 
   const authUser = JSON.parse(localStorage.getItem("ChatApp"));
   const user = authUser?.user;
@@ -62,6 +63,13 @@ export default function ReportsPage() {
   };
 
   const openViewModal = (report) => {
+    setAutoDownload(false);
+    setSelectedReport(report);
+    setIsViewModalOpen(true);
+  };
+
+  const handleDirectDownload = (report) => {
+    setAutoDownload(true);
     setSelectedReport(report);
     setIsViewModalOpen(true);
   };
@@ -123,7 +131,7 @@ export default function ReportsPage() {
                   report={report}
                   onView={() => openViewModal(report)}
                   onDelete={() => deleteReport(report._id)}
-                  onDownload={() => downloadReport(report._id, report.filename)}
+                  onDownload={() => handleDirectDownload(report)}
                 />
               ))}
             </div>
@@ -134,7 +142,8 @@ export default function ReportsPage() {
       {isViewModalOpen && selectedReport && (
         <ReportViewModal
           report={selectedReport}
-          onClose={() => setIsViewModalOpen(false)}
+          onClose={() => { setIsViewModalOpen(false); setAutoDownload(false); }}
+          autoDownload={autoDownload}
         />
       )}
     </div>
@@ -202,168 +211,268 @@ function ReportCard({ report, onView, onDelete, onDownload }) {
   );
 }
 
-function ReportViewModal({ report, onClose }) {
+function ReportViewModal({ report, onClose, autoDownload = false }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const isCritical = report.riskLevel === "Critical" || report.healthScore < 50;
   const isHealthy = report.healthScore > 80;
   const statusText = isCritical ? "CRITICAL" : isHealthy ? "HEALTHY" : "STABLE";
   const statusColor = isCritical ? "text-error" : isHealthy ? "text-success" : "text-warning";
+  const statusBg = isCritical ? "bg-error" : isHealthy ? "bg-success" : "bg-warning";
 
   const handleDownloadPDF = () => {
-    // html2canvas fails on oklch() colors used by Tailwind v4. 
-    // window.print() is the most robust way to generate a pixel-perfect, selectable PDF.
     window.print();
   };
 
+  // Auto-trigger print when opened via card's Download button
+  useEffect(() => {
+    if (autoDownload) {
+      const timer = setTimeout(() => window.print(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoDownload]);
+
+  // Health score ring
+  const score = report.healthScore || 0;
+  const circumference = 2 * Math.PI * 40;
+  const dashOffset = circumference - (score / 100) * circumference;
+  const ringColor = isCritical ? "#ef4444" : isHealthy ? "#22c55e" : "#f59e0b";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm dark:bg-black/80">
+    <div id="report-modal-wrapper-outer" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm dark:bg-black/80">
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          #report-modal-wrapper, #report-modal-wrapper * {
-            visibility: visible;
+          body * { visibility: hidden; }
+          #report-modal-wrapper, #report-modal-wrapper * { visibility: visible; }
+          #report-modal-wrapper-outer {
+            position: static !important; display: block !important;
+            padding: 0 !important; background: none !important;
+            -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
           }
           #report-modal-wrapper {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            max-height: none !important;
-            overflow: visible !important;
-            box-shadow: none !important;
-            border: none !important;
+            position: absolute !important; left: 0 !important; top: 0 !important;
+            width: 100% !important; max-width: none !important; max-height: none !important;
+            height: auto !important; overflow: visible !important; border-radius: 0 !important;
+            box-shadow: none !important; border: none !important; display: block !important;
+            margin: 0 !important;
           }
           #report-modal-scroll-container {
-            overflow: visible !important;
-            max-height: none !important;
+            overflow: visible !important; max-height: none !important;
+            height: auto !important; flex: none !important;
           }
-          .print-hide {
-            display: none !important;
-          }
+          .print-hide { display: none !important; }
+          .print-show { display: flex !important; }
+          .report-section-card, .severity-card { break-inside: avoid; }
         }
       `}</style>
-      <div id="report-modal-wrapper" className="bg-background w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl border border-border-default shadow-popover flex flex-col">
-        {/* MODAL HEADER */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border-subtle flex justify-between items-start sm:items-center bg-surface gap-2 sm:gap-4 print-hide">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold text-text-primary truncate">{report.title}</h2>
-            <p className="text-[10px] sm:text-xs text-text-muted truncate">{report.filename}</p>
+
+      <div id="report-modal-wrapper" className="bg-background w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl border border-border-default shadow-popover flex flex-col">
+
+        {/* ═══ MODAL HEADER (hidden in print) ═══ */}
+        <div className="px-5 sm:px-8 py-4 sm:py-5 border-b border-border-subtle flex justify-between items-center bg-surface/80 backdrop-blur-sm print-hide">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-2.5 h-2.5 rounded-full ${statusBg} animate-pulse`} />
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-text-primary truncate">{report.title}</h2>
+              <p className="text-[10px] sm:text-xs text-text-muted truncate font-mono">{report.filename}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center justify-center gap-1 sm:gap-2 bg-primary hover:bg-primary-hover text-white p-2 sm:px-4 sm:py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-              title="Download PDF"
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
+              title="Save as PDF"
             >
-              <span className="material-symbols-outlined text-sm">print</span>
+              <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
               <span className="hidden sm:inline">Save as PDF</span>
             </button>
-            <button
-              onClick={onClose}
-              className="text-text-muted hover:text-text-primary p-1 rounded-md transition"
-            >
-              <span className="material-symbols-outlined">close</span>
+            <button onClick={onClose} className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-hover-bg transition">
+              <span className="material-symbols-outlined text-xl">close</span>
             </button>
           </div>
         </div>
 
-        {/* MODAL CONTENT */}
-        <div id="report-modal-scroll-container" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 scrollbar-hide">
+        {/* ═══ SCROLLABLE CONTENT ═══ */}
+        <div id="report-modal-scroll-container" className="flex-1 overflow-y-auto scrollbar-hide">
 
-          {/* TOP GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <StatBox label="Project" value={report.projectName || "N/A"} />
-            <StatBox label="Health Score" value={`${report.healthScore}/100`} color={statusColor} />
-            <StatBox label="Status" value={statusText} color={statusColor} />
-            <StatBox label="Total Issues" value={report.totalIssues} />
-          </div>
+          {/* ───── HERO BANNER ───── */}
+          <div className="relative px-5 sm:px-8 py-6 sm:py-8 bg-gradient-to-br from-primary/10 via-surface to-info/5 border-b border-border-subtle">
+            {/* Print-only header */}
+            <div className="hidden print-show items-center gap-2 mb-4">
+              <span className="text-primary text-xl font-bold">DevCollab</span>
+              <span className="text-text-muted text-xs">• AI Code Audit Report</span>
+            </div>
 
-          <Section title="Executive Summary" content={report.executiveSummary} />
-          <Section title="Code Quality Overview" content={report.codeQualityOverview} />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
+              {/* Health Score Ring */}
+              <div className="relative flex items-center justify-center shrink-0">
+                <svg width="100" height="100" viewBox="0 0 100 100" className="transform -rotate-90">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-border-subtle" />
+                  <circle
+                    cx="50" cy="50" r="40" fill="none"
+                    stroke={ringColor} strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    style={{ transition: "stroke-dashoffset 1s ease" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-extrabold ${statusColor}`}>{score}</span>
+                  <span className="text-[9px] text-text-muted uppercase tracking-widest">Score</span>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ListSection title="Security Issues" items={report.securityIssues} icon="shield" iconColor="text-error" />
-            <ListSection title="Performance Concerns" items={report.performanceConcerns} icon="speed" iconColor="text-warning" />
-          </div>
+              {/* Report Metadata */}
+              <div className="flex-1 min-w-0 space-y-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary leading-tight">{report.title}</h1>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">folder</span>
+                    {report.projectName || "N/A"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">code</span>
+                    <span className="capitalize">{report.language}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">calendar_today</span>
+                    {new Date(report.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                  </span>
+                </div>
+                <p className="font-mono text-[11px] text-text-muted truncate max-w-full">{report.filename}</p>
+              </div>
+            </div>
 
-          <Section title="Maintainability Analysis" content={report.maintainabilityAnalysis} />
-
-          {/* BUG BREAKDOWN */}
-          <div>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary">
-              <span className="material-symbols-outlined text-primary">bug_report</span>
-              Bug Severity Breakdown
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SeverityBox label="Critical" count={report.bugSeverityBreakdown?.critical || 0} color="bg-error" />
-              <SeverityBox label="High" count={report.bugSeverityBreakdown?.high || 0} color="bg-warning" />
-              <SeverityBox label="Medium" count={report.bugSeverityBreakdown?.medium || 0} color="bg-info" />
-              <SeverityBox label="Low" count={report.bugSeverityBreakdown?.low || 0} color="bg-success" />
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+              <QuickStat icon="monitoring" label="Health" value={`${score}/100`} color={statusColor} />
+              <QuickStat icon="verified" label="Status" value={statusText} color={statusColor} />
+              <QuickStat icon="bug_report" label="Issues" value={report.totalIssues} />
+              <QuickStat icon="warning" label="Risk" value={report.riskLevel || "N/A"} color={isCritical ? "text-error" : "text-text-primary"} />
             </div>
           </div>
 
-          <ListSection title="Suggested Fixes" items={report.suggestedFixes} icon="build" />
-          <ListSection title="AI Recommendations" items={report.aiRecommendations} icon="lightbulb" />
+          {/* ───── REPORT BODY ───── */}
+          <div className="px-5 sm:px-8 py-6 sm:py-8 space-y-8">
 
-          <Section title="Final Risk Assessment" content={report.finalRiskAssessment} />
+            <Section icon="summarize" title="Executive Summary" content={report.executiveSummary} />
+            <Section icon="code" title="Code Quality Overview" content={report.codeQualityOverview} />
+
+            {/* Security & Performance side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ListSection title="Security Issues" items={report.securityIssues} icon="shield" iconColor="text-error" accentColor="border-error/30" />
+              <ListSection title="Performance Concerns" items={report.performanceConcerns} icon="speed" iconColor="text-warning" accentColor="border-warning/30" />
+            </div>
+
+            <Section icon="build_circle" title="Maintainability Analysis" content={report.maintainabilityAnalysis} />
+
+            {/* ─── BUG SEVERITY BREAKDOWN ─── */}
+            <div className="report-section-card">
+              <SectionHeader icon="bug_report" title="Bug Severity Breakdown" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                <SeverityCard label="Critical" count={report.bugSeverityBreakdown?.critical || 0} total={report.totalIssues} color="#ef4444" icon="error" />
+                <SeverityCard label="High" count={report.bugSeverityBreakdown?.high || 0} total={report.totalIssues} color="#f59e0b" icon="warning" />
+                <SeverityCard label="Medium" count={report.bugSeverityBreakdown?.medium || 0} total={report.totalIssues} color="#3b82f6" icon="info" />
+                <SeverityCard label="Low" count={report.bugSeverityBreakdown?.low || 0} total={report.totalIssues} color="#22c55e" icon="check_circle" />
+              </div>
+            </div>
+
+            <ListSection title="Suggested Fixes" items={report.suggestedFixes} icon="build" iconColor="text-primary" accentColor="border-primary/30" />
+            <ListSection title="AI Recommendations" items={report.aiRecommendations} icon="lightbulb" iconColor="text-info" accentColor="border-info/30" />
+
+            <Section icon="assessment" title="Final Risk Assessment" content={report.finalRiskAssessment} />
+
+            {/* ─── FOOTER ─── */}
+            <div className="pt-6 border-t border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-text-muted">
+              <span>Generated by DevCollab AI Code Analyzer</span>
+              <span>{new Date(report.createdAt).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function StatBox({ label, value, color = "text-text-primary" }) {
-  return (
-    <div className="bg-surface p-4 rounded-xl border border-border-subtle shadow-sm">
-      <p className="text-text-muted text-xs uppercase tracking-wider font-semibold">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
-    </div>
-  );
-}
+/* ═══════════════════════════════════════════
+   HELPER COMPONENTS
+   ═══════════════════════════════════════════ */
 
-function SeverityBox({ label, count, color }) {
+function QuickStat({ icon, label, value, color = "text-text-primary" }) {
   return (
-    <div className="bg-surface p-3 rounded-lg border border-border-subtle flex items-center justify-between shadow-sm">
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${color}`}></div>
-        <span className="text-xs text-text-secondary font-medium">{label}</span>
+    <div className="bg-surface/60 backdrop-blur-sm border border-border-subtle rounded-xl px-4 py-3 flex items-center gap-3">
+      <span className="material-symbols-outlined text-primary text-lg">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] text-text-muted uppercase tracking-wider font-medium">{label}</p>
+        <p className={`text-sm font-bold truncate ${color}`}>{value}</p>
       </div>
-      <span className="font-bold text-text-primary">{count}</span>
     </div>
   );
 }
 
-function Section({ title, content }) {
+function SectionHeader({ icon, title }) {
   return (
-    <div>
-      <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-text-primary">
-        <span className="material-symbols-outlined text-primary">segment</span>
-        {title}
-      </h3>
-      <p className="text-text-secondary text-sm leading-relaxed bg-surface p-4 rounded-xl border border-border-subtle">
-        {content || "No data available."}
-      </p>
+    <h3 className="flex items-center gap-2.5 text-base sm:text-lg font-bold text-text-primary">
+      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <span className="material-symbols-outlined text-primary text-base">{icon}</span>
+      </span>
+      {title}
+    </h3>
+  );
+}
+
+function Section({ icon, title, content }) {
+  return (
+    <div className="report-section-card">
+      <SectionHeader icon={icon} title={title} />
+      <div className="mt-3 bg-surface/50 border border-border-subtle rounded-xl p-4 sm:p-5">
+        <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-line">
+          {content || "No data available."}
+        </p>
+      </div>
     </div>
   );
 }
 
-function ListSection({ title, items, icon, iconColor = "text-primary" }) {
+function SeverityCard({ label, count, total, color, icon }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
-    <div>
-      <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-text-primary">
-        <span className={`material-symbols-outlined ${iconColor}`}>{icon}</span>
-        {title}
-      </h3>
-      <ul className="space-y-2">
+    <div className="severity-card bg-surface border border-border-subtle rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-lg" style={{ color }}>{icon}</span>
+          <span className="text-sm font-semibold text-text-primary">{label}</span>
+        </div>
+        <span className="text-xl font-extrabold text-text-primary">{count}</span>
+      </div>
+      {/* Progress bar */}
+      <div className="w-full h-1.5 rounded-full bg-border-subtle overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+      <span className="text-[10px] text-text-muted text-right">{pct}% of total</span>
+    </div>
+  );
+}
+
+function ListSection({ title, items, icon, iconColor = "text-primary", accentColor = "border-primary/30" }) {
+  return (
+    <div className="report-section-card">
+      <SectionHeader icon={icon} title={title} />
+      <ul className="mt-3 space-y-2">
         {items && items.length > 0 ? items.map((item, i) => (
-          <li key={i} className="flex gap-3 text-sm text-text-secondary bg-surface p-3 rounded-lg border border-border-subtle">
-            <span className={`${iconColor} font-bold`}>•</span>
-            {item}
+          <li key={i} className={`flex gap-3 items-start text-sm text-text-secondary bg-surface/50 p-3.5 rounded-xl border-l-[3px] ${accentColor} border border-border-subtle`}>
+            <span className={`${iconColor} text-xs mt-0.5 shrink-0`}>
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </span>
+            <span className="leading-relaxed">{item}</span>
           </li>
         )) : (
-          <li className="text-text-muted text-sm italic">None identified.</li>
+          <li className="text-text-muted text-sm italic bg-surface/30 p-3 rounded-xl border border-border-subtle">
+            None identified.
+          </li>
         )}
       </ul>
     </div>

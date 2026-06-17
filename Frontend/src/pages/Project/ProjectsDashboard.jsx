@@ -76,7 +76,17 @@ export default function ProjectsDashboard() {
 
   /* ================= Add Project ================= */
   const addProjectToList = (project) => {
-    setProjects((prev) => [project, ...prev]);
+    const usersWithCurrent = [
+      ...allUsers,
+      { _id: user._id, fullName: user.fullName },
+    ];
+    const resolvedMembers = project.members?.map((id) => {
+      const member = usersWithCurrent.find((u) => u._id === id);
+      if (member) return member.fullName;
+      const isObjectId = /^[a-f\d]{24}$/i.test(id);
+      return isObjectId ? "Unknown User" : id;
+    }) || [];
+    setProjects((prev) => [{ ...project, members: resolvedMembers }, ...prev]);
   };
 
   /* ================= Delete Project ================= */
@@ -103,7 +113,25 @@ export default function ProjectsDashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      loadData(); // Refresh list to update all members
+      // Resolve member IDs to names locally for instant display
+      const usersWithCurrent = [
+        ...allUsers,
+        { _id: user._id, fullName: user.fullName },
+      ];
+      const resolvedMembers = (updatedData.members || []).map((id) => {
+        const member = usersWithCurrent.find((u) => u._id === id);
+        if (member) return member.fullName;
+        const isObjectId = /^[a-f\d]{24}$/i.test(id);
+        return isObjectId ? "Unknown User" : id;
+      });
+
+      setProjects((prev) =>
+        prev.map((p) =>
+          p._id === editingProject._id
+            ? { ...p, ...updatedData, members: resolvedMembers, status: updatedData.status || p.status }
+            : p
+        )
+      );
       setEditingProject(null);
     } catch (err) {
       console.error("Failed to edit project:", err.message);
@@ -128,6 +156,11 @@ export default function ProjectsDashboard() {
               <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Projects</h1>
               <p className="text-text-secondary text-xs sm:text-sm mt-1 sm:mt-2">
                 Manage and track your team's development lifecycle.
+                {!loading && projects.length > 0 && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/15 text-primary border border-primary/20">
+                    {projects.length} project{projects.length !== 1 ? 's' : ''}
+                  </span>
+                )}
               </p>
             </div>
 
@@ -141,39 +174,61 @@ export default function ProjectsDashboard() {
           </div>
 
           {/* ===== Projects Grid ===== */}
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-[260px] ">
             {loading ? (
-              <p className="text-text-muted">Loading projects...</p>
-            ) : projects.length > 0 ? (
-              projects.map((proj) => (
-                <ProjectCard
-                  key={proj._id}
-                  project={proj}
-                  onClick={() => navigate(`/project/${proj._id}`)}
-                  onEdit={(e) => {
-                    e.stopPropagation();
-                    setEditingProject(proj);
-                  }}
-                  onDelete={(e) => handleDelete(proj._id, e)}
-                />
+              /* ── Skeleton Loaders ── */
+              Array.from({ length: 6 }).map((_, i) => (
+                <ProjectCardSkeleton key={i} />
               ))
+            ) : projects.length > 0 ? (
+              <>
+                {projects.map((proj) => (
+                  <ProjectCard
+                    key={proj._id}
+                    project={proj}
+                    onClick={() => navigate(`/project/${proj._id}`)}
+                    onEdit={(e) => { e.stopPropagation(); setEditingProject(proj); }}
+                    onDelete={(e) => handleDelete(proj._id, e)}
+                  />
+                ))}
+                {/* ===== New Project Card ===== */}
+                <div
+                  onClick={() => setIsModalOpen(true)}
+                  className="border border-dashed border-border-strong rounded-2xl flex flex-col items-center justify-center min-h-[260px] bg-surface hover:border-primary hover:bg-primary/5 transition cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-hover-bg group-hover:bg-primary/10 rounded-full flex items-center justify-center mb-3 text-text-muted group-hover:text-primary transition">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <p className="font-semibold text-text-primary text-sm">Start New Project</p>
+                  <p className="text-text-muted text-xs mt-1">Templates available</p>
+                </div>
+              </>
             ) : (
-              <p className="text-text-secondary col-span-1 sm:col-span-2 lg:col-span-3 text-center mt-10">
-                No projects found.
-              </p>
-            )}
-
-            {/* ===== New Project Card ===== */}
-            <div
-              onClick={() => setIsModalOpen(true)}
-              className="border border-dashed border-border-strong rounded-2xl flex flex-col items-center justify-center h-[280px] bg-surface hover:border-primary transition cursor-pointer"
-            >
-              <div className="w-14 h-14 bg-hover-bg rounded-full flex items-center justify-center mb-4 text-text-muted">
-                <Plus className="w-6 h-6" />
+              /* ── Premium Empty State ── */
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center justify-center py-20 px-4">
+                <div className="relative mb-6">
+                  <div className="w-24 h-24 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <svg className="w-10 h-10 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                    </svg>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                    <Plus className="w-3 h-3 text-primary" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-text-primary mb-2">No Projects Yet</h3>
+                <p className="text-text-secondary text-sm text-center max-w-sm mb-6">
+                  Start building something great. Create your first project to organize your team, track progress, and ship faster.
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-md transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Your First Project
+                </button>
               </div>
-              <p className="font-semibold text-text-primary">Start New Project</p>
-              <p className="text-text-muted text-sm mt-1">Templates available</p>
-            </div>
+            )}
           </div>
         </div>
 
@@ -202,8 +257,52 @@ export default function ProjectsDashboard() {
   );
 }
 
+/* ================= Project Card Skeleton ================= */
+function ProjectCardSkeleton() {
+  return (
+    <div className="bg-card border border-border-subtle rounded-2xl p-4 min-h-[260px] flex flex-col animate-pulse">
+      {/* Header row: icon + title */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-12 h-12 rounded-xl bg-surface shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-surface rounded-md w-3/4" />
+          <div className="h-3 bg-surface rounded-md w-1/3" />
+        </div>
+        {/* action button placeholders */}
+        <div className="flex gap-2 ml-auto shrink-0">
+          <div className="w-4 h-4 rounded bg-surface" />
+          <div className="w-4 h-4 rounded bg-surface" />
+        </div>
+      </div>
+
+      {/* Description lines */}
+      <div className="space-y-2 mb-4">
+        <div className="h-3 bg-surface rounded-md w-full" />
+        <div className="h-3 bg-surface rounded-md w-5/6" />
+      </div>
+
+      {/* GitHub stats row */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="h-3 bg-surface rounded-md w-12" />
+        <div className="h-3 bg-surface rounded-md w-12" />
+      </div>
+
+      {/* Members section pushed to bottom */}
+      <div className="mt-auto">
+        <div className="h-3 bg-surface rounded-md w-14 mb-2" />
+        <div className="flex flex-wrap gap-2">
+          <div className="h-6 w-20 bg-surface rounded-full" />
+          <div className="h-6 w-16 bg-surface rounded-full" />
+          <div className="h-6 w-24 bg-surface rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================= Project Card ================= */
 function ProjectCard({ project, onClick, onEdit, onDelete }) {
+
   const { projectName, description, members, githubData, visibility } = project;
 
   return (
@@ -255,17 +354,19 @@ function ProjectCard({ project, onClick, onEdit, onDelete }) {
         </div>
       )}
 
-      {/* Members */}
-      <div className="text-xs text-text-muted mt-4 ml-1 mb-2 font-medium">Members</div>
-      <div className="flex flex-wrap gap-2">
-        {members?.map((mem, i) => (
-          <span
-            key={i}
-            className="text-xs bg-surface px-2.5 py-1 rounded-full text-text-secondary border border-border-subtle font-medium"
-          >
-            {typeof mem === "object" ? mem.fullName : mem}
-          </span>
-        ))}
+      {/* Members - pushed to bottom */}
+      <div className="mt-auto">
+        <div className="text-xs text-text-muted ml-1 mb-2 font-medium">Members</div>
+        <div className="flex flex-wrap gap-2 overflow-hidden max-h-[52px]">
+          {members?.map((mem, i) => (
+            <span
+              key={i}
+              className="text-xs bg-surface px-2.5 py-1 rounded-full text-text-secondary border border-border-subtle font-medium"
+            >
+              {typeof mem === "object" ? mem.fullName : mem}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

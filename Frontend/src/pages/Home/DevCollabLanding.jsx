@@ -31,7 +31,7 @@ export default function DevCollabLanding() {
 
       {/* ===== BLUR WRAPPER ===== */}
       <div
-        className={`${showLogin || showSignup ? "blur-sm scale-95" : ""} transition-all duration-300`}
+        className={`${showLogin || showSignup ? "scale-95" : ""} transition-transform duration-300`}
       >
 
         {/* ================= NAVBAR ================= */}

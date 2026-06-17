@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import AIAssistantHeader from "../AiFeature/AIAssistantHeader.jsx";
 import { useAuth } from "../../../context/AuthProvider.jsx";
 import TypeSendAi from "./TypeSendAi.jsx";
 import AIMessages from "./AIMessages.jsx";
 import useAIMessages from "../../../context/useAIMessages.js";
 import useProjectStore from "../../../zustand/useProjectStore.js";
-import { Lightbulb, Bug, Rocket } from "lucide-react";
+import { Lightbulb, Bug, Rocket, Sparkles } from "lucide-react";
 
 
 export default function AIAssistant() {
@@ -44,31 +44,79 @@ export default function AIAssistant() {
         <AIAssistantHeader user={user} />
       </div>
 
-      {/* ═══════════════ MESSAGES ═══════════════
-          • flex-1 min-h-0  → fills all remaining vertical space
-          • overflow-y-auto → only this div scrolls; nothing else moves
-          • pb-4            → breathing room above input
-      */}
+      {/* ═══════════════ MESSAGES ═══════════════ */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className="px-3 sm:px-8 md:px-16 lg:px-28 xl:px-32 py-4 pb-6">
 
           {/* ── EMPTY STATE ── */}
           {!hasMessages && (
-            <div className="flex flex-col items-center text-center py-8 sm:py-10">
+            <div className="flex flex-col items-center text-center">
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
-                Your{" "}
-                <span className="bg-gradient-to-r from-blue-500 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                  intelligent coding assistant
-                </span>
-              </h1>
+              {/* ── Heading & Subtitle ── */}
+              <div className="pt-6 sm:pt-10 pb-5 sm:pb-8 flex flex-col items-center">
+                {/* Mobile: small sparkle icon instead of huge heading */}
+                <div className="sm:hidden w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/20 flex items-center justify-center mb-3">
+                  <Sparkles size={22} className="text-blue-400" />
+                </div>
 
-              <p className="text-text-secondary text-sm sm:text-base max-w-xl mb-6 sm:mb-10">
-                Leverage AI to refactor, debug, and improve your code with smart insights.
-              </p>
+                <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-4 leading-tight">
+                  Your{" "}
+                  <span className="bg-gradient-to-r from-blue-500 via-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                    intelligent{" "}
+                    <span className="hidden sm:inline">coding </span>assistant
+                  </span>
+                </h1>
 
-              {/* Feature Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-5xl">
+                <p className="text-text-secondary text-xs sm:text-base max-w-xs sm:max-w-xl leading-relaxed">
+                  <span className="sm:hidden">Refactor, debug and improve your code with AI.</span>
+                  <span className="hidden sm:inline">Leverage AI to refactor, debug, and improve your code with smart insights.</span>
+                </p>
+              </div>
+
+              {/* ── MOBILE: Horizontal Swipeable Carousel ── */}
+              <div className="sm:hidden w-full">
+                <p className="text-[10px] text-text-muted uppercase tracking-widest font-semibold mb-3 text-left px-1">
+                  Suggestions
+                </p>
+                <div
+                  className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  <MobileCard
+                    icon={<Lightbulb size={16} />}
+                    title="Explain Code"
+                    desc="Deconstruct complex logic"
+                    iconColor="text-cyan-400"
+                    bgColor="bg-cyan-500/10"
+                    borderColor="border-cyan-500/20"
+                  />
+                  <MobileCard
+                    icon={<Bug size={16} />}
+                    title="Detect Bugs"
+                    desc="Find issues & performance problems"
+                    iconColor="text-purple-400"
+                    bgColor="bg-purple-500/10"
+                    borderColor="border-purple-500/20"
+                  />
+                  <MobileCard
+                    icon={<Rocket size={16} />}
+                    title="Improve Code"
+                    desc="Optimize & clean architecture"
+                    iconColor="text-blue-400"
+                    bgColor="bg-blue-500/10"
+                    borderColor="border-blue-500/20"
+                  />
+                </div>
+                {/* Swipe hint dots */}
+                <div className="flex justify-center gap-1.5 mt-2">
+                  <span className="w-4 h-1 rounded-full bg-primary/60" />
+                  <span className="w-1.5 h-1 rounded-full bg-border-strong" />
+                  <span className="w-1.5 h-1 rounded-full bg-border-strong" />
+                </div>
+              </div>
+
+              {/* ── DESKTOP: 3-Column Grid ── */}
+              <div className="hidden sm:grid grid-cols-3 gap-4 w-full max-w-5xl">
                 <Card
                   icon={<Lightbulb size={22} />}
                   title="Explain Code"
@@ -91,6 +139,7 @@ export default function AIAssistant() {
                   bgColor="bg-blue-500/10"
                 />
               </div>
+
             </div>
           )}
 
@@ -100,11 +149,7 @@ export default function AIAssistant() {
         </div>
       </div>
 
-      {/* ═══════════════ INPUT ═══════════════
-          • shrink-0            → never shrinks; always visible
-          • border-t + backdrop → visually separated from messages
-          • z-10                → always on top
-      */}
+      {/* ═══════════════ INPUT ═══════════════ */}
       <div className="shrink-0 border-border-subtle bg-background/95 backdrop-blur-sm z-10">
         <TypeSendAi isAiPage={true} />
       </div>
@@ -113,10 +158,25 @@ export default function AIAssistant() {
   );
 }
 
-/* ═══════════════ CARD ═══════════════ */
+/* ═══════════════ MOBILE CARD (Swipeable) ═══════════════ */
+function MobileCard({ icon, title, desc, iconColor, bgColor, borderColor }) {
+  return (
+    <div
+      className={`snap-start shrink-0 w-[160px] bg-card border ${borderColor} rounded-2xl p-3.5 text-left hover:bg-hover-bg active:scale-95 transition-all duration-150 cursor-pointer`}
+    >
+      <div className={`p-2 rounded-xl ${bgColor} ${iconColor} mb-2.5 w-fit`}>
+        {icon}
+      </div>
+      <h3 className="text-sm font-bold mb-1 text-text-primary">{title}</h3>
+      <p className="text-text-muted text-[11px] leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+/* ═══════════════ DESKTOP CARD ═══════════════ */
 function Card({ icon, title, desc, iconColor, bgColor }) {
   return (
-    <div className="bg-card border border-border-subtle rounded-2xl p-4 sm:p-6 text-left hover:bg-hover-bg transition shadow-sm">
+    <div className="bg-card border border-border-subtle rounded-2xl p-4 sm:p-6 text-left hover:bg-hover-bg transition shadow-sm cursor-pointer">
       <div className={`p-3 rounded-xl ${bgColor} ${iconColor} mb-3 w-fit`}>
         {icon}
       </div>
