@@ -46,6 +46,12 @@ async function registerUser(req, res) {
         _id: user._id,
         fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+        techStack: user.techStack,
+        notifications: user.notifications,
+        appearance: user.appearance,
+        aiSettings: user.aiSettings
       },
     });
 
@@ -94,7 +100,13 @@ async function loginUser(req, res) {
       user: {
         _id: user._id,
         email: user.email,
-        fullName: user.fullName
+        fullName: user.fullName,
+        avatar: user.avatar,
+        bio: user.bio,
+        techStack: user.techStack,
+        notifications: user.notifications,
+        appearance: user.appearance,
+        aiSettings: user.aiSettings
       }
     });
   } catch (error) {
@@ -130,9 +142,104 @@ async function allUser(req ,res){
   }
 }
 
+async function updateUserProfile(req, res) {
+  try {
+    const userId = req.user._id;
+    const { fullName, bio, techStack, avatar, notifications, appearance, aiSettings } = req.body;
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (fullName) user.fullName = fullName;
+    if (bio !== undefined) user.bio = bio;
+    if (techStack !== undefined) user.techStack = techStack;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (notifications !== undefined) user.notifications = notifications;
+    if (appearance !== undefined) user.appearance = appearance;
+    if (aiSettings !== undefined) user.aiSettings = aiSettings;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+        techStack: user.techStack,
+        notifications: user.notifications,
+        appearance: user.appearance,
+        aiSettings: user.aiSettings
+      }
+    });
+  } catch (error) {
+    console.error("Error in updateUserProfile:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function updateUserPassword(req, res) {
+  try {
+    const userId = req.user._id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Both current password and new password are required" });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.password) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Incorrect current password" });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error in updateUserPassword:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function deleteUserAccount(req, res) {
+  try {
+    const userId = req.user._id;
+    const user = await userModel.findByIdAndDelete(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.clearCookie("token", {
+      sameSite: "none",
+      secure: true
+    });
+
+    return res.status(200).json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteUserAccount:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports={
   registerUser,
   loginUser,
   logoutUser,
-  allUser
+  allUser,
+  updateUserProfile,
+  updateUserPassword,
+  deleteUserAccount
 }

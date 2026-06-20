@@ -16,12 +16,12 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    server:{
-      port:4002,
-      proxy:{
-        '/api':{
+    server: {
+      port: 4002,
+      proxy: {
+        '/api': {
           target: env.VITE_API_URL || 'https://ai-powered-chat-application-production.up.railway.app',
-          changeOrigin:true,
+          changeOrigin: true,
         },
         '/socket.io': {
           target: env.VITE_API_URL || 'https://ai-powered-chat-application-production.up.railway.app',

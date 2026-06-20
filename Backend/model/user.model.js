@@ -29,9 +29,33 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String,
         default: null
+    },
+    bio: {
+        type: String,
+        default: ""
+    },
+    techStack: {
+        type: [String],
+        default: []
+    },
+    notifications: {
+        workspaceUpdates: { type: Boolean, default: true },
+        directMessages: { type: Boolean, default: true },
+        mentions: { type: Boolean, default: true },
+        emailDigest: { type: Boolean, default: false },
+        pushNotifications: { type: Boolean, default: true }
+    },
+    appearance: {
+        compactMode: { type: Boolean, default: false },
+        animations: { type: Boolean, default: true }
+    },
+    aiSettings: {
+        openaiKey: { type: String, default: "" },
+        geminiKey: { type: String, default: "" },
+        defaultModel: { type: String, default: "GPT-4o (Recommended)" },
+        contextAware: { type: Boolean, default: true },
+        autoSummarize: { type: Boolean, default: false }
     }
-
-
 }, 
   
     {

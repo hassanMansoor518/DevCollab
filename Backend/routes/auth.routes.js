@@ -14,6 +14,8 @@ router.post("/oauth/google", oauthController.googleAuth)
 router.post("/oauth/github", oauthController.githubAuth)
 
 router.get("/alluser", secureRoute, authController.allUser)
-
+router.put("/user/update-profile", secureRoute, authController.updateUserProfile)
+router.put("/user/update-password", secureRoute, authController.updateUserPassword)
+router.delete("/user/delete-account", secureRoute, authController.deleteUserAccount)
 
 module.exports = router;

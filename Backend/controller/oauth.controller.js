@@ -60,6 +60,11 @@ async function googleAuth(req, res) {
         fullName: user.fullName,
         email: user.email,
         avatar: user.avatar,
+        bio: user.bio,
+        techStack: user.techStack,
+        notifications: user.notifications,
+        appearance: user.appearance,
+        aiSettings: user.aiSettings
       },
     });
   } catch (error) {
@@ -160,6 +165,11 @@ async function githubAuth(req, res) {
         fullName: user.fullName,
         email: user.email,
         avatar: user.avatar,
+        bio: user.bio,
+        techStack: user.techStack,
+        notifications: user.notifications,
+        appearance: user.appearance,
+        aiSettings: user.aiSettings
       },
     });
   } catch (error) {
