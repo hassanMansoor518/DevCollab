@@ -111,7 +111,7 @@ export default function DashboardLeftSide() {
     <>
       {/* MOBILE OVERLAY */}
       {!collapsed && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           onClick={() => setCollapsed(true)}
         />
@@ -130,67 +130,67 @@ export default function DashboardLeftSide() {
           transition-all duration-300 ease-in-out
         `}
       >
-      {/* TOP */}
-      <div>
-        {/* LOGO + TOGGLE */}
-        <div
-          className={`flex items-center ${collapsed ? "justify-center" : "justify-between"
-            } mb-10`}
-        >
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="bg-primary p-2 rounded-md text-white">
-              <Code2 size={18} />
-            </div>
+        {/* TOP */}
+        <div>
+          {/* LOGO + TOGGLE */}
+          <div
+            className={`flex items-center ${collapsed ? "justify-center" : "justify-between"
+              } mb-10`}
+          >
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="bg-primary p-2 rounded-md text-white">
+                <Code2 size={18} />
+              </div>
 
-            <div
-              className={`transition-all duration-300 overflow-hidden ${collapsed ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100"
-                }`}
-            >
-              <span className="font-semibold text-lg text-text-primary">
-                DevCollab
-              </span>
-              <div className="text-xs text-text-muted">
-                Developer Workplace
+              <div
+                className={`transition-all duration-300 overflow-hidden ${collapsed ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100"
+                  }`}
+              >
+                <span className="font-semibold text-lg text-text-primary">
+                  DevCollab
+                </span>
+                <div className="text-xs text-text-muted">
+                  Developer Workplace
+                </div>
               </div>
             </div>
+
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-text-muted hover:text-text-primary transition"
+            >
+              {collapsed ? (
+                <ChevronRight size={20} />
+              ) : (
+                <Menu size={20} />
+              )}
+            </button>
           </div>
 
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-text-muted hover:text-text-primary transition"
-          >
-            {collapsed ? (
-              <ChevronRight size={20} />
-            ) : (
-              <Menu size={20} />
-            )}
-          </button>
+          {/* NAV */}
+          <div className="space-y-1">
+            <NavItem icon={LayoutDashboard} label="Overview" path="/dashboard" />
+            <NavItem icon={FileText} label="Reports" path="/report" />
+            <NavItem icon={Folder} label="Projects" path="/project" />
+            <NavItem icon={Users} label="Chat" path="/chat" />
+            <NavItem icon={Bot} label="AI Assistant" path="/AIAssistant" />
+          </div>
+
+          {/* DIVIDER */}
+          <div className="border-t border-border-subtle my-6" />
+
+          {/* SUPPORT */}
+          <div className="space-y-1">
+            <NavItem icon={Settings} label="Settings" path="/settings" />
+            <NavItem icon={HelpCircle} label="Help Center" path="/help" />
+          </div>
         </div>
 
-        {/* NAV */}
-        <div className="space-y-1">
-          <NavItem icon={LayoutDashboard} label="Overview" path="/dashboard" />
-          <NavItem icon={FileText} label="Reports" path="/report" />
-          <NavItem icon={Folder} label="Projects" path="/project" />
-          <NavItem icon={Users} label="Chat" path="/chat" />
-          <NavItem icon={Bot} label="AI Assistant" path="/AIAssistant" />
-        </div>
-
-        {/* DIVIDER */}
-        <div className="border-t border-border-subtle my-6" />
-
-        {/* SUPPORT */}
-        <div className="space-y-1">
-          <NavItem icon={Settings} label="Settings" path="/settings" />
-          <NavItem icon={HelpCircle} label="Help Center" path="/help" />
+        {/* BOTTOM */}
+        <div className="pt-4 border-t border-border-subtle">
+          <Logout collapsed={collapsed} />
         </div>
       </div>
-
-      {/* BOTTOM */}
-      <div className="pt-4 border-t border-border-subtle">
-        <Logout collapsed={collapsed} />
-      </div>
-    </div>
     </>
   );
 }

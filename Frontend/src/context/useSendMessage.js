@@ -30,7 +30,11 @@ const useSendMessage = () => {
 
       setMessage([...messages, res.data]);
     } catch (error) {
-      console.log("Error in send messages", error);
+      if (error.response && error.response.status === 404) {
+        console.warn("Conversation not found or invalid ID.");
+      } else {
+        console.error("Error in send messages", error);
+      }
     } finally {
       setLoading(false);
     }

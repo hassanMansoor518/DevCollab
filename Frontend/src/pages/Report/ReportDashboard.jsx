@@ -89,7 +89,7 @@ export default function ReportsPage() {
               <p className="text-[10px] sm:text-xs text-info font-bold tracking-widest mb-1 sm:mb-2">
                 ANALYZER • REPORTS OVERVIEW
               </p>
-              <h1 className="text-2xl sm:text-4xl font-[Manrope] font-extrabold text-text-primary">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-text-primary">
                 Reports Overview
               </h1>
               <p className="text-text-secondary text-xs sm:text-sm mt-1">

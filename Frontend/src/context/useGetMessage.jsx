@@ -30,7 +30,11 @@ const useGetMessage = () => {
 
         setMessage(res.data);
       } catch (error) {
-        console.log("Error in getting messages", error);
+        if (error.response && error.response.status === 404) {
+          setMessage([]);
+        } else {
+          console.error("Error in getting messages", error);
+        }
       } finally {
         setLoading(false);
       }

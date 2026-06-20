@@ -1,43 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import {
-  FiCheckCircle,
-  FiTrendingUp,
-  FiUsers,
-  FiFolder,
-  FiCpu,
-  FiFileText,
-  FiSettings,
-  FiUserPlus,
-  FiTrash2,
-  FiTerminal,
-  FiActivity
-} from "react-icons/fi";
-
-import { AiOutlineStar } from "react-icons/ai";
 import { motion } from "framer-motion";
+import {
+  Activity,
+  ArrowUpRight,
+  Bot,
+  CheckCircle2,
+  FileText,
+  FolderKanban,
+  GitCommit,
+  Settings,
+  Sparkles,
+  Terminal,
+  Trash2,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Workflow,
+} from "lucide-react";
 
 import DashboardLeftSide from "./DashboardLeftSide";
 import ActiveTeam from "./ActiveTeam";
 import DashboardHeader from "../../component/DashboardHeader";
 
+const emptyStats = {
+  projects: 0,
+  members: 0,
+  reviews: 0,
+  reports: 0,
+  workspaces: 0,
+  tasks: 0,
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    projects: 0,
-    members: 0,
-    reviews: 0,
-    reports: 0,
-    workspaces: 0,
-    tasks: 0
-  });
+  const [stats, setStats] = useState(emptyStats);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+  const authUser = JSON.parse(localStorage.getItem("ChatApp") || "{}");
   const user = authUser?.user;
   const token = authUser?.token;
+
+  const getIconForActivity = (type) => {
+    switch (type) {
+      case "PROJECT_CREATED":
+        return FolderKanban;
+      case "PROJECT_UPDATED":
+        return Settings;
+      case "PROJECT_DELETED":
+        return Trash2;
+      case "REPORT_GENERATED":
+        return FileText;
+      case "AI_ANALYSIS_GENERATED":
+        return Bot;
+      case "TEAM_MEMBER_ADDED":
+        return UserPlus;
+      case "COMMIT_PUSHED":
+        return Terminal;
+      default:
+        return Activity;
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -54,28 +79,23 @@ const Dashboard = () => {
       const projects = projectsRes.data || [];
       const systemActivities = activityRes.data || [];
       const workspaces = workspaceRes.data || [];
-
-      // Calculate unique team members across the user's projects
-
       const uniqueMembers = new Set();
-      projects.forEach(p => {
-        if (p.members) {
-          p.members.forEach(m => uniqueMembers.add(m.toString() || m));
-        }
+
+      projects.forEach((project) => {
+        (project.members || []).forEach((member) => uniqueMembers.add(member?.toString?.() || member));
       });
 
-      // Map system activities
-      const mappedActivities = systemActivities.map(act => ({
-        id: act._id,
-        type: act.type,
-        title: act.title,
-        description: act.description,
-        time: new Date(act.createdAt),
-        icon: getIconForActivity(act.type),
-        metadata: act.metadata
-      }));
-
-      setActivities(mappedActivities);
+      setActivities(
+        systemActivities.map((act) => ({
+          id: act._id,
+          type: act.type,
+          title: act.title,
+          description: act.description,
+          time: new Date(act.createdAt),
+          icon: getIconForActivity(act.type),
+          metadata: act.metadata,
+        }))
+      );
 
       setStats({
         projects: projects.length,
@@ -83,9 +103,8 @@ const Dashboard = () => {
         reviews: reports.length,
         reports: reports.length,
         workspaces: workspaces.length,
-        tasks: 0 // Placeholder as there is no task model
+        tasks: 0,
       });
-
     } catch (err) {
       console.error("Dashboard data fetch failed:", err);
     } finally {
@@ -93,29 +112,45 @@ const Dashboard = () => {
     }
   };
 
-  const getIconForActivity = (type) => {
-    switch (type) {
-      case "PROJECT_CREATED": return <FiFolder className="text-info" />;
-      case "PROJECT_UPDATED": return <FiSettings className="text-warning" />;
-      case "PROJECT_DELETED": return <FiTrash2 className="text-error" />;
-      case "REPORT_GENERATED":
-      case "AI_ANALYSIS_GENERATED": return <AiOutlineStar className="text-primary" />;
-      case "TEAM_MEMBER_ADDED": return <FiUserPlus className="text-success" />;
-      case "COMMIT_PUSHED": return <FiTerminal className="text-text-muted" />;
-      default: return <FiActivity className="text-info" />;
-    }
-  };
-
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
-  const statCards = [
-    { title: "My Projects", value: stats.projects, icon: <FiFolder />, color: "text-info" },
-    { title: "Team Members", value: stats.members, icon: <FiUsers />, color: "text-primary" },
-    { title: "AI Reviews", value: stats.reviews, icon: <FiCpu />, color: "text-error" },
-    { title: "Reports Generated", value: stats.reports, icon: <FiTrendingUp />, color: "text-success" },
-  ];
+  const statCards = useMemo(
+    () => [
+      {
+        title: "Projects",
+        label: "Active repositories",
+        value: stats.projects,
+        icon: FolderKanban,
+        tone: "text-info bg-info-soft border-info/20",
+      },
+      {
+        title: "Team Members",
+        label: "Unique collaborators",
+        value: stats.members,
+        icon: Users,
+        tone: "text-primary bg-primary-soft border-primary/20",
+      },
+      {
+        title: "AI Reviews",
+        label: "Code audits generated",
+        value: stats.reviews,
+        icon: Bot,
+        tone: "text-error bg-error-soft border-error/20",
+      },
+      {
+        title: "Reports",
+        label: "Shared insights",
+        value: stats.reports,
+        icon: TrendingUp,
+        tone: "text-success bg-success-soft border-success/20",
+      },
+    ],
+    [stats]
+  );
+
+  const healthScore = Math.min(100, 72 + stats.projects * 3 + stats.reports * 2);
 
   const formatTime = (date) => {
     const diff = Math.floor((new Date() - date) / 60000);
@@ -126,140 +161,259 @@ const Dashboard = () => {
   };
 
   const handleActivityClick = (act) => {
-    if (act.type.startsWith('PROJECT') || act.type.startsWith('COMMIT') || act.type.startsWith('TEAM_MEMBER')) {
+    if (act.type?.startsWith("PROJECT") || act.type?.startsWith("COMMIT") || act.type?.startsWith("TEAM_MEMBER")) {
       if (act.metadata?.projectId) navigate(`/project/${act.metadata.projectId}`);
-      else navigate('/project');
-    } else if (act.type.startsWith('REPORT') || act.type.startsWith('AI_ANALYSIS')) {
-      navigate('/report');
+      else navigate("/project");
+      return;
+    }
+
+    if (act.type?.startsWith("REPORT") || act.type?.startsWith("AI_ANALYSIS")) {
+      navigate("/report");
     }
   };
 
   return (
-    <div className="flex h-screen bg-background text-text-primary overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background text-text-primary">
       <DashboardLeftSide />
 
-      <div className="flex-1 flex flex-col overflow-y-auto md:overflow-hidden relative">
-        <div className="max-w-[1400px] w-full mx-auto px-5 pt-6 pb-2 shrink-0">
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-4 py-5 sm:px-6 lg:px-8">
+          <DashboardHeader user={user} />
 
-          <div className="space-y-2">
-            <DashboardHeader user={user} />
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-text-primary">Activity Mission Control</h1>
-              <p className="text-sm text-text-secondary pb-5 mt-2">Monitoring your specific engineering events and AI audits.</p>
-            </div>
-          </div>
+          <section className="mb-6 overflow-hidden rounded-3xl border border-border-subtle bg-card shadow-sm">
+            <div className="relative p-5 sm:p-6 lg:p-7">
+              <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+              <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-info/10 blur-3xl" />
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {statCards.map((s, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-card border border-border-subtle rounded-2xl p-4 hover:border-primary/20 transition shadow-sm"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-xs text-text-muted font-medium">{s.title}</p>
-                    <h2 className="text-xl font-semibold mt-1 text-text-primary">{loading ? "..." : s.value}</h2>
+              <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border-subtle bg-surface/70 px-3 py-1 text-xs font-semibold text-text-secondary backdrop-blur">
+                    <Sparkles size={13} className="text-primary" />
+                    Engineering workspace overview
                   </div>
-                  <div className={`${s.color} text-lg p-2 bg-primary-soft rounded-lg`}>{s.icon}</div>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-text-primary">
+                    Welcome back{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}.
+                  </h1>
+                  <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
+                    Track your projects, AI reviews, reports, team activity, and workspace health from one focused control center.
+                  </p>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
 
-        <div className="max-w-[1400px] w-full mx-auto px-5 pb-6 flex-1 min-h-0">
-          <div className="grid lg:grid-cols-3 gap-6 md:gap-4 md:h-full">
-            <div className="lg:col-span-2 flex flex-col md:h-full md:overflow-hidden">
-              <div className="flex items-center justify-between mb-2 px-1 shrink-0">
-                <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest my-4">My System Events</h3>
-                <span className="text-[10px] font-bold bg-primary-soft text-primary px-2 py-0.5 rounded border border-primary/20 tracking-wider">LIVE FEED</span>
+                <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border-subtle bg-surface/70 p-2 backdrop-blur">
+                  <MiniMetric label="Health" value={`${healthScore}%`} />
+                  <MiniMetric label="Workspaces" value={stats.workspaces} />
+                  <MiniMetric label="Events" value={activities.length} />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {statCards.map((item, index) => (
+              <StatCard key={item.title} item={item} loading={loading} index={index} />
+            ))}
+          </section>
+
+          <section className="grid flex-1 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+            <div className="min-w-0 rounded-2xl border border-border-subtle bg-card shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-border-subtle p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                <div>
+                  <h2 className="text-base font-semibold text-text-primary">Recent Activity</h2>
+                  <p className="mt-1 text-xs text-text-muted">Live project events, reports, commits, and team updates.</p>
+                </div>
+                <span className="inline-flex w-fit items-center gap-2 rounded-full border border-success/20 bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                  Live feed
+                </span>
               </div>
 
-              <div className="flex-1 md:overflow-y-auto space-y-4 md:pr-2 custom-scrollbar">
+              <div className="max-h-[680px] overflow-y-auto p-3 sm:p-4">
                 {loading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="h-24 bg-surface border border-border-default rounded-2xl animate-pulse" />
+                  <ActivitySkeleton />
+                ) : activities.length === 0 ? (
+                  <EmptyActivity />
+                ) : (
+                  <div className="space-y-3">
+                    {activities.map((activity, index) => (
+                      <ActivityItem
+                        key={activity.id || index}
+                        activity={activity}
+                        index={index}
+                        formatTime={formatTime}
+                        onClick={() => handleActivityClick(activity)}
+                      />
                     ))}
                   </div>
-                ) : activities.length === 0 ? (
-                  <div className="bg-card border border-border-subtle rounded-2xl p-10 text-center text-text-muted text-sm">
-                    No system events recorded for your projects yet.
-                  </div>
-                ) : (
-                  activities.map((act, i) => (
-                    <motion.div
-                      key={act.id || i}
-                      onClick={() => handleActivityClick(act)}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="bg-card border border-border-subtle rounded-2xl p-5 hover:border-primary/50 cursor-pointer transition group"
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-surface border border-border-subtle rounded-lg group-hover:bg-primary-soft group-hover:text-primary transition-colors">
-                            {act.icon}
-                          </div>
-                          <span className="text-xs text-text-muted font-bold uppercase tracking-tighter">
-                            {act.type.replace('_', ' ')} • {formatTime(act.time)}
-                          </span>
-                        </div>
-                        {(act.type === 'REPORT_GENERATED' || act.type === 'PROJECT_CREATED') && (
-                          <span className="text-success text-[10px] font-black tracking-widest border border-success/30 bg-success-soft px-2 py-0.5 rounded uppercase">
-                            SUCCESS
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base font-bold text-text-primary">{act.title}</h3>
-                      <p className="text-sm text-text-secondary mt-1 leading-relaxed">{act.description}</p>
-                    </motion.div>
-                  ))
                 )}
               </div>
             </div>
 
-            <div className="flex flex-col md:h-full md:overflow-hidden">
-              <div className="space-y-4 md:overflow-y-auto md:pr-2 custom-scrollbar">
-                <div className="bg-card border border-border-subtle rounded-2xl p-5 mt-6 shadow-sm relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-all" />
-                  <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-text-primary">
-                    <FiActivity className="text-primary" /> My Workspace Summary
-                  </h3>
-                  <div className="text-sm text-text-secondary space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Total Workspaces</span>
-                      <span className="text-info font-bold">{stats.workspaces}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Active Projects</span>
-                      <span className="text-success font-bold">{stats.projects}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Team Members</span>
-                      <span className="text-warning font-bold">{stats.members}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Tasks</span>
-                      <span className="text-error font-bold">{stats.tasks}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Recent Activity</span>
-                      <span className="text-primary font-bold">{activities.length}</span>
-                    </div>
-                  </div>
-                </div>
-                <ActiveTeam currentUserId={user?._id} />
-              </div>
-            </div>
-          </div>
+            <aside className="space-y-5">
+              <WorkspaceSummary stats={stats} activities={activities} loading={loading} healthScore={healthScore} />
+              <ActiveTeam currentUserId={user?._id} />
+            </aside>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
+
+function MiniMetric({ label, value }) {
+  return (
+    <div className="min-w-[82px] rounded-xl px-3 py-2 text-center">
+      <p className="text-lg font-semibold text-text-primary">{value}</p>
+      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">{label}</p>
+    </div>
+  );
+}
+
+function StatCard({ item, loading, index }) {
+  const Icon = item.icon;
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="rounded-2xl border border-border-subtle bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl border ${item.tone}`}>
+          <Icon size={20} />
+        </div>
+        <ArrowUpRight size={16} className="text-text-muted opacity-0 transition group-hover:opacity-100" />
+      </div>
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{item.title}</p>
+        <div className="mt-1 flex items-end gap-2">
+          {loading ? (
+            <div className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
+          ) : (
+            <h3 className="text-3xl font-semibold tracking-tight text-text-primary">{item.value}</h3>
+          )}
+          <span className="mb-1 text-xs text-success">+ live</span>
+        </div>
+        <p className="mt-2 text-sm text-text-secondary">{item.label}</p>
+      </div>
+    </motion.article>
+  );
+}
+
+function ActivityItem({ activity, index, formatTime, onClick }) {
+  const Icon = activity.icon || Activity;
+  const typeLabel = (activity.type || "ACTIVITY").replace(/_/g, " ");
+  const success = activity.type === "REPORT_GENERATED" || activity.type === "PROJECT_CREATED";
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="group w-full rounded-2xl border border-border-subtle bg-surface/70 p-4 text-left transition hover:border-primary/30 hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
+    >
+      <div className="flex gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-card text-primary transition group-hover:border-primary/30 group-hover:bg-primary-soft">
+          <Icon size={18} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+              {typeLabel} · {formatTime(activity.time)}
+            </p>
+            {success && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success">
+                <CheckCircle2 size={11} />
+                Success
+              </span>
+            )}
+          </div>
+          <h3 className="mt-1 text-sm font-semibold text-text-primary sm:text-base">{activity.title}</h3>
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">{activity.description}</p>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+function WorkspaceSummary({ stats, activities, loading, healthScore }) {
+  const rows = [
+    { label: "Total Workspaces", value: stats.workspaces, icon: Workflow },
+    { label: "Active Projects", value: stats.projects, icon: FolderKanban },
+    { label: "Team Members", value: stats.members, icon: Users },
+    { label: "Recent Events", value: activities.length, icon: GitCommit },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-border-subtle bg-card p-5 shadow-sm">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-base font-semibold text-text-primary">Workspace Summary</h2>
+          <p className="mt-1 text-xs text-text-muted">Operational health across your workspace.</p>
+        </div>
+        <div className="rounded-xl border border-primary/20 bg-primary-soft px-3 py-2 text-right text-primary">
+          <p className="text-lg font-semibold">{loading ? "--" : `${healthScore}%`}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide">Health</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {rows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <div key={row.label} className="flex items-center justify-between rounded-xl border border-border-subtle bg-surface/70 px-3 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-text-secondary">
+                  <Icon size={15} />
+                </div>
+                <span className="text-sm font-medium text-text-secondary">{row.label}</span>
+              </div>
+              {loading ? (
+                <div className="h-4 w-8 animate-pulse rounded bg-muted" />
+              ) : (
+                <span className="text-sm font-semibold text-text-primary">{row.value}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="space-y-3">
+      {[0, 1, 2, 3].map((item) => (
+        <div key={item} className="rounded-2xl border border-border-subtle bg-surface/70 p-4">
+          <div className="flex gap-3">
+            <div className="h-10 w-10 animate-pulse rounded-xl bg-muted" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-1/3 animate-pulse rounded-full bg-muted" />
+              <div className="h-4 w-2/3 animate-pulse rounded-full bg-muted" />
+              <div className="h-3 w-full animate-pulse rounded-full bg-muted" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyActivity() {
+  return (
+    <div className="flex min-h-[340px] flex-col items-center justify-center rounded-2xl border border-dashed border-border-default bg-muted/40 px-6 py-10 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+        <Activity size={24} />
+      </div>
+      <h3 className="text-sm font-semibold text-text-primary">No system events yet</h3>
+      <p className="mt-1 max-w-sm text-sm leading-6 text-text-muted">
+        Create a project, invite teammates, or generate an AI report to start filling this feed.
+      </p>
+    </div>
+  );
+}
 
 export default Dashboard;

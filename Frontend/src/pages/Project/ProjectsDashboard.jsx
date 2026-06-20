@@ -153,7 +153,7 @@ export default function ProjectsDashboard() {
           {/* ===== Page Title Section ===== */}
           <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Projects</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-text-primary">Projects</h1>
               <p className="text-text-secondary text-xs sm:text-sm mt-1 sm:mt-2">
                 Manage and track your team's development lifecycle.
                 {!loading && projects.length > 0 && (

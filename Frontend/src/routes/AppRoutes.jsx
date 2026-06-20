@@ -10,6 +10,9 @@ import ReportsOverview from "../pages/Report/ReportDashboard";
 import { useAuth } from "../context/AuthProvider";
 import ProjectCommit from "../pages/Project/ProjectCommit";
 import Ai from "../pages/Chat/AiFeature/Ai.jsx";
+import HelpCenter from "../pages/Help/HelpCenter.jsx";
+import Settings from "../pages/Settings/Settings.jsx";
+
 function AppRoutes() {
   const [authUser, setAuthUser] = useAuth();
   return (
@@ -47,6 +50,13 @@ function AppRoutes() {
         authUser ? <ReportsOverview /> : <Navigate to="/" />
       } />
 
+      <Route path="/help" element={
+        authUser ? <HelpCenter /> : <Navigate to="/" />
+      } />
+
+      <Route path="/settings" element={
+        authUser ? <Settings /> : <Navigate to="/" />
+      } />
     </Routes>
   );
 }

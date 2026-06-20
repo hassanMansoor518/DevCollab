@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { Hash } from "lucide-react";
@@ -58,17 +59,20 @@ function Workspaces({ searchQuery = "" }) {
                 <button onClick={() => setShowCreateModal(true)} className="text-xs text-primary font-semibold">+ New</button>
             </div>
 
-            {showCreateModal && (
-                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-                    <div className="bg-card w-full max-w-md rounded-2xl p-6 shadow-xl">
-                        <h3 className="text-lg font-bold mb-2">Create Workspace</h3>
+            {showCreateModal && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/30 backdrop-blur-[8px] transition-all duration-300">
+                    <div className="absolute inset-0" onClick={() => { setShowCreateModal(false); setNewWorkspaceName(''); }} />
+                    <div className="bg-card w-full max-w-md rounded-2xl p-6 shadow-xl relative z-10 animate-in fade-in zoom-in-95 duration-200">
+                        <h3 className="text-lg font-bold mb-2 text-text-primary">Create Workspace</h3>
                         <p className="text-sm text-text-muted mb-4">Create a workspace for team discussions — add a name and optionally invite members.</p>
 
-                        <label className="text-xs text-text-muted">Workspace name</label>
-                        <input value={newWorkspaceName} onChange={(e) => setNewWorkspaceName(e.target.value)} className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-border-subtle bg-input-bg outline-none" placeholder="e.g. Frontend Team" />
+                        <label className="text-xs text-text-muted font-semibold">Workspace name</label>
+                        <input autoFocus value={newWorkspaceName} onChange={(e) => setNewWorkspaceName(e.target.value)} onKeyDown={(e) => {
+                            if (e.key === 'Escape') { setShowCreateModal(false); setNewWorkspaceName(''); }
+                        }} className="w-full mt-1 mb-3 px-3 py-2 rounded-lg border border-border-subtle bg-input-bg text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="e.g. Frontend Team" />
 
-                        <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => { setShowCreateModal(false); setNewWorkspaceName(''); }} className="px-3 py-1 rounded-md bg-muted text-sm">Cancel</button>
+                        <div className="flex items-center justify-end gap-2 mt-2">
+                            <button onClick={() => { setShowCreateModal(false); setNewWorkspaceName(''); }} className="px-4 py-2 rounded-xl bg-hover-bg text-text-primary text-sm font-semibold hover:bg-border-subtle transition-colors">Cancel</button>
                             <button onClick={async () => {
                                 if (!newWorkspaceName.trim()) return alert('Please enter a name');
                                 setCreating(true);
@@ -83,10 +87,13 @@ function Workspaces({ searchQuery = "" }) {
                                 } finally {
                                     setCreating(false);
                                 }
-                            }} className="px-3 py-1 rounded-md bg-primary text-white text-sm">{creating ? 'Creating...' : 'Create'}</button>
+                            }} disabled={creating || !newWorkspaceName.trim()} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {creating ? 'Creating...' : 'Create'}
+                            </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             <div className="flex flex-col gap-1 px-2 overflow-y-auto max-h-[30vh] scrollbar-thin">
                 {loading && (

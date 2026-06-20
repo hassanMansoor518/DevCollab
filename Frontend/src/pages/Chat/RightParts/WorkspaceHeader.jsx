@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import AddMemberModal from "../../../component/AddMemberModal.jsx";
 import useConversation from "../../../zustand/useConversation.js";
@@ -409,8 +410,8 @@ function WorkspaceHeader({ workspace: initialWorkspace }) {
 
     return (
         <>
-            <div className="relative flex items-center justify-between h-[60px] sm:h-[70px] px-3 sm:px-6 bg-surface border-b border-border-subtle shadow-[var(--shadow-soft)] select-none z-10">
-                <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
+            <header className="relative flex items-center justify-between h-[60px] sm:h-[70px] w-full px-3 sm:px-6 bg-surface border-b border-border-subtle shadow-[var(--shadow-soft)] select-none z-10">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     {/* BACK BUTTON */}
                     <button
                         className="p-2 mr-1 text-text-muted hover:text-text-primary hover:bg-hover-bg rounded-lg transition shrink-0"
@@ -442,71 +443,74 @@ function WorkspaceHeader({ workspace: initialWorkspace }) {
                             </span>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 ml-1">
-                        <div className="hidden sm:block h-4 w-[1px] bg-border-subtle mx-1" />
-                        <button onClick={() => { setShowMembers(true); setDrawerVisible(true); }} className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200">
-                            <Users size={16} />
-                        </button>
-                        <button onClick={() => { setShowMembers(true); setDrawerVisible(true); setActiveView("settings"); }} className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200">
-                            <Settings size={16} />
-                        </button>
-                    </div>
                 </div>
 
-                {showMembers && (
-                    <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm transition-opacity" style={{ fontFamily: 'Inter, sans-serif' }}>
-                        <div className="absolute inset-0" onClick={closeDrawer} />
-                        {openMenuId && <div className="absolute inset-0 z-40" onClick={() => setOpenMenuId(null)} />}
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                    <div className="hidden sm:block h-5 w-[1px] bg-border-subtle mx-1" />
+                    <button onClick={() => { setShowMembers(true); setDrawerVisible(true); }} className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200">
+                        <Users size={18} />
+                    </button>
+                    <button onClick={() => { setShowMembers(true); setDrawerVisible(true); setActiveView("settings"); }} className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg text-text-muted hover:bg-hover-bg hover:text-text-primary transition-all duration-200">
+                        <Settings size={18} />
+                    </button>
+                </div>
+            </header>
 
-                        <aside className={`relative z-50 flex h-full w-full max-w-[420px] flex-col overflow-hidden bg-surface shadow-[var(--shadow-popover)] transition-transform duration-300 ease-out sm:w-[420px] ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}>
-                            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border-subtle bg-surface px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                    {activeView !== "main" && (
-                                        <button onClick={() => setActiveView("main")} className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-md hover:bg-hover-bg">
-                                            <ArrowLeft size={18} />
-                                        </button>
-                                    )}
-                                    <h2 className="text-[16px] font-semibold text-text-primary">
-                                        {activeView === "main" ? "Workspace Details" :
-                                            activeView === "settings" ? "Settings" :
-                                                activeView === "permissions" ? "Permissions" :
-                                                    activeView === "activity" ? "Activity Logs" : "Notifications"}
-                                    </h2>
-                                </div>
-                                <button onClick={closeDrawer} className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-md hover:bg-hover-bg">
-                                    <X size={20} />
-                                </button>
+            {showMembers && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[999] flex justify-end bg-black/45 backdrop-blur-[8px] transition-opacity" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    <div className="absolute inset-0" onClick={closeDrawer} />
+                    {openMenuId && <div className="absolute inset-0 z-40" onClick={() => setOpenMenuId(null)} />}
+
+                    <aside className={`relative z-50 flex h-full w-full max-w-[420px] flex-col overflow-hidden bg-surface shadow-[var(--shadow-popover)] transition-transform duration-300 ease-out sm:w-[420px] ${drawerVisible ? 'translate-x-0' : 'translate-x-full'}`}>
+                        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border-subtle bg-surface px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                {activeView !== "main" && (
+                                    <button onClick={() => setActiveView("main")} className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-md hover:bg-hover-bg">
+                                        <ArrowLeft size={18} />
+                                    </button>
+                                )}
+                                <h2 className="text-[16px] font-semibold text-text-primary">
+                                    {activeView === "main" ? "Workspace Details" :
+                                        activeView === "settings" ? "Settings" :
+                                            activeView === "permissions" ? "Permissions" :
+                                                activeView === "activity" ? "Activity Logs" : "Notifications"}
+                                </h2>
                             </div>
+                            <button onClick={closeDrawer} className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-md hover:bg-hover-bg">
+                                <X size={20} />
+                            </button>
+                        </div>
 
-                            {isWorkspaceLoading && !liveWorkspace ? (
-                                <div className="flex-1 flex justify-center items-center">
-                                    <span className="loading loading-spinner text-primary"></span>
-                                </div>
-                            ) : (
-                                <>
-                                    {activeView === "main" && renderMainView()}
-                                    {activeView === "settings" && renderSettingsView()}
-                                    {activeView === "permissions" && renderPermissionsView()}
-                                    {activeView === "activity" && renderActivityLogs()}
-                                    {activeView === "notifications" && renderNotifications()}
-                                </>
-                            )}
-                        </aside>
-                    </div>
-                )}
+                        {isWorkspaceLoading && !liveWorkspace ? (
+                            <div className="flex-1 flex justify-center items-center">
+                                <span className="loading loading-spinner text-primary"></span>
+                            </div>
+                        ) : (
+                            <>
+                                {activeView === "main" && renderMainView()}
+                                {activeView === "settings" && renderSettingsView()}
+                                {activeView === "permissions" && renderPermissionsView()}
+                                {activeView === "activity" && renderActivityLogs()}
+                                {activeView === "notifications" && renderNotifications()}
+                            </>
+                        )}
+                    </aside>
+                </div>,
+                document.body
+            )}
 
-                {showAddMemberModal && (
-                    <AddMemberModal
-                        allUsers={availableUsers}
-                        onClose={() => setShowAddMemberModal(false)}
-                        onAddMembers={handleAddMembers}
-                        title="Invite to workspace"
-                        subtitle="Search and select users to add to this workspace."
-                        buttonText={addMembersMutation.isPending ? "Adding..." : "Add selected"}
-                    />
-                )}
-            </div>
+            {showAddMemberModal && (
+                <AddMemberModal
+                    allUsers={availableUsers}
+                    onClose={() => setShowAddMemberModal(false)}
+                    onAddMembers={handleAddMembers}
+                    title="Invite to workspace"
+                    subtitle="Search and select users to add to this workspace."
+                    buttonText={addMembersMutation.isPending ? "Adding..." : "Add selected"}
+                />
+            )}
+
+
         </>
 
     );
