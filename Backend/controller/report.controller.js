@@ -25,7 +25,7 @@ export const generateReport = async (req, res) => {
       filename,
       language,
       analysisResult,
-    });
+    }, req.user?.aiSettings);
 
     // Extract basic stats
     const healthScore = analysisResult?.healthScore || 0;

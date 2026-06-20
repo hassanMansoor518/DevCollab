@@ -62,7 +62,7 @@ export const getResult = async (req, res) => {
 
     let resultText;
     try {
-      resultText = await ai.generateResult(prompt, projectContext, chatHistory);
+      resultText = await ai.generateResult(prompt, projectContext, chatHistory, req.user?.aiSettings);
     } catch (aiError) {
       console.error("AI Service Failed:", aiError);
 
@@ -249,7 +249,7 @@ export const analyzeCode = async (req, res) => {
       return res.status(400).json({ message: 'Code is required for analysis' });
     }
 
-    const analysisResult = await ai.analyzeCode({ code, filename, language });
+    const analysisResult = await ai.analyzeCode({ code, filename, language }, req.user?.aiSettings);
 
     return res.status(200).json(analysisResult);
   } catch (error) {
@@ -270,7 +270,7 @@ export const fixIssue = async (req, res) => {
       return res.status(400).json({ message: 'Code and issueTitle are required' });
     }
 
-    const result = await ai.fixCodeIssue({ code, filename, language, issueTitle, issueDescription });
+    const result = await ai.fixCodeIssue({ code, filename, language, issueTitle, issueDescription }, req.user?.aiSettings);
 
     return res.status(200).json(result);
   } catch (error) {

@@ -13,26 +13,55 @@ const ai = new GoogleGenAI({
 });
 
 // =========================
-// MODEL
+// CALL LLM ROUTING
 // =========================
-function getModel() {
-  return "gemini-2.5-flash";
-}
+async function callLLM(prompt, userSettings = null) {
+  const defaultModel = userSettings?.defaultModel || "Gemini 1.5 Pro";
+  const geminiKey = userSettings?.geminiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const openaiKey = userSettings?.openaiKey;
 
-// =========================
-// RETRY WRAPPER
-// =========================
-async function generateWithRetry(model, contents, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await ai.models.generateContent({ model, contents });
-    } catch (err) {
-      if (err.status === 503 && i < maxRetries - 1) {
-        console.warn(`Gemini API 503 Error. Retrying in ${Math.pow(2, i)} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-        continue;
+  if (defaultModel.startsWith("GPT")) {
+    if (!openaiKey) {
+      throw new Error("OpenAI API Key is required for GPT models. Please configure it in your Settings.");
+    }
+    const modelName = defaultModel.includes("3.5") ? "gpt-3.5-turbo" : "gpt-4o";
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error?.message || "Failed to generate response from OpenAI");
+    }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
+  } else {
+    // Gemini
+    const modelName = defaultModel.includes("1.5 Pro") ? "gemini-1.5-pro" :
+                      defaultModel.includes("1.5 Flash") ? "gemini-1.5-flash" :
+                      "gemini-2.5-flash"; // gemini-3.5-flash maps to gemini-2.5-flash
+    const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+    
+    for (let i = 0; i < 3; i++) {
+      try {
+        const response = await client.models.generateContent({ model: modelName, contents: prompt });
+        return response.text;
+      } catch (err) {
+        if (err.status === 503 && i < 2) {
+          console.warn(`Gemini API 503 Error. Retrying in ${Math.pow(2, i)} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
   }
 }
@@ -40,7 +69,7 @@ async function generateWithRetry(model, contents, maxRetries = 3) {
 // =========================
 // CHAT
 // =========================
-export async function generateResult(prompt, projectContext = null, chatHistory = []) {
+export async function generateResult(prompt, projectContext = null, chatHistory = [], userSettings = null) {
   try {
     let systemPrompt = `You are an elite Software Architect and AI Developer Assistant. 
 Your goal is to provide high-quality, production-ready, and repository-specific engineering solutions.
@@ -87,9 +116,7 @@ ${prompt}
 
 Assistant:`;
 
-    const response = await generateWithRetry(getModel(), finalPrompt);
-
-    return response.text;
+    return await callLLM(finalPrompt, userSettings);
   } catch (err) {
     console.error("Gemini API error:", err);
     throw err;
@@ -99,7 +126,7 @@ Assistant:`;
 // =========================
 // COMMIT ANALYSIS
 // =========================
-export async function analyzeCommit({ message, patch }) {
+export async function analyzeCommit({ message, patch }, userSettings = null) {
   try {
     const trimmedPatch = patch?.slice(0, 12000);
 
@@ -123,9 +150,7 @@ Provide:
 6. Risk level
 `;
 
-    const response = await generateWithRetry(getModel(), prompt);
-
-    return response.text;
+    return await callLLM(prompt, userSettings);
   } catch (err) {
     console.error("Gemini Commit Analysis Error:", err);
     throw err;
@@ -135,7 +160,7 @@ Provide:
 // =========================
 // CODE ANALYSIS
 // =========================
-export async function analyzeCode({ code, filename, language }) {
+export async function analyzeCode({ code, filename, language }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000); // Prevent excessively large payloads
 
@@ -171,30 +196,29 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
 }
 `;
 
-    const response = await generateWithRetry(getModel(), prompt);
-
-    let rawText = response.text;
+    const rawText = await callLLM(prompt, userSettings);
+    let cleanedText = rawText;
 
     // 1. Try to extract from ```json ... ``` block
-    const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonMatch = cleanedText.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
-      rawText = jsonMatch[1];
+      cleanedText = jsonMatch[1];
     } else {
       // 2. Try generic ``` ... ``` block
-      const genericMatch = rawText.match(/```\s*([\s\S]*?)\s*```/);
+      const genericMatch = cleanedText.match(/```\s*([\s\S]*?)\s*```/);
       if (genericMatch) {
-        rawText = genericMatch[1];
+        cleanedText = genericMatch[1];
       }
     }
 
     // 3. Last resort: Extract everything from the first '{' to the last '}'
-    const firstBrace = rawText.indexOf('{');
-    const lastBrace = rawText.lastIndexOf('}');
+    const firstBrace = cleanedText.indexOf('{');
+    const lastBrace = cleanedText.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1) {
-      rawText = rawText.substring(firstBrace, lastBrace + 1);
+      cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
     }
 
-    return JSON.parse(rawText);
+    return JSON.parse(cleanedText);
   } catch (err) {
     console.error("Gemini Code Analysis Error:", err);
     throw err;
@@ -204,7 +228,7 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
 // =========================
 // FIX CODE ISSUE
 // =========================
-export async function fixCodeIssue({ code, filename, language, issueTitle, issueDescription }) {
+export async function fixCodeIssue({ code, filename, language, issueTitle, issueDescription }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000);
 
@@ -222,9 +246,8 @@ Code:
 ${trimmedCode}
 `;
 
-    const response = await generateWithRetry(getModel(), prompt);
-
-    let fixedCode = response.text;
+    const rawText = await callLLM(prompt, userSettings);
+    let fixedCode = rawText;
 
     if (fixedCode.startsWith('\`\`\`')) {
       fixedCode = fixedCode.replace(/^\`\`\`[a-z]*\s*/i, '');
@@ -238,10 +261,7 @@ ${trimmedCode}
   }
 }
 
-// =========================
-// GENERATE PROFESSIONAL REPORT
-// =========================
-export async function generateProfessionalReport({ code, filename, language, analysisResult }) {
+export async function generateProfessionalReport({ code, filename, language, analysisResult }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000);
 
@@ -277,28 +297,27 @@ Provide a strict JSON response. The output MUST be valid JSON matching this stru
 }
 `;
 
-    const response = await generateWithRetry(getModel(), prompt);
-
-    let rawText = response.text;
+    const rawText = await callLLM(prompt, userSettings);
+    let cleanedText = rawText;
 
     // JSON Extraction logic (same as analyzeCode)
-    const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonMatch = cleanedText.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
-      rawText = jsonMatch[1];
+      cleanedText = jsonMatch[1];
     } else {
-      const genericMatch = rawText.match(/```\s*([\s\S]*?)\s*```/);
+      const genericMatch = cleanedText.match(/```\s*([\s\S]*?)\s*```/);
       if (genericMatch) {
-        rawText = genericMatch[1];
+        cleanedText = genericMatch[1];
       }
     }
 
-    const firstBrace = rawText.indexOf('{');
-    const lastBrace = rawText.lastIndexOf('}');
+    const firstBrace = cleanedText.indexOf('{');
+    const lastBrace = cleanedText.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1) {
-      rawText = rawText.substring(firstBrace, lastBrace + 1);
+      cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
     }
 
-    return JSON.parse(rawText);
+    return JSON.parse(cleanedText);
   } catch (err) {
     console.error("Gemini Generate Report Error:", err);
     throw err;

@@ -23,6 +23,7 @@ import {
 import DashboardLeftSide from "./DashboardLeftSide";
 import ActiveTeam from "./ActiveTeam";
 import DashboardHeader from "../../component/DashboardHeader";
+import { useAuth } from "../../context/AuthProvider";
 
 const emptyStats = {
   projects: 0,
@@ -39,9 +40,9 @@ const Dashboard = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp") || "{}");
-  const user = authUser?.user;
-  const token = authUser?.token;
+  const [authData] = useAuth();
+  const user = authData?.user;
+  const token = authData?.token;
 
   const getIconForActivity = (type) => {
     switch (type) {

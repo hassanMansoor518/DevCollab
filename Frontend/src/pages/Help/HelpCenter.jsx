@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardHeader from "../../component/DashboardHeader";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
+import { useAuth } from "../../context/AuthProvider";
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { 
@@ -120,8 +121,8 @@ const STATUS = [
 ];
 
 export default function HelpCenter() {
-  const authUser = JSON.parse(localStorage.getItem('ChatApp') || '{}');
-  const user = authUser?.user;
+  const [authData] = useAuth();
+  const user = authData?.user;
 
   // Search & Filter State
   const [search, setSearch] = useState('');

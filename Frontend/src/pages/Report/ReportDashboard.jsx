@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardHeader from "../../component/DashboardHeader";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
+import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -14,8 +15,8 @@ export default function ReportsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [autoDownload, setAutoDownload] = useState(false);
 
-  const authUser = JSON.parse(localStorage.getItem("ChatApp"));
-  const user = authUser?.user;
+  const [authData] = useAuth();
+  const user = authData?.user;
   useEffect(() => {
     fetchReports();
   }, []);

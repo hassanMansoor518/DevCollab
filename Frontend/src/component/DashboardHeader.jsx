@@ -67,8 +67,12 @@ export default function DashboardHeader({ user }) {
               </p>
             </div>
 
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-bold bg-primary-soft text-primary shrink-0 shadow-sm sm:shadow-none sm:border-0 border border-primary/10">
-              {user?.fullName?.[0]?.toUpperCase()}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center font-bold bg-primary-soft text-primary shrink-0 shadow-sm sm:shadow-none sm:border-0 border border-primary/10 overflow-hidden">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.fullName?.[0]?.toUpperCase()
+              )}
             </div>
           </div>
         </div>

@@ -112,6 +112,47 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Layout Density Overrides */
+html[data-density="compact"] {
+  font-size: 13.5px;
+}
+html[data-density="compact"] :is(.px-5, .py-6, .p-5, .p-6, .py-8, .px-8, .p-8, .p-4, .px-4, .py-4, .p-3, .p-5, .p-6, .p-8) {
+  padding: 0.65rem !important;
+}
+html[data-density="compact"] :is(.gap-4, .gap-6, .gap-8, .gap-5) {
+  gap: 0.5rem !important;
+}
+html[data-density="compact"] :is(.mt-6, .mt-8, .mt-10) {
+  margin-top: 0.75rem !important;
+}
+html[data-density="compact"] :is(.mb-6, .mb-8) {
+  margin-bottom: 0.75rem !important;
+}
+html[data-density="compact"] :is(.py-2\.5, .py-3) {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+}
+
+html[data-density="spacious"] {
+  font-size: 15.5px;
+}
+html[data-density="spacious"] :is(.px-5, .py-6, .p-5, .p-6, .py-8, .px-8, .p-8, .p-4, .px-4, .py-4, .p-3, .p-5, .p-6, .p-8) {
+  padding: 2.25rem !important;
+}
+html[data-density="spacious"] :is(.gap-4, .gap-6, .gap-8, .gap-5) {
+  gap: 1.75rem !important;
+}
+html[data-density="spacious"] :is(.mt-6, .mt-8, .mt-10) {
+  margin-top: 2.5rem !important;
+}
+html[data-density="spacious"] :is(.mb-6, .mb-8) {
+  margin-bottom: 2.5rem !important;
+}
+html[data-density="spacious"] :is(.py-2\.5, .py-3) {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
 body {
   min-width: 320px;
   margin: 0;
