@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Mic, MicOff, PhoneOff, PhoneIncoming, Video, VideoOff, Volume2, Maximize2 } from "lucide-react";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import useCallStore from "../../../zustand/useCallStore.js";
-import { createPeerConnection, getLocalMediaStream } from "../../../utils/webrtc.js";
+import { createPeerConnection, getLocalMediaStream, getFriendlyMediaErrorMessage } from "../../../utils/webrtc.js";
 
 const formatDuration = (seconds) => {
   const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -175,7 +175,7 @@ function CallOverlay() {
       socket.emit("accept-call", { callId, to: remoteUser._id });
     } catch (error) {
       console.error("Accept call failed", error);
-      setCallError("Unable to start call. Please allow microphone access.");
+      alert(getFriendlyMediaErrorMessage(error));
       cleanupCall();
     }
   };

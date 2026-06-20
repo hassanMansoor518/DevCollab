@@ -15,7 +15,7 @@ import {
 import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import useCallStore from "../../../zustand/useCallStore.js";
-import { getLocalMediaStream } from "../../../utils/webrtc.js";
+import { getLocalMediaStream, getFriendlyMediaErrorMessage } from "../../../utils/webrtc.js";
 
 import profile from "../../../assets/Profile.png";
 
@@ -193,7 +193,7 @@ function Chatuser({
                                 });
                             } catch (err) {
                                 console.error("Camera/Mic permission denied", err);
-                                alert(`Microphone access failed: ${err.message || err.name}. If you are using an in-app browser (like Facebook/Instagram), please open this link in Chrome or Safari.`);
+                                alert(getFriendlyMediaErrorMessage(err));
                             }
                         }}
                         disabled={!canStartCall}
@@ -233,7 +233,7 @@ function Chatuser({
                                 });
                             } catch (err) {
                                 console.error("Camera/Mic permission denied", err);
-                                alert(`Camera/Microphone access failed: ${err.message || err.name}. If you are using an in-app browser (like Facebook/Instagram), please open this link in Chrome or Safari.`);
+                                alert(getFriendlyMediaErrorMessage(err));
                             }
                         }}
                         disabled={!canStartCall}
