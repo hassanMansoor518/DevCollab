@@ -31,8 +31,8 @@ const sendWorkspaceMessage = async (req, res) => {
     });
     await newMessage.save();
 
-    // 4. Populate sender details (e.g. fullName)
-    await newMessage.populate("senderId", "fullName");
+    // 4. Populate sender details (e.g. fullName, avatar)
+    await newMessage.populate("senderId", "fullName avatar");
 
     // 5. Emit socket event to all workspace members who are online (except the sender)
     try {
@@ -82,7 +82,7 @@ const getWorkspaceMessages = async (req, res) => {
 
     // 3. Fetch messages and populate sender details
     const messages = await WorkspaceMessage.find({ workspaceId })
-      .populate("senderId", "fullName")
+      .populate("senderId", "fullName avatar")
       .sort({ createdAt: 1 });
 
     res.status(200).json(messages);
@@ -105,7 +105,7 @@ const getRecentActivity = async (req, res) => {
     const recentMessages = await WorkspaceMessage.find({
       workspaceId: { $in: workspaceIds },
     })
-      .populate("senderId", "fullName")
+      .populate("senderId", "fullName avatar")
       .populate("workspaceId", "name")
       .sort({ createdAt: -1 })
       .limit(10);
@@ -135,7 +135,7 @@ const updateWorkspaceMessage = async (req, res) => {
     existing.edited = true;
     await existing.save();
 
-    await existing.populate("senderId", "fullName");
+    await existing.populate("senderId", "fullName avatar");
 
     // emit update event to workspace members
     try {

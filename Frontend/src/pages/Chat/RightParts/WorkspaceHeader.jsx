@@ -195,8 +195,16 @@ function WorkspaceHeader({ workspace: initialWorkspace }) {
                         return (
                             <div key={memberId || idx} className="group flex items-center justify-between px-2 h-[64px] rounded-lg hover:bg-hover-bg transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white font-semibold text-sm shadow-sm">
-                                        {name.charAt(0).toUpperCase()}
+                                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white font-semibold text-sm shadow-sm overflow-hidden">
+                                        {member?.avatar ? (
+                                            <img
+                                                src={member.avatar}
+                                                alt={name}
+                                                className="object-cover w-full h-full"
+                                            />
+                                        ) : (
+                                            name.charAt(0).toUpperCase()
+                                        )}
                                         <div className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full bg-success border-2 border-surface"></div>
                                     </div>
                                     <div className="flex flex-col">

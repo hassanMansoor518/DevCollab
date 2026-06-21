@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+
 import {
   Activity,
   ArrowUpRight,
@@ -23,6 +24,7 @@ import {
 import DashboardLeftSide from "./DashboardLeftSide";
 import ActiveTeam from "./ActiveTeam";
 import DashboardHeader from "../../component/DashboardHeader";
+import EmptyState from "../../component/EmptyState";
 import { useAuth } from "../../context/AuthProvider";
 
 const emptyStats = {
@@ -405,15 +407,12 @@ function ActivitySkeleton() {
 
 function EmptyActivity() {
   return (
-    <div className="flex min-h-[340px] flex-col items-center justify-center rounded-2xl border border-dashed border-border-default bg-muted/40 px-6 py-10 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-        <Activity size={24} />
-      </div>
-      <h3 className="text-sm font-semibold text-text-primary">No system events yet</h3>
-      <p className="mt-1 max-w-sm text-sm leading-6 text-text-muted">
-        Create a project, invite teammates, or generate an AI report to start filling this feed.
-      </p>
-    </div>
+    <EmptyState
+      icon={<Activity size={22} />}
+      title="No Activity Yet"
+      description="Workspace events and updates will appear here as your team creates projects and collaborates."
+      minHeight="min-h-[340px]"
+    />
   );
 }
 

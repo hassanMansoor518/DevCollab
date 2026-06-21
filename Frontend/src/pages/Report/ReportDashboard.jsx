@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import DashboardHeader from "../../component/DashboardHeader";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
+import EmptyState from "../../component/EmptyState";
 import { useAuth } from "../../context/AuthProvider";
+import { BarChart3, ArrowUpRight } from "lucide-react";
 import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -119,11 +121,12 @@ export default function ReportsPage() {
               <p className="text-text-muted">Loading reports...</p>
             </div>
           ) : reports.length === 0 ? (
-            <div className="bg-card p-12 rounded-lg border border-border-subtle text-center">
-              <span className="material-symbols-outlined text-5xl text-text-muted mb-4">analytics</span>
-              <h3 className="text-xl font-bold text-text-primary">No Reports Yet</h3>
-              <p className="text-text-secondary mt-2">Generate your first AI code audit from the Project view.</p>
-            </div>
+            <EmptyState
+              icon={<BarChart3 size={22} />}
+              title="No Reports Yet"
+              description="AI-generated audits and repository insights will appear here once you run an analysis."
+              minHeight="min-h-[420px]"
+            />
           ) : (
             <div className="space-y-4">
               {reports.map((report) => (

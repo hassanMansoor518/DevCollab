@@ -7,6 +7,8 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import useConversation from "../../../zustand/useConversation.js";
 import axios from "axios";
 
+import { useAuth } from "../../../context/AuthProvider.jsx";
+
 // Helper to choose file icon based on extension
 const FileIcon = ({ filename }) => {
     const ext = filename.split(".").pop().toLowerCase();
@@ -19,7 +21,8 @@ const FileIcon = ({ filename }) => {
 
 function Message({ message }) {
     const { selectedConversation, selectedWorkspace } = useConversation();
-    const authUser = JSON.parse(localStorage.getItem("ChatApp"));
+    const [authData] = useAuth();
+    const authUser = authData || JSON.parse(localStorage.getItem("ChatApp"));
 
     if (!message) return null;
 
@@ -61,6 +64,19 @@ function Message({ message }) {
     const initial = senderName !== "You"
         ? senderName.charAt(0).toUpperCase()
         : authUser.user.fullName?.charAt(0).toUpperCase();
+
+    let senderAvatar = null;
+    if (itsMe) {
+        senderAvatar = authUser?.user?.avatar;
+    } else if (typeof message.senderId === "object" && message.senderId?.avatar) {
+        senderAvatar = message.senderId.avatar;
+    } else if (selectedConversation) {
+        const otherUser = selectedConversation.members?.find(
+            (member) =>
+                (member._id || member).toString() !== authUser.user._id.toString()
+        );
+        senderAvatar = otherUser?.avatar;
+    }
 
     const { messages, setMessage, setEditingMessage } = useConversation();
     const [actionLoading, setActionLoading] = useState(false);
@@ -151,13 +167,17 @@ function Message({ message }) {
     return (
         <div className={`flex px-6 md:px-8 py-3 ${itsMe ? "justify-end" : "justify-start"}`}>
             <div className={`flex gap-3.5 max-w-2xl ${itsMe ? "flex-row-reverse text-right" : ""}`}>
-                <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-xs text-white font-bold shadow-sm select-none
+                <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-xs text-white font-bold shadow-sm select-none overflow-hidden
                     ${itsMe 
                         ? "bg-gradient-to-tr from-primary to-info" 
                         : "bg-gradient-to-br from-indigo-500 to-purple-500"
                     }
                 `}>
-                    {initial}
+                    {senderAvatar ? (
+                        <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover animate-in fade-in duration-300" />
+                    ) : (
+                        initial
+                    )}
                 </div>
 
                 <div className="flex flex-col">

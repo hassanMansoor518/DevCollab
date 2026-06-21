@@ -104,23 +104,14 @@ function Chatuser({
                 <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-info flex items-center justify-center font-bold text-white overflow-hidden shadow-sm">
-                            {profile ? (
+                            {otherUser?.avatar ? (
                                 <img
-                                    src={profile}
+                                    src={otherUser.avatar}
                                     alt={
                                         otherUser?.fullName ||
                                         "User"
                                     }
                                     className="object-cover w-full h-full"
-                                    onError={(
-                                        e
-                                    ) => {
-                                        e.target.style.display =
-                                            "none";
-
-                                        e.target.parentNode.textContent =
-                                            initial;
-                                    }}
                                 />
                             ) : (
                                 initial
@@ -316,8 +307,16 @@ function Chatuser({
                             {/* PROFILE */}
                             <div className="rounded-3xl border border-border-subtle bg-card p-4 shadow-sm">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-primary to-info flex items-center justify-center text-white text-xl font-bold">
-                                        {initial}
+                                    <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-primary to-info flex items-center justify-center text-white text-xl font-bold overflow-hidden">
+                                        {otherUser?.avatar ? (
+                                            <img
+                                                src={otherUser.avatar}
+                                                alt={otherUser.fullName}
+                                                className="object-cover w-full h-full"
+                                            />
+                                        ) : (
+                                            initial
+                                        )}
                                     </div>
 
                                     <div className="min-w-0">

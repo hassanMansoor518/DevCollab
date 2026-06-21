@@ -48,9 +48,10 @@ const useSendAiMessage = () => {
 
       } catch (error) {
         console.error("AI Error:", error);
+        const errMsg = error.response?.data?.error?.message || error.response?.data?.message || "Failed to get AI response. Please ensure the repository is connected and indexed.";
         replaceTempMessage(
           tempId,
-          "Failed to get AI response. Please ensure the repository is connected and indexed."
+          errMsg
         );
       } finally {
         setLoading(false);
@@ -114,11 +115,12 @@ const useSendAiMessage = () => {
 
     } catch (error) {
       console.error("Chat AI Error:", error);
+      const errMsg = error.response?.data?.error?.message || error.response?.data?.message || "Failed to fetch Gemini response. Please try again.";
       const store = useConversation.getState();
       const currentMsgs = Array.isArray(store.messages) ? store.messages : [];
       const updatedMessages = currentMsgs.map((m) =>
         m._id === tempAiId 
-          ? { ...m, message: "⚠️ Failed to fetch Gemini response. Please try again." } 
+          ? { ...m, message: `⚠️ ${errMsg}` } 
           : m
       );
       store.setMessage(updatedMessages);

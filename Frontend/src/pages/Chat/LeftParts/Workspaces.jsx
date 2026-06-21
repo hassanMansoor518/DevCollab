@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Hash } from "lucide-react";
+import { Hash, LayoutGrid } from "lucide-react";
 import useConversation from "../../../zustand/useConversation.js";
 
 function Workspaces({ searchQuery = "" }) {
@@ -100,9 +100,19 @@ function Workspaces({ searchQuery = "" }) {
                     <p className="text-text-muted text-xs px-4 py-2 animate-pulse">Loading workspaces...</p>
                 )}
                 {!loading && filteredWorkspaces.length === 0 && (
-                    <p className="text-text-muted text-xs px-4 py-2">
-                        {searchQuery ? "No matching workspaces found" : "No workspaces found"}
-                    </p>
+                    <div className="flex flex-col items-center justify-center gap-2 py-5 px-4 text-center">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-muted text-text-muted">
+                            <LayoutGrid size={15} />
+                        </div>
+                        <p className="text-xs font-medium text-text-muted">
+                            {searchQuery ? "No workspaces match" : "No workspaces yet"}
+                        </p>
+                        {!searchQuery && (
+                            <p className="text-[11px] text-text-disabled leading-relaxed">
+                                Create one with the + New button above.
+                            </p>
+                        )}
+                    </div>
                 )}
                 {!loading && filteredWorkspaces.map((ws, idx) => {
                     const isSelected = selectedWorkspace?._id === ws._id;

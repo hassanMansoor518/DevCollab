@@ -22,7 +22,11 @@ async function callLLM(prompt, userSettings = null) {
 
   if (defaultModel.startsWith("GPT")) {
     if (!openaiKey) {
-      throw new Error("OpenAI API Key is required for GPT models. Please configure it in your Settings.");
+      // Gracefully fall back to Gemini instead of crashing with a 500
+      console.warn(`[AI] GPT model selected but no OpenAI key configured. Falling back to gemini-2.5-flash.`);
+      const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+      const response = await client.models.generateContent({ model: "gemini-2.5-flash", contents: prompt });
+      return response.text;
     }
     const modelName = defaultModel.includes("3.5") ? "gpt-3.5-turbo" : "gpt-4o";
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -44,10 +48,9 @@ async function callLLM(prompt, userSettings = null) {
     const data = await res.json();
     return data.choices?.[0]?.message?.content || "";
   } else {
-    // Gemini
-    const modelName = defaultModel.includes("1.5 Pro") ? "gemini-1.5-pro" :
-                      defaultModel.includes("1.5 Flash") ? "gemini-1.5-flash" :
-                      "gemini-2.5-flash"; // gemini-3.5-flash maps to gemini-2.5-flash
+    // Only "gemini-2.5-flash" is confirmed working with this SDK + API key.
+    // gemini-1.5-* returns 404; gemini-2.0-* returns 429 quota exceeded.
+    const modelName = "gemini-2.5-flash";
     const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
     
     for (let i = 0; i < 3; i++) {
@@ -55,9 +58,9 @@ async function callLLM(prompt, userSettings = null) {
         const response = await client.models.generateContent({ model: modelName, contents: prompt });
         return response.text;
       } catch (err) {
-        if (err.status === 503 && i < 2) {
-          console.warn(`Gemini API 503 Error. Retrying in ${Math.pow(2, i)} seconds...`);
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        if ((err.status === 503 || err.status === 429) && i < 2) {
+          console.warn(`Gemini API ${err.status} Error. Retrying in ${Math.pow(2, i + 1)} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i + 1) * 1000));
           continue;
         }
         throw err;

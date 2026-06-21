@@ -81,7 +81,7 @@ export default function Settings() {
   // AI settings
   const [openaiKey, setOpenaiKey] = useState(user?.aiSettings?.openaiKey ?? '');
   const [geminiKey, setGeminiKey] = useState(user?.aiSettings?.geminiKey ?? '');
-  const [defaultModel, setDefaultModel] = useState(user?.aiSettings?.defaultModel ?? 'GPT-4o (Recommended)');
+  const [defaultModel, setDefaultModel] = useState(user?.aiSettings?.defaultModel ?? 'Gemini 1.5 Flash');
   const [aiContext, setAiContext] = useState(user?.aiSettings?.contextAware ?? true);
   const [aiSummarize, setAiSummarize] = useState(user?.aiSettings?.autoSummarize ?? false);
   const [aiSaving, setAiSaving] = useState(false);
@@ -114,7 +114,7 @@ export default function Settings() {
 
       setOpenaiKey(user.aiSettings?.openaiKey ?? '');
       setGeminiKey(user.aiSettings?.geminiKey ?? '');
-      setDefaultModel(user.aiSettings?.defaultModel ?? 'GPT-4o (Recommended)');
+      setDefaultModel(user.aiSettings?.defaultModel ?? 'Gemini 1.5 Flash');
       setAiContext(user.aiSettings?.contextAware ?? true);
       setAiSummarize(user.aiSettings?.autoSummarize ?? false);
     }
@@ -218,7 +218,7 @@ export default function Settings() {
 
       setOpenaiKey(user.aiSettings?.openaiKey ?? '');
       setGeminiKey(user.aiSettings?.geminiKey ?? '');
-      setDefaultModel(user.aiSettings?.defaultModel ?? 'GPT-4o (Recommended)');
+      setDefaultModel(user.aiSettings?.defaultModel ?? 'Gemini 1.5 Flash');
       setAiContext(user.aiSettings?.contextAware ?? true);
       setAiSummarize(user.aiSettings?.autoSummarize ?? false);
     }
@@ -1172,9 +1172,10 @@ export default function Settings() {
                             onChange={(e) => setDefaultModel(e.target.value)}
                             className="w-full h-10 px-3 rounded-xl border border-border-subtle bg-card text-text-primary text-xs focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                           >
-                            <option value="GPT-4o (Recommended)">GPT-4o (Recommended)</option>
-                            <option value="GPT-3.5 Turbo">GPT-3.5 Turbo</option>
+                            <option value="Gemini 1.5 Flash">Gemini 1.5 Flash (Recommended)</option>
                             <option value="Gemini 1.5 Pro">Gemini 1.5 Pro</option>
+                            <option value="GPT-4o (Recommended)">GPT-4o (requires OpenAI key)</option>
+                            <option value="GPT-3.5 Turbo">GPT-3.5 Turbo</option>
                           </select>
                         </div>
                       </div>

@@ -46,7 +46,7 @@ router.get("/team/active/:userId", async (req, res) => {
     const invites = await Invite.find({ 
         status: "accepted",
         $or: [{ sender: userId }, { receiver: userId }]
-    }).populate("sender receiver", "fullName email");
+    }).populate("sender receiver", "fullName email avatar");
 
     // Map members: if current user is sender, show receiver; if current user is receiver, show sender
     const activeMembers = invites.map(inv => 
@@ -65,7 +65,7 @@ router.get("/team/pending/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
     const invites = await Invite.find({ receiver: userId, status: "pending" })
-      .populate("sender", "fullName email");
+      .populate("sender", "fullName email avatar");
     res.json(invites);
   } catch (err) {
     res.status(500).json({ error: err.message });

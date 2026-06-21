@@ -67,8 +67,12 @@ export const getResult = async (req, res) => {
       console.error("AI Service Failed:", aiError);
 
       return res.status(500).json({
-        message: "AI service temporarily unavailable",
-        error: aiError.message,
+        success: false,
+        error: {
+          message: "AI service temporarily unavailable",
+          type: "AIServiceError",
+          details: aiError.message,
+        }
       });
     }
 
@@ -206,8 +210,12 @@ export const getResult = async (req, res) => {
     console.error('Stack:', error.stack);
 
     return res.status(500).json({
-      message: 'Internal server error',
-      error: error.message,
+      success: false,
+      error: {
+        message: 'Internal server error',
+        type: 'InternalServerError',
+        details: error.message,
+      }
     });
   }
 };
@@ -246,7 +254,13 @@ export const analyzeCode = async (req, res) => {
     const { code, filename, language } = req.body;
 
     if (!code) {
-      return res.status(400).json({ message: 'Code is required for analysis' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Code is required for analysis',
+          type: 'ValidationError'
+        }
+      });
     }
 
     const analysisResult = await ai.analyzeCode({ code, filename, language }, req.user?.aiSettings);
@@ -256,8 +270,12 @@ export const analyzeCode = async (req, res) => {
     console.error('Analyze Code Error:', error);
 
     return res.status(500).json({
-      message: 'AI code analysis temporarily unavailable',
-      error: error.message,
+      success: false,
+      error: {
+        message: 'AI code analysis temporarily unavailable',
+        type: 'AIServiceError',
+        details: error.message,
+      }
     });
   }
 };
@@ -267,7 +285,13 @@ export const fixIssue = async (req, res) => {
     const { code, filename, language, issueTitle, issueDescription } = req.body;
 
     if (!code || !issueTitle) {
-      return res.status(400).json({ message: 'Code and issueTitle are required' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Code and issueTitle are required',
+          type: 'ValidationError'
+        }
+      });
     }
 
     const result = await ai.fixCodeIssue({ code, filename, language, issueTitle, issueDescription }, req.user?.aiSettings);
@@ -277,8 +301,12 @@ export const fixIssue = async (req, res) => {
     console.error('Fix Issue Error:', error);
 
     return res.status(500).json({
-      message: 'Failed to apply code fix via AI',
-      error: error.message,
+      success: false,
+      error: {
+        message: 'Failed to apply code fix via AI',
+        type: 'AIServiceError',
+        details: error.message,
+      }
     });
   }
 }

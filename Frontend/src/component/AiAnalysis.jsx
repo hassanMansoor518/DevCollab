@@ -37,8 +37,9 @@ function AiAnalysis({ result, onApplyFix, projectId, filename, language, code })
             alert("Professional report generated and saved to Dashboard!");
         } catch (err) {
             console.error("Report Generation Error:", err);
-            setReportStatus({ success: false, message: err.response?.data?.message || "Failed to generate report" });
-            alert("Failed to generate report. Please try again.");
+            const errMsg = err.response?.data?.error?.message || err.response?.data?.message || "Failed to generate report";
+            setReportStatus({ success: false, message: errMsg });
+            alert(`Failed to generate report: ${errMsg}`);
         } finally {
             setIsGenerating(false);
         }

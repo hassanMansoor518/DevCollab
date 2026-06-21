@@ -35,7 +35,7 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
             setAnalysisResult(response.data);
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || "Failed to analyze code");
+            setError(err.response?.data?.error?.message || err.response?.data?.message || "Failed to analyze code");
         } finally {
             setLoading(false);
         }
@@ -61,7 +61,7 @@ function AiCodeReviewer({ filename, code, language, onApplyFix, projectId }) {
                 handleRunTestCases();
             }
         } catch (err) {
-            alert(err.response?.data?.message || "Failed to apply fix");
+            alert(err.response?.data?.error?.message || err.response?.data?.message || "Failed to apply fix");
         }
     };
 

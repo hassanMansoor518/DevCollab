@@ -157,8 +157,12 @@ export default function ActiveTeam({ currentUserId }) {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="relative">
-                    <div className="h-10 w-10 rounded-xl flex items-center justify-center font-bold bg-primary-soft text-primary ring-1 ring-border-subtle shrink-0">
-                      {user.fullName?.[0]?.toUpperCase() || "?"}
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center font-bold bg-primary-soft text-primary ring-1 ring-border-subtle shrink-0 overflow-hidden">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover animate-in fade-in duration-300" />
+                      ) : (
+                        user.fullName?.[0]?.toUpperCase() || "?"
+                      )}
                     </div>
                   </div>
                   <div className="min-w-0">

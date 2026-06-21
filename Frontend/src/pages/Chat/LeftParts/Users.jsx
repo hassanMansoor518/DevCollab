@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Users as UsersIcon } from "lucide-react";
 import User from "./User";
 
 function Users({ searchQuery = "" }) {
@@ -14,7 +15,11 @@ function Users({ searchQuery = "" }) {
     try {
       // Standardized to Vite relative proxy to prevent cross-origin issues
       const res = await axios.get(`/api/invite/team/active/${user._id}`);
-      setAllUsers(res.data); 
+      // Deduplicate by _id to avoid React duplicate-key warnings
+      const unique = Array.from(
+        new Map(res.data.map((u) => [u._id, u])).values()
+      );
+      setAllUsers(unique);
     } catch (err) {
       console.error("Failed to fetch users:", err);
     } finally {
@@ -56,9 +61,19 @@ function Users({ searchQuery = "" }) {
         )}
 
         {!loading && filteredUsers.length === 0 && (
-          <p className="text-text-muted text-xs px-6 py-2">
-            {searchQuery ? "No matching contacts found" : "No active users found"}
-          </p>
+          <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 text-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border-subtle bg-muted text-text-muted">
+              <UsersIcon size={15} />
+            </div>
+            <p className="text-xs font-medium text-text-muted">
+              {searchQuery ? "No contacts match your search" : "No direct messages yet"}
+            </p>
+            {!searchQuery && (
+              <p className="text-[11px] text-text-disabled leading-relaxed">
+                Accept an invite to start a conversation.
+              </p>
+            )}
+          </div>
         )}
 
         {!loading && Array.isArray(filteredUsers) &&

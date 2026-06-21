@@ -12,7 +12,7 @@ async function getOrCreateConversation(req, res) {
     let conversation = await Conversation.findOne({
       members: { $all: [currentUserId, otherUserId] }
     })
-      .populate("members", "fullName email") // ✅ ADD THIS
+      .populate("members", "fullName email avatar") // ✅ ADD THIS
       .populate("messages");                 // keep this
 
     if (!conversation) {
@@ -21,7 +21,7 @@ async function getOrCreateConversation(req, res) {
       });
 
       conversation = await Conversation.findById(conversation._id)
-        .populate("members", "fullName email") // ✅ ADD THIS
+        .populate("members", "fullName email avatar") // ✅ ADD THIS
         .populate("messages");
     }
 

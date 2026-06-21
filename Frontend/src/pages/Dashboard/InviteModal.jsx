@@ -125,8 +125,12 @@ export default function InviteModal({ users, onClose, onInvite }) {
                   } hover:border-primary/30 hover:bg-primary/5`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl flex items-center justify-center font-bold bg-primary-soft text-primary shrink-0">
-                      {user.fullName?.[0]?.toUpperCase() || "?"}
+                    <div className="h-10 w-10 rounded-2xl flex items-center justify-center font-bold bg-primary-soft text-primary shrink-0 overflow-hidden">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover animate-in fade-in duration-300" />
+                      ) : (
+                        user.fullName?.[0]?.toUpperCase() || "?"
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-text-primary">{user.fullName}</p>

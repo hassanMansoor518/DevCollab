@@ -7,11 +7,13 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Folder,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLeftSide from "../Dashboard/DashboardLeftSide";
 import CreateProjectModal from "./CreateProjectModel";
 import DashboardHeader from "../../component/DashboardHeader";
+import EmptyState from "../../component/EmptyState";
 import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
 
@@ -205,28 +207,14 @@ export default function ProjectsDashboard() {
               </>
             ) : (
               /* ── Premium Empty State ── */
-              <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center justify-center py-20 px-4">
-                <div className="relative mb-6">
-                  <div className="w-24 h-24 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <svg className="w-10 h-10 text-primary/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                    </svg>
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-                    <Plus className="w-3 h-3 text-primary" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-text-primary mb-2">No Projects Yet</h3>
-                <p className="text-text-secondary text-sm text-center max-w-sm mb-6">
-                  Start building something great. Create your first project to organize your team, track progress, and ship faster.
-                </p>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-md transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Your First Project
-                </button>
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                <EmptyState
+                  icon={<Folder size={22} />}
+                  title="No Projects Found"
+                  description="Create your first project to start collaborating with your team, tracking progress, and shipping faster."
+                  action={{ label: "Create Project", onClick: () => setIsModalOpen(true) }}
+                  minHeight="min-h-[380px]"
+                />
               </div>
             )}
           </div>

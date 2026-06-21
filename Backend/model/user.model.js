@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema({
     aiSettings: {
         openaiKey: { type: String, default: "" },
         geminiKey: { type: String, default: "" },
-        defaultModel: { type: String, default: "GPT-4o (Recommended)" },
+        defaultModel: { type: String, default: "Gemini 1.5 Flash" },
         contextAware: { type: Boolean, default: true },
         autoSummarize: { type: Boolean, default: false }
     }

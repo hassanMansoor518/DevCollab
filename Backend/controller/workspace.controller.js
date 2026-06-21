@@ -27,7 +27,7 @@ const ensureLegacyAdmin = async (workspace) => {
 };
 
 const populateWorkspace = (id) =>
-  Workspace.findById(id).populate("members", "fullName email").populate("admins", "fullName email");
+  Workspace.findById(id).populate("members", "fullName email avatar").populate("admins", "fullName email avatar");
 
 const requireWorkspaceMember = async (workspaceId, userId) => {
   const workspace = await Workspace.findById(workspaceId);
@@ -97,8 +97,8 @@ const getAllWorkspace = async (req, res) => {
   try {
     const userId = req.user._id;
     const workspaces = await Workspace.find({ members: userId })
-      .populate("members", "fullName email")
-      .populate("admins", "fullName email")
+      .populate("members", "fullName email avatar")
+      .populate("admins", "fullName email avatar")
       .sort({ updatedAt: -1 });
 
     await Promise.all(workspaces.map((workspace) => ensureLegacyAdmin(workspace)));

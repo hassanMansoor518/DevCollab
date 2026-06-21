@@ -83,8 +83,12 @@ export default function AddMemberModal({
                 >
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-                      {user.fullName.charAt(0).toUpperCase()}
+                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        user.fullName.charAt(0).toUpperCase()
+                      )}
                     </div>
 
                     <div>

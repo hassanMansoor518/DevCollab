@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, MessageSquare } from "lucide-react";
 import Message from "./Message.jsx";
 import useGetMessage from "../../../context/useGetMessage.jsx";
 import Loading from "../../../component/Loading.jsx";
+import EmptyState from "../../../component/EmptyState.jsx";
 import useConversation from "../../../zustand/useConversation.js";
 
 function Messages() {
@@ -54,15 +55,12 @@ function Messages() {
                 )}
 
                 {!loading && safeMessages.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center py-24 text-center">
-                        <div className="w-14 h-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mb-3">
-                            <Sparkles size={20} />
-                        </div>
-                        <h3 className="text-sm font-bold text-text-primary mb-1">No messages yet</h3>
-                        <p className="text-xs text-text-muted max-w-xs leading-relaxed">
-                            Send a greeting to start the conversation, or use <code className="bg-hover-bg px-1.5 py-0.5 rounded text-primary">@ai</code> to ask questions.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={<MessageSquare size={20} />}
+                        title="No Messages Yet"
+                        description="Send a message to start the conversation, or type @ai to ask the assistant a question."
+                        minHeight="min-h-[280px]"
+                    />
                 )}
             </div>
         </div>

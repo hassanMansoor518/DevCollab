@@ -67,16 +67,11 @@ function User({ user }) {
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white overflow-hidden shadow-sm
 					${isSelected ? "bg-white/20" : "bg-gradient-to-tr from-primary to-info"}
                 `}>
-                    {profile ? (
+                    {user.avatar ? (
                         <img
-                            src={profile}
+                            src={user.avatar}
                             alt={user.fullName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                                // Fallback to initial if image fails
-                                e.target.style.display = 'none';
-                                e.target.parentNode.textContent = initial;
-                            }}
+                            className="w-full h-full object-cover animate-in fade-in duration-300"
                         />
                     ) : (
                         initial
