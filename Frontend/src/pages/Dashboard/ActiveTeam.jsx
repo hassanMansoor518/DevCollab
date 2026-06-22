@@ -31,7 +31,8 @@ export default function ActiveTeam({ currentUserId }) {
       ]);
 
       const activeMembers = activeRes.data || [];
-      setActiveTeam(activeMembers);
+      const uniqueActiveMembers = Array.from(new Map(activeMembers.map(user => [user._id, user])).values());
+      setActiveTeam(uniqueActiveMembers);
 
       const activeMemberIds = activeMembers.map((member) => member._id);
       setAllUsers(

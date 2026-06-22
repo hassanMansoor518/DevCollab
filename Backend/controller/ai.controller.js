@@ -66,10 +66,21 @@ export const getResult = async (req, res) => {
     } catch (aiError) {
       console.error("AI Service Failed:", aiError);
 
+      let parsedDetails = aiError.message;
+      try {
+        if (aiError.message.includes('{')) {
+          const jsonStr = aiError.message.substring(aiError.message.indexOf('{'));
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.error && parsed.error.message) {
+             parsedDetails = parsed.error.message;
+          }
+        }
+      } catch (e) {}
+
       return res.status(500).json({
         success: false,
         error: {
-          message: "AI service temporarily unavailable",
+          message: parsedDetails || "AI service temporarily unavailable",
           type: "AIServiceError",
           details: aiError.message,
         }
@@ -269,10 +280,21 @@ export const analyzeCode = async (req, res) => {
   } catch (error) {
     console.error('Analyze Code Error:', error);
 
+    let parsedDetails = error.message;
+    try {
+      if (error.message.includes('{')) {
+        const jsonStr = error.message.substring(error.message.indexOf('{'));
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.error && parsed.error.message) {
+           parsedDetails = parsed.error.message;
+        }
+      }
+    } catch (e) {}
+
     return res.status(500).json({
       success: false,
       error: {
-        message: 'AI code analysis temporarily unavailable',
+        message: parsedDetails || 'AI code analysis temporarily unavailable',
         type: 'AIServiceError',
         details: error.message,
       }
@@ -300,10 +322,21 @@ export const fixIssue = async (req, res) => {
   } catch (error) {
     console.error('Fix Issue Error:', error);
 
+    let parsedDetails = error.message;
+    try {
+      if (error.message.includes('{')) {
+        const jsonStr = error.message.substring(error.message.indexOf('{'));
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.error && parsed.error.message) {
+           parsedDetails = parsed.error.message;
+        }
+      }
+    } catch (e) {}
+
     return res.status(500).json({
       success: false,
       error: {
-        message: 'Failed to apply code fix via AI',
+        message: parsedDetails || 'Failed to apply code fix via AI',
         type: 'AIServiceError',
         details: error.message,
       }

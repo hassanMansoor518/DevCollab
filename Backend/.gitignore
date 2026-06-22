@@ -1,32 +1,148 @@
+# Dependencies
 
-# Environment variables
+node_modules/
+
+# Environment Variables
+
 .env
 .env.local
-.env.*.local    
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Build Output
+
+dist/
+build/
+.next/
+out/
+
+# Coverage
+
+coverage/
+.nyc_output/
+
+# Cache
+
+.cache/
+.temp/
+.tmp/
+.parcel-cache/
+.vite/
 
 # Logs
+
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS files
+# Runtime
+
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS Files
+
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# IDEs
+# IDE / Editors
+
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
 
-# Build/Dist
-dist/
-build/
+# VS Code Test
 
-# Test
-coverage/
+.vscode-test/
 
-# Miscellaneous
-.temp/
-.cache/
+# TypeScript
+
+*.tsbuildinfo
+
+# ESLint Cache
+
+.eslintcache
+
+# Optional npm cache
+
+.npm/
+
+# Optional Yarn cache
+
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Optional pnpm cache
+
+.pnpm-store/
+
+# MongoDB
+
+dump/
+mongodb_backup/
+
+# Uploads (only if generated at runtime)
+
+uploads/
+public/uploads/
+
+# Generated Reports
+
+reports/
+generated/
+
+# Temporary Files
+
+*.tmp
+*.temp
+
+# Secrets
+
+*.pem
+*.key
+*.crt
+
+# Mac Metadata
+
+.AppleDouble
+.LSOverride
+
+# Windows Metadata
+
+ehthumbs.db
+Icon?
+
+# Local Database Files
+
+*.sqlite
+*.sqlite3
+*.db
+
+# AI / Generated Files
+
+*.cache.json
+ai-output/
+analysis-output/
+
+# Docker
+
+.docker/
+
+# Misc
+
+history/
+*.bak
+*.old

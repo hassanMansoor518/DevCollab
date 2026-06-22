@@ -31,7 +31,8 @@ export default function CreateProjectModal({ onClose, addProjectToList }) {
         const res = await axios.get(
           `/api/invite/team/active/${currentUserId}`
         );
-        setAllUsers(res.data || []);
+        const uniqueUsers = Array.from(new Map((res.data || []).map(user => [user._id, user])).values());
+        setAllUsers(uniqueUsers);
       } catch (err) {
         console.error("Failed to fetch active team:", err);
       }

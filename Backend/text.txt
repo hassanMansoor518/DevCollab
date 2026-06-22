@@ -1,2 +1,0 @@
-npm init 
-npm i express dotenv mongoose cookie-parser bcryptjs jsonwebtoken
