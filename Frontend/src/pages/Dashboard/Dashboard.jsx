@@ -40,7 +40,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(emptyStats);
   const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingFlags, setLoadingFlags] = useState({
+    reports: true,
+    projects: true,
+    activities: true,
+    workspaces: true,
+  });
 
   const [authData] = useAuth();
   const user = authData?.user;
@@ -67,57 +72,63 @@ const Dashboard = () => {
     }
   };
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
+  const fetchDashboardData = () => {
+    if (!token) return;
 
-      const [reportsRes, projectsRes, activityRes, workspaceRes] = await Promise.all([
-        axios.get("/api/report", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("/api/project", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("/api/activity", { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get("/api/workspace/all-workspace", { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+    // Fetch Reports
+    axios.get("/api/report", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const reports = res.data.reports || [];
+        setStats(prev => ({ ...prev, reviews: reports.length, reports: reports.length }));
+      })
+      .catch(err => console.error("Reports fetch failed:", err))
+      .finally(() => setLoadingFlags(prev => ({ ...prev, reports: false })));
 
-      const reports = reportsRes.data.reports || [];
-      const projects = projectsRes.data || [];
-      const systemActivities = activityRes.data || [];
-      const workspaces = workspaceRes.data || [];
-      const uniqueMembers = new Set();
+    // Fetch Projects
+    axios.get("/api/project", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const projects = res.data || [];
+        const uniqueMembers = new Set();
+        projects.forEach((project) => {
+          (project.members || []).forEach((member) => uniqueMembers.add(member?.toString?.() || member));
+        });
+        setStats(prev => ({ ...prev, projects: projects.length, members: uniqueMembers.size }));
+      })
+      .catch(err => console.error("Projects fetch failed:", err))
+      .finally(() => setLoadingFlags(prev => ({ ...prev, projects: false })));
 
-      projects.forEach((project) => {
-        (project.members || []).forEach((member) => uniqueMembers.add(member?.toString?.() || member));
-      });
+    // Fetch Activities
+    axios.get("/api/activity", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const systemActivities = res.data || [];
+        setActivities(
+          systemActivities.map((act) => ({
+            id: act._id,
+            type: act.type,
+            title: act.title,
+            description: act.description,
+            time: new Date(act.createdAt),
+            icon: getIconForActivity(act.type),
+            metadata: act.metadata,
+          }))
+        );
+      })
+      .catch(err => console.error("Activities fetch failed:", err))
+      .finally(() => setLoadingFlags(prev => ({ ...prev, activities: false })));
 
-      setActivities(
-        systemActivities.map((act) => ({
-          id: act._id,
-          type: act.type,
-          title: act.title,
-          description: act.description,
-          time: new Date(act.createdAt),
-          icon: getIconForActivity(act.type),
-          metadata: act.metadata,
-        }))
-      );
-
-      setStats({
-        projects: projects.length,
-        members: uniqueMembers.size,
-        reviews: reports.length,
-        reports: reports.length,
-        workspaces: workspaces.length,
-        tasks: 0,
-      });
-    } catch (err) {
-      console.error("Dashboard data fetch failed:", err);
-    } finally {
-      setLoading(false);
-    }
+    // Fetch Workspaces
+    axios.get("/api/workspace/all-workspace", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        const workspaces = res.data || [];
+        setStats(prev => ({ ...prev, workspaces: workspaces.length }));
+      })
+      .catch(err => console.error("Workspaces fetch failed:", err))
+      .finally(() => setLoadingFlags(prev => ({ ...prev, workspaces: false })));
   };
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [token]);
 
   const statCards = useMemo(
     () => [
@@ -127,6 +138,7 @@ const Dashboard = () => {
         value: stats.projects,
         icon: FolderKanban,
         tone: "text-info bg-info-soft border-info/20",
+        loading: loadingFlags.projects,
       },
       {
         title: "Team Members",
@@ -134,6 +146,7 @@ const Dashboard = () => {
         value: stats.members,
         icon: Users,
         tone: "text-primary bg-primary-soft border-primary/20",
+        loading: loadingFlags.projects,
       },
       {
         title: "AI Reviews",
@@ -141,6 +154,7 @@ const Dashboard = () => {
         value: stats.reviews,
         icon: Bot,
         tone: "text-error bg-error-soft border-error/20",
+        loading: loadingFlags.reports,
       },
       {
         title: "Reports",
@@ -148,9 +162,10 @@ const Dashboard = () => {
         value: stats.reports,
         icon: TrendingUp,
         tone: "text-success bg-success-soft border-success/20",
+        loading: loadingFlags.reports,
       },
     ],
-    [stats]
+    [stats, loadingFlags]
   );
 
   const healthScore = Math.min(100, 72 + stats.projects * 3 + stats.reports * 2);
@@ -203,9 +218,9 @@ const Dashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border-subtle bg-surface/70 p-2 backdrop-blur">
-                  <MiniMetric label="Health" value={`${healthScore}%`} />
-                  <MiniMetric label="Workspaces" value={stats.workspaces} />
-                  <MiniMetric label="Events" value={activities.length} />
+                  <MiniMetric label="Health" value={`${healthScore}%`} loading={loadingFlags.projects || loadingFlags.reports} />
+                  <MiniMetric label="Workspaces" value={stats.workspaces} loading={loadingFlags.workspaces} />
+                  <MiniMetric label="Events" value={activities.length} loading={loadingFlags.activities} />
                 </div>
               </div>
             </div>
@@ -213,7 +228,7 @@ const Dashboard = () => {
 
           <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {statCards.map((item, index) => (
-              <StatCard key={item.title} item={item} loading={loading} index={index} />
+              <StatCard key={item.title} item={item} loading={item.loading} index={index} />
             ))}
           </section>
 
@@ -231,7 +246,7 @@ const Dashboard = () => {
               </div>
 
               <div className="max-h-[680px] overflow-y-auto p-3 sm:p-4">
-                {loading ? (
+                {loadingFlags.activities ? (
                   <ActivitySkeleton />
                 ) : activities.length === 0 ? (
                   <EmptyActivity />
@@ -252,7 +267,7 @@ const Dashboard = () => {
             </div>
 
             <aside className="space-y-5">
-              <WorkspaceSummary stats={stats} activities={activities} loading={loading} healthScore={healthScore} />
+              <WorkspaceSummary stats={stats} activities={activities} loadingFlags={loadingFlags} healthScore={healthScore} />
               <ActiveTeam currentUserId={user?._id} />
             </aside>
           </section>
@@ -262,10 +277,14 @@ const Dashboard = () => {
   );
 };
 
-function MiniMetric({ label, value }) {
+function MiniMetric({ label, value, loading }) {
   return (
     <div className="min-w-[82px] rounded-xl px-3 py-2 text-center">
-      <p className="text-lg font-semibold text-text-primary">{value}</p>
+      {loading ? (
+        <div className="mx-auto h-7 w-12 animate-pulse rounded-md bg-muted" />
+      ) : (
+        <p className="text-lg font-semibold text-text-primary">{value}</p>
+      )}
       <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">{label}</p>
     </div>
   );
@@ -291,11 +310,13 @@ function StatCard({ item, loading, index }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{item.title}</p>
         <div className="mt-1 flex items-end gap-2">
           {loading ? (
-            <div className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
+            <div className="h-8 w-24 animate-pulse rounded-lg bg-muted" />
           ) : (
-            <h3 className="text-3xl font-semibold tracking-tight text-text-primary">{item.value}</h3>
+            <>
+              <h3 className="text-3xl font-semibold tracking-tight text-text-primary">{item.value}</h3>
+              <span className="mb-1 text-xs text-success">+ live</span>
+            </>
           )}
-          <span className="mb-1 text-xs text-success">+ live</span>
         </div>
         <p className="mt-2 text-sm text-text-secondary">{item.label}</p>
       </div>
@@ -341,13 +362,15 @@ function ActivityItem({ activity, index, formatTime, onClick }) {
   );
 }
 
-function WorkspaceSummary({ stats, activities, loading, healthScore }) {
+function WorkspaceSummary({ stats, activities, loadingFlags, healthScore }) {
   const rows = [
-    { label: "Total Workspaces", value: stats.workspaces, icon: Workflow },
-    { label: "Active Projects", value: stats.projects, icon: FolderKanban },
-    { label: "Team Members", value: stats.members, icon: Users },
-    { label: "Recent Events", value: activities.length, icon: GitCommit },
+    { label: "Total Workspaces", value: stats.workspaces, icon: Workflow, loading: loadingFlags.workspaces },
+    { label: "Active Projects", value: stats.projects, icon: FolderKanban, loading: loadingFlags.projects },
+    { label: "Team Members", value: stats.members, icon: Users, loading: loadingFlags.projects },
+    { label: "Recent Events", value: activities.length, icon: GitCommit, loading: loadingFlags.activities },
   ];
+
+  const healthLoading = loadingFlags.projects || loadingFlags.reports;
 
   return (
     <section className="rounded-2xl border border-border-subtle bg-card p-5 shadow-sm">
@@ -357,7 +380,11 @@ function WorkspaceSummary({ stats, activities, loading, healthScore }) {
           <p className="mt-1 text-xs text-text-muted">Operational health across your workspace.</p>
         </div>
         <div className="rounded-xl border border-primary/20 bg-primary-soft px-3 py-2 text-right text-primary">
-          <p className="text-lg font-semibold">{loading ? "--" : `${healthScore}%`}</p>
+          {healthLoading ? (
+            <div className="ml-auto mb-1 h-6 w-10 animate-pulse rounded-md bg-primary/20" />
+          ) : (
+            <p className="text-lg font-semibold">{`${healthScore}%`}</p>
+          )}
           <p className="text-[10px] font-bold uppercase tracking-wide">Health</p>
         </div>
       </div>
@@ -373,7 +400,7 @@ function WorkspaceSummary({ stats, activities, loading, healthScore }) {
                 </div>
                 <span className="text-sm font-medium text-text-secondary">{row.label}</span>
               </div>
-              {loading ? (
+              {row.loading ? (
                 <div className="h-4 w-8 animate-pulse rounded bg-muted" />
               ) : (
                 <span className="text-sm font-semibold text-text-primary">{row.value}</span>

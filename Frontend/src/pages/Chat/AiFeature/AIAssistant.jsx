@@ -37,15 +37,15 @@ export default function AIAssistant() {
      *                            overflow-y-auto on the messages div works correctly
      * • overflow-hidden        → clip children; scrolling lives only in the messages div
      */
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-background text-text-primary">
+    <div className="flex flex-col flex-1 min-h-0 md:overflow-hidden overflow-y-auto bg-background text-text-primary">
 
       {/* ═══════════════ HEADER ═══════════════ */}
-      <div className="shrink-0 px-3 sm:px-6 py-3 sm:py-4 border-b border-border-subtle bg-background/90 backdrop-blur-xl z-40">
+      <div className="shrink-0 px-3 sm:px-6 py-3 sm:py-4 border-b border-border-subtle bg-background/90 backdrop-blur-xl z-40 md:sticky md:top-0">
         <AIAssistantHeader user={user} />
       </div>
 
       {/* ═══════════════ MESSAGES ═══════════════ */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 min-h-0 md:overflow-y-auto overflow-visible overflow-x-hidden">
         <div className="px-3 sm:px-8 md:px-16 lg:px-28 xl:px-32 py-4 pb-6">
 
           {/* ── EMPTY STATE ── */}
@@ -150,7 +150,7 @@ export default function AIAssistant() {
       </div>
 
       {/* ═══════════════ INPUT ═══════════════ */}
-      <div className="shrink-0 border-border-subtle bg-background/95 backdrop-blur-sm z-10">
+      <div className="shrink-0 border-border-subtle bg-background/95 backdrop-blur-sm z-10 sticky bottom-0">
         <TypeSendAi isAiPage={true} />
       </div>
 

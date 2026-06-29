@@ -15,7 +15,6 @@ const io = new Server(server, {
   },
 });
 
-// { userId: Set(socketId) }
 const users = {};
 const pendingDisconnects = {};
 const callSessions = new Map();
@@ -77,7 +76,6 @@ io.on("connection", (socket) => {
     }
   }
 
-  // fallback (dev only)
   if (!userId) userId = socket.handshake.query.userId?.toString();
 
   if (!userId) {
@@ -85,10 +83,8 @@ io.on("connection", (socket) => {
     return;
   }
 
-  // 🔥 persist userId on socket
   socket.userId = userId;
 
-  // cancel pending disconnect
   if (pendingDisconnects[userId]) {
     clearTimeout(pendingDisconnects[userId]);
     delete pendingDisconnects[userId];
@@ -101,18 +97,14 @@ io.on("connection", (socket) => {
 
   console.log("🟢 Online users:", Object.keys(users));
 
-
   if (wasOffline) {
     setUserOnlineStatus(userId, true);
   }
 
-  // ✅ FIXED EVENT NAME
   io.emit("onlineUsers", Object.keys(users));
 
-  // typing event
   socket.on("typing", ({ to, conversationId, typing }) => {
     if (!to) return;
-
     getReceiverSocketIds(to).forEach((sid) => {
       io.to(sid).emit("typing", {
         from: socket.userId,
@@ -120,6 +112,11 @@ io.on("connection", (socket) => {
         typing,
       });
     });
+  });
+
+  socket.on("clear-history", ({ conversationId, userId }) => {
+    // Broadcast the clear history event to everyone to ensure it clears for the other participant instantly
+    io.emit("clear-history", { conversationId, userId });
   });
 
   socket.on("call-user", ({ to, callType, callId, conversationId, caller }) => {

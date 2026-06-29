@@ -506,11 +506,18 @@ const Signup = ({ isModal = false, closeModal, openLogin }) => {
               transition-all duration-300
               text-white font-semibold
               shadow-md
+              flex items-center justify-center gap-2
+              disabled:opacity-70 disabled:cursor-not-allowed
             "
           >
-            {isSubmitting
-              ? "Creating Account..."
-              : "SIGN UP"}
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Creating Account...
+              </>
+            ) : (
+              "SIGN UP"
+            )}
           </button>
 
           {/* Footer */}

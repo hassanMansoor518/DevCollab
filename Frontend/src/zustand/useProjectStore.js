@@ -38,6 +38,10 @@ const useProjectStore = create((set, get) => ({
         if (updatedSelected) {
           set({ selectedProject: updatedSelected });
           localStorage.setItem("selectedProject", JSON.stringify(updatedSelected));
+        } else {
+          // Fix project leakage: clear project if it doesn't belong to current user
+          set({ selectedProject: null });
+          localStorage.removeItem("selectedProject");
         }
       } else if (res.data.length > 0) {
         // Optionally auto-select first one if none selected
@@ -62,12 +66,12 @@ const useProjectStore = create((set, get) => ({
     set({ loading: true });
     try {
       const res = await axios.post(`/api/project/${projectId}/index`);
-      
+
       // Update the project in the list
-      const projects = get().projects.map(p => 
+      const projects = get().projects.map(p =>
         p._id === projectId ? { ...p, projectStructure: res.data.structure, indexedCodeSummary: res.data.summary } : p
       );
-      
+
       set({ projects, loading: false });
 
       // Update selectedProject if it's the one being indexed

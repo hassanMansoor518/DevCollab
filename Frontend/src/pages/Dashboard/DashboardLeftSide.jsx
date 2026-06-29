@@ -11,38 +11,64 @@ import {
   Code2,
   FileText,
   Menu,
-  ChevronRight
+  ChevronRight,
+  X,
+  PanelLeftClose,
+  PanelLeft
 } from "lucide-react";
 
 export default function DashboardLeftSide() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 768);
+  const [isUserCollapsed, setIsUserCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar_collapsed');
+    return saved !== null ? JSON.parse(saved) : window.innerWidth < 768;
+  });
+
+  const [collapsed, setCollapsed] = useState(() => {
+    const isAutoClosePage = location.pathname.includes('/chat') || location.pathname.includes('/settings');
+    if (isAutoClosePage || window.innerWidth < 768) return true;
+    return isUserCollapsed;
+  });
+
+  const handleToggleState = (newState) => {
+    setCollapsed(newState);
+    setIsUserCollapsed(newState);
+    localStorage.setItem('sidebar_collapsed', JSON.stringify(newState));
+  };
 
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setCollapsed(true);
+      } else {
+        const isAutoClosePage = location.pathname.includes('/chat') || location.pathname.includes('/settings');
+        if (!isAutoClosePage) {
+          setCollapsed(isUserCollapsed);
+        }
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [location.pathname, isUserCollapsed]);
 
   useEffect(() => {
-    if (location.pathname === "/chat" && window.innerWidth >= 768) {
-      setCollapsed(false);
+    const isAutoClosePage = location.pathname.includes('/chat') || location.pathname.includes('/settings');
+    if (isAutoClosePage) {
+      setCollapsed(true);
     } else if (window.innerWidth < 768) {
       setCollapsed(true);
+    } else {
+      setCollapsed(isUserCollapsed);
     }
-  }, [location.pathname]);
+  }, [location.pathname, isUserCollapsed]);
 
   useEffect(() => {
-    const handleToggle = () => setCollapsed(prev => !prev);
-    window.addEventListener('toggle-sidebar', handleToggle);
-    return () => window.removeEventListener('toggle-sidebar', handleToggle);
-  }, []);
+    const handleToggleEvent = () => handleToggleState(!collapsed);
+    window.addEventListener('toggle-sidebar', handleToggleEvent);
+    return () => window.removeEventListener('toggle-sidebar', handleToggleEvent);
+  }, [collapsed]);
 
   const handleNavigate = (path) => {
     if (location.pathname !== path) navigate(path);
@@ -113,7 +139,7 @@ export default function DashboardLeftSide() {
       {!collapsed && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-          onClick={() => setCollapsed(true)}
+          onClick={() => handleToggleState(true)}
         />
       )}
 
@@ -156,13 +182,14 @@ export default function DashboardLeftSide() {
             </div>
 
             <button
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => handleToggleState(!collapsed)}
               className="text-text-muted hover:text-text-primary transition"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? (
-                <ChevronRight size={20} />
-              ) : (
                 <Menu size={20} />
+              ) : (
+                <PanelLeftClose size={20} />
               )}
             </button>
           </div>

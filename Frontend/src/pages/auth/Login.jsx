@@ -156,11 +156,16 @@ const Login = ({ isModal, closeModal, openSignup }) => {
     window.location.href = githubAuthUrl;
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // ─── Email/Password Login ────────────────────────────────────
   const handelSubmit = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
     const password = e.target.password.value;
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const res = await axios.post(
@@ -179,6 +184,8 @@ const Login = ({ isModal, closeModal, openSignup }) => {
       } else {
         setErrors("Server not responding");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -411,6 +418,7 @@ const Login = ({ isModal, closeModal, openSignup }) => {
           {/* Button */}
           <button
             type="submit"
+            disabled={isSubmitting}
             className="
             w-full h-12
             rounded-xl
@@ -419,9 +427,18 @@ const Login = ({ isModal, closeModal, openSignup }) => {
             transition-all duration-300
             text-white font-semibold
             shadow-md
+            flex items-center justify-center gap-2
+            disabled:opacity-70 disabled:cursor-not-allowed
           "
           >
-            Login
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </button>
 
           {/* Footer */}
