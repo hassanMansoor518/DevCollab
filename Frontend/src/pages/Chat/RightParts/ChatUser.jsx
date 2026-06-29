@@ -139,10 +139,74 @@ function Chatuser({ showSettings, setShowSettings }) {
 
                 <div className="flex items-center gap-1.5">
                     {/* AV Actions */}
-                    <button onClick={async () => { /* implementation */ }} disabled={!canStartCall} className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}>
+                    <button
+                        onClick={async () => {
+                            if (!canStartCall || !otherUser?._id) return;
+                            const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                            if (!caller) return;
+
+                            try {
+                                const stream = await getLocalMediaStream("audio");
+                                useCallStore.getState().setLocalStream(stream);
+
+                                const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                                useCallStore.getState().startOutgoingCall({
+                                    callId,
+                                    callType: "audio",
+                                    remoteUser: otherUser,
+                                    conversationId: selectedConversation?._id,
+                                });
+
+                                socket.emit("call-user", {
+                                    to: otherUser._id,
+                                    callType: "audio",
+                                    callId,
+                                    conversationId: selectedConversation?._id,
+                                    caller: { _id: caller._id, fullName: caller.fullName },
+                                });
+                            } catch (err) {
+                                console.error("Camera/Mic permission denied", err);
+                                alert(getFriendlyMediaErrorMessage(err));
+                            }
+                        }}
+                        disabled={!canStartCall}
+                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}
+                    >
                         <Phone size={16} />
                     </button>
-                    <button onClick={async () => { /* implementation */ }} disabled={!canStartCall} className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}>
+                    <button
+                        onClick={async () => {
+                            if (!canStartCall || !otherUser?._id) return;
+                            const caller = JSON.parse(localStorage.getItem("ChatApp"))?.user;
+                            if (!caller) return;
+
+                            try {
+                                const stream = await getLocalMediaStream("video");
+                                useCallStore.getState().setLocalStream(stream);
+
+                                const callId = `${caller._id}-${otherUser._id}-${Date.now()}`;
+                                useCallStore.getState().startOutgoingCall({
+                                    callId,
+                                    callType: "video",
+                                    remoteUser: otherUser,
+                                    conversationId: selectedConversation?._id,
+                                });
+
+                                socket.emit("call-user", {
+                                    to: otherUser._id,
+                                    callType: "video",
+                                    callId,
+                                    conversationId: selectedConversation?._id,
+                                    caller: { _id: caller._id, fullName: caller.fullName },
+                                });
+                            } catch (err) {
+                                console.error("Camera/Mic permission denied", err);
+                                alert(getFriendlyMediaErrorMessage(err));
+                            }
+                        }}
+                        disabled={!canStartCall}
+                        className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200 ${canStartCall ? "text-text-muted hover:bg-hover-bg hover:text-text-primary" : "cursor-not-allowed opacity-50"}`}
+                    >
                         <Video size={16} />
                     </button>
 
