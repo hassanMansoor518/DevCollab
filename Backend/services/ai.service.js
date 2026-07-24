@@ -1,10 +1,5 @@
-import fetch from "node-fetch";
-globalThis.fetch = fetch;
-
-import dotenv from "dotenv";
-dotenv.config();
-
-import { GoogleGenAI } from "@google/genai";
+require("dotenv").config();
+const { GoogleGenAI } = require("@google/genai");
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
@@ -72,7 +67,7 @@ async function callLLM(prompt, userSettings = null) {
 // =========================
 // CHAT
 // =========================
-export async function generateResult(prompt, projectContext = null, chatHistory = [], userSettings = null) {
+async function generateResult(prompt, projectContext = null, chatHistory = [], userSettings = null) {
   try {
     let systemPrompt = `You are an elite Software Architect and AI Developer Assistant. 
 Your goal is to provide high-quality, production-ready, and repository-specific engineering solutions.
@@ -129,7 +124,7 @@ Assistant:`;
 // =========================
 // COMMIT ANALYSIS
 // =========================
-export async function analyzeCommit({ message, patch }, userSettings = null) {
+async function analyzeCommit({ message, patch }, userSettings = null) {
   try {
     const trimmedPatch = patch?.slice(0, 12000);
 
@@ -163,7 +158,7 @@ Provide:
 // =========================
 // CODE ANALYSIS
 // =========================
-export async function analyzeCode({ code, filename, language }, userSettings = null) {
+async function analyzeCode({ code, filename, language }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000); // Prevent excessively large payloads
 
@@ -231,7 +226,7 @@ Provide a strict JSON response. Do not include markdown blocks like \`\`\`json. 
 // =========================
 // FIX CODE ISSUE
 // =========================
-export async function fixCodeIssue({ code, filename, language, issueTitle, issueDescription }, userSettings = null) {
+async function fixCodeIssue({ code, filename, language, issueTitle, issueDescription }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000);
 
@@ -264,7 +259,7 @@ ${trimmedCode}
   }
 }
 
-export async function generateProfessionalReport({ code, filename, language, analysisResult }, userSettings = null) {
+async function generateProfessionalReport({ code, filename, language, analysisResult }, userSettings = null) {
   try {
     const trimmedCode = code?.slice(0, 15000);
 
@@ -326,3 +321,11 @@ Provide a strict JSON response. The output MUST be valid JSON matching this stru
     throw err;
   }
 }
+
+module.exports = {
+  generateResult,
+  analyzeCommit,
+  analyzeCode,
+  fixCodeIssue,
+  generateProfessionalReport
+};

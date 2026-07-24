@@ -1,7 +1,7 @@
-import express from "express";
+const express = require("express");
 const router = express.Router();
-import * as reportController from "../controller/report.controller.js";
-import secureRoute from "../middleware/secureRoute.js";
+const reportController = require("../controller/report.controller.js");
+const secureRoute = require("../middleware/secureRoute.js");
 
 // All report routes require authentication
 router.use(secureRoute);
@@ -24,4 +24,4 @@ router.delete("/:reportId", reportController.deleteReport);
 // Download report
 router.get("/:reportId/download", reportController.downloadReport);
 
-export default router;
+module.exports = router;

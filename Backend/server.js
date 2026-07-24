@@ -15,7 +15,7 @@ const workspaceMessageRoutes = require("./routes/workspaceMessage.route");
 const activityRoutes = require("./routes/activity.route");
 const supportRoutes = require("./routes/support.route");
 
-const reportRoutes = require("./routes/report.route.js").default || require("./routes/report.route.js");
+const reportRoutes = require("./routes/report.route.js");
 const connectDB = require("./db/db");
 connectDB();
 const Port = process.env.PORT

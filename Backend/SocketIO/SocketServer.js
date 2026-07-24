@@ -1,8 +1,8 @@
-import { Server } from "socket.io";
-import http from "http";
-import express from "express";
-import jwt from "jsonwebtoken";
-import User from "../model/user.model.js";
+const { Server } = require("socket.io");
+const http = require("http");
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const User = require("../model/user.model.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -28,7 +28,7 @@ const users = {};
 const pendingDisconnects = {};
 const callSessions = new Map();
 
-export const getReceiverSocketIds = (receiverId) => {
+const getReceiverSocketIds = (receiverId) => {
   return users[receiverId] ? Array.from(users[receiverId]) : [];
 };
 
@@ -267,4 +267,9 @@ io.on("connection", (socket) => {
   });
 });
 
-export { app, io, server };
+module.exports = {
+  app,
+  io,
+  server,
+  getReceiverSocketIds
+};

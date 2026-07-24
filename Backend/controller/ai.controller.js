@@ -1,14 +1,14 @@
-import * as ai from '../services/ai.service.js';
-import Message from '../model/message.model.js';
-import Conversation from '../model/conversation.model.js';
-import WorkspaceMessage from '../model/workspaceMessage.model.js';
-import Workspace from '../model/workspace.model.js';
-import User from '../model/user.model.js';
-import Project from '../model/project.model.js';
-import AiMessage from '../model/aiMessage.model.js';
-import { getReceiverSocketIds, io } from '../SocketIO/SocketServer.js';
+const ai = require('../services/ai.service.js');
+const Message = require('../model/message.model.js');
+const Conversation = require('../model/conversation.model.js');
+const WorkspaceMessage = require('../model/workspaceMessage.model.js');
+const Workspace = require('../model/workspace.model.js');
+const User = require('../model/user.model.js');
+const Project = require('../model/project.model.js');
+const AiMessage = require('../model/aiMessage.model.js');
+const { getReceiverSocketIds, io } = require('../SocketIO/SocketServer.js');
 
-export const getResult = async (req, res) => {
+const getResult = async (req, res) => {
   try {
     const { prompt, conversationId, projectId } = req.query;
 
@@ -231,7 +231,7 @@ export const getResult = async (req, res) => {
   }
 };
 
-export const getChatHistory = async (req, res) => {
+const getChatHistory = async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user._id;
@@ -260,7 +260,7 @@ export const getChatHistory = async (req, res) => {
   }
 };
 
-export const analyzeCode = async (req, res) => {
+const analyzeCode = async (req, res) => {
   try {
     const { code, filename, language } = req.body;
 
@@ -302,7 +302,7 @@ export const analyzeCode = async (req, res) => {
   }
 };
 
-export const fixIssue = async (req, res) => {
+const fixIssue = async (req, res) => {
   try {
     const { code, filename, language, issueTitle, issueDescription } = req.body;
 
@@ -342,4 +342,11 @@ export const fixIssue = async (req, res) => {
       }
     });
   }
-}
+};
+
+module.exports = {
+  getResult,
+  getChatHistory,
+  analyzeCode,
+  fixIssue
+};

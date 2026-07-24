@@ -1,11 +1,11 @@
-import Report from "../model/report.model.js";
-import Project from "../model/project.model.js";
-import { generateProfessionalReport } from "../services/ai.service.js";
-import PDFDocument from "pdfkit";
-import { logActivity } from "../services/activity.service.js";
+const Report = require("../model/report.model.js");
+const Project = require("../model/project.model.js");
+const { generateProfessionalReport } = require("../services/ai.service.js");
+const PDFDocument = require("pdfkit");
+const { logActivity } = require("../services/activity.service.js");
 
 // Generate a new report
-export const generateReport = async (req, res) => {
+const generateReport = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { filename, language, code, analysisResult } = req.body;
@@ -77,7 +77,7 @@ export const generateReport = async (req, res) => {
 };
 
 // Get all reports for a project
-export const getReportsByProject = async (req, res) => {
+const getReportsByProject = async (req, res) => {
   try {
     const { projectId } = req.params;
     const reports = await Report.find({ projectId }).sort({ createdAt: -1 });
@@ -89,7 +89,7 @@ export const getReportsByProject = async (req, res) => {
 };
 
 // Get all reports (across all projects for user)
-export const getAllReports = async (req, res) => {
+const getAllReports = async (req, res) => {
   try {
     // logged in user id
     const userId = req.user._id;
@@ -114,7 +114,7 @@ export const getAllReports = async (req, res) => {
 };
 
 // Get single report
-export const getReport = async (req, res) => {
+const getReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const report = await Report.findById(reportId);
@@ -129,7 +129,7 @@ export const getReport = async (req, res) => {
 };
 
 // Delete report
-export const deleteReport = async (req, res) => {
+const deleteReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const report = await Report.findByIdAndDelete(reportId);
@@ -144,7 +144,7 @@ export const deleteReport = async (req, res) => {
 };
 
 // Download report as PDF
-export const downloadReport = async (req, res) => {
+const downloadReport = async (req, res) => {
   try {
     const { reportId } = req.params;
     const report = await Report.findById(reportId).populate('projectId');
@@ -288,4 +288,13 @@ export const downloadReport = async (req, res) => {
     console.error("Error downloading report:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+module.exports = {
+  generateReport,
+  getReportsByProject,
+  getAllReports,
+  getReport,
+  deleteReport,
+  downloadReport
 };
