@@ -22,7 +22,7 @@ const Port = process.env.PORT
 
 app.use(cors({
   origin: [
-    "https://dev-collab-neon.vercel.app",
+    "https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app",
   ],
   credentials: true
 }));
