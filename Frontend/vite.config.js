@@ -20,11 +20,11 @@ export default defineConfig(({ mode }) => {
       port: 4002,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'https://ai-powered-chat-application-production.up.railway.app',
+          target: env.VITE_API_URL || 'https://devcollab-production-f16f.up.railway.app',
           changeOrigin: true,
         },
         '/socket.io': {
-          target: env.VITE_API_URL || 'https://ai-powered-chat-application-production.up.railway.app',
+          target: env.VITE_API_URL || 'https://devcollab-production-f16f.up.railway.app',
           ws: true,
           changeOrigin: true
         }

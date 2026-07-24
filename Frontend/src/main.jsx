@@ -12,7 +12,7 @@ import axios from "axios";
 
 const queryClient = new QueryClient();
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 

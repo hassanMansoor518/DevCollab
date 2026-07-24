@@ -10,7 +10,7 @@ import {
   X, CheckCircle, Clock, AlertCircle, Sparkles, Send, FilterX 
 } from 'lucide-react';
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
 
 const QUICK_ACTIONS = [
   { id: 'getting-started', icon: Book,          title: 'Getting Started',    desc: 'Learn the basics and set up your profile.' },

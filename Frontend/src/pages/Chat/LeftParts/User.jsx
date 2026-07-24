@@ -4,7 +4,7 @@ import useConversation from "../../../zustand/useConversation.js";
 import { useSocketContext } from "../../../context/SocketContext.jsx";
 import profile from "../../../assets/Profile.png";
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
 
 function User({ user }) {
     const { selectedConversation, setSelectedConversation, setSelectedWorkspace } = useConversation();

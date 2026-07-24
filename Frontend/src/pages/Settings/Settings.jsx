@@ -21,7 +21,7 @@ import AppearanceSettings from './tabs/AppearanceSettings';
 import AiSettings from './tabs/AiSettings';
 import DangerSettings from './tabs/DangerSettings';
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://ai-powered-chat-application-production.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User, desc: 'Public avatar, name, and bio details' },
