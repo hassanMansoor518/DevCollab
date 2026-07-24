@@ -7,11 +7,23 @@ const User = require("../model/user.model.js");
 const app = express();
 const server = http.createServer(app);
 
+const vercelPreviewRegex = /^https:\/\/dev-collab[a-z0-9-]*\.vercel\.app$/;
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app"
-    ],
+    origin: function (origin, callback) {
+      if (
+        !origin ||
+        vercelPreviewRegex.test(origin) ||
+        origin === process.env.ALLOWED_ORIGIN ||
+        origin === "http://localhost:5173" ||
+        origin === "http://localhost:3000"
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Socket CORS: Origin '${origin}' not allowed`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST"],
   },
