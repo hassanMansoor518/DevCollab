@@ -29,15 +29,15 @@ async function registerUser(req, res) {
       password: hashedPassword,
     });
 
-  const token = jwt.sign({
-    id: user._id
-  }, process.env.JWT_SECRET);
-  res.cookie("token", token, {
-    sameSite: "none",
-    secure: true
-  });
+    const token = jwt.sign({
+      id: user._id
+    }, process.env.JWT_SECRET);
+    res.cookie("token", token, {
+      sameSite: "none",
+      secure: true
+    });
 
-  
+
 
     return res.status(201).json({
       message: "User registered successfully",
@@ -128,16 +128,16 @@ function logoutUser(req, res) {
 }
 
 
-async function allUser(req ,res){
+async function allUser(req, res) {
   try {
     const loggedInUserId = req.user._id;
     const users = await userModel.find({
-     _id: { $ne: loggedInUserId }
-   }).select("-password");
+      _id: { $ne: loggedInUserId }
+    }).select("-password");
     res.status(200).json(users)
   } catch (error) {
     res.status(500).json({
-      message:"Server error"
+      message: "Server error"
     })
   }
 }
@@ -234,7 +234,7 @@ async function deleteUserAccount(req, res) {
   }
 }
 
-module.exports={
+module.exports = {
   registerUser,
   loginUser,
   logoutUser,

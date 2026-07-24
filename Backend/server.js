@@ -22,14 +22,7 @@ const Port = process.env.PORT
 
 app.use(cors({
   origin: [
-    "http://localhost:4002",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:4002",
-    "http://127.0.0.1:5173",
     "https://dev-collab-neon.vercel.app",
-    "https://ai-powered-chat-application-sigma.vercel.app"
   ],
   credentials: true
 }));
