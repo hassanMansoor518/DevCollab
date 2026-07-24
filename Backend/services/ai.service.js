@@ -11,7 +11,7 @@ const ai = new GoogleGenAI({
 // CALL LLM ROUTING
 // =========================
 async function callLLM(prompt, userSettings = null) {
-  const defaultModel = userSettings?.defaultModel || "gemini-3.6-flash";
+  const defaultModel = userSettings?.defaultModel || "Gemini 1.5 Pro";
   const geminiKey = userSettings?.geminiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openaiKey = userSettings?.openaiKey;
 
