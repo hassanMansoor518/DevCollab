@@ -6,7 +6,7 @@
 
 A cutting-edge collaborative development platform that enables teams to seamlessly manage projects, track commits, analyze code quality, and communicate in real-time—all powered by AI-driven insights.
 
-**🔗 Live Demo:** [https://ai-powered-chat-application-sigma.vercel.app](https://ai-powered-chat-application-sigma.vercel.app)
+**🔗 Live Demo:** [https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app/](https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app)
 
 ---
 
