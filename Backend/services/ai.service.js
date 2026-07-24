@@ -11,7 +11,7 @@ const ai = new GoogleGenAI({
 // CALL LLM ROUTING
 // =========================
 async function callLLM(prompt, userSettings = null) {
-  const defaultModel = userSettings?.defaultModel || "Gemini 1.5 Pro";
+  const defaultModel = userSettings?.defaultModel || "gemini-3.6-flash";
   const geminiKey = userSettings?.geminiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openaiKey = userSettings?.openaiKey;
 
@@ -20,7 +20,7 @@ async function callLLM(prompt, userSettings = null) {
       // Gracefully fall back to Gemini instead of crashing with a 500
       console.warn(`[AI] GPT model selected but no OpenAI key configured. Falling back to gemini-2.5-flash.`);
       const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
-      const response = await client.models.generateContent({ model: "gemini-2.5-flash", contents: prompt });
+      const response = await client.models.generateContent({ model: "gemini-3.6-flash", contents: prompt });
       return response.text;
     }
     const modelName = defaultModel.includes("3.5") ? "gpt-3.5-turbo" : "gpt-4o";
@@ -45,9 +45,9 @@ async function callLLM(prompt, userSettings = null) {
   } else {
     // Only "gemini-2.5-flash" is confirmed working with this SDK + API key.
     // gemini-1.5-* returns 404; gemini-2.0-* returns 429 quota exceeded.
-    const modelName = "gemini-2.5-flash";
+    const modelName = "gemini-3.6-flash";
     const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
-    
+
     for (let i = 0; i < 3; i++) {
       try {
         const response = await client.models.generateContent({ model: modelName, contents: prompt });
