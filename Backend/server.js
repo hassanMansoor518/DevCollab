@@ -15,6 +15,7 @@ const workspaceMessageRoutes = require("./routes/workspaceMessage.route");
 const activityRoutes = require("./routes/activity.route");
 const supportRoutes = require("./routes/support.route");
 
+const agentRoutes = require("./routes/agent.route");
 const reportRoutes = require("./routes/report.route.js");
 const connectDB = require("./db/db");
 connectDB();
@@ -28,6 +29,7 @@ const allowedOrigins = [
   process.env.ALLOWED_ORIGIN,   // Set this in Railway env vars for production domain
   "http://localhost:5173",
   "http://localhost:3000",
+  "http://localhost:4002",
 ];
 
 app.use(cors({
@@ -45,6 +47,12 @@ app.use(cors({
 }));
 // ──────────────────────────────────────────────────────────────────────────────
 
+const previewProxyRoutes = require("./routes/previewProxy");
+
+// ─── Dev Server Reverse Proxy (Must be mounted before body-parser for raw streams)
+app.use("/api/project", previewProxyRoutes);
+app.use("/preview", previewProxyRoutes);
+
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -55,6 +63,7 @@ app.use("/api/ai", aiRoutes);
 app.use('/api/conversation', conversationRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/project', projectRoutes);
+app.use("/api/agent", agentRoutes);
 app.use("/api/workspace", workspaceRoutes);
 app.use("/api/workspace/message", workspaceMessageRoutes);
 app.use("/api/report", reportRoutes);

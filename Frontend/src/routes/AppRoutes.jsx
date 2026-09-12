@@ -35,6 +35,8 @@ function AppRoutes() {
 
       <Route path="/project" element={<ProjectsDashboard />} />
       <Route path="/project/:id" element={<ProjectCommit />} />
+      <Route path="/project/:id/workspace" element={<ProjectCommit initialTab="code" />} />
+      <Route path="/project/:id/testing" element={<ProjectCommit initialTab="testing" />} />
 
 
       <Route path="/chat" element={

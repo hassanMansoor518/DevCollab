@@ -3,9 +3,39 @@ const http = require("http");
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model.js");
+const { spawn } = require("child_process");
+const os = require("os");
+const path = require("path");
+
+const terminalManager = require("../services/TerminalManager");
+const workspaceFs = require("../services/workspaceFs.service");
+const devServerManager = require("../services/DevServerManager");
+const previewProxy = require("../routes/previewProxy");
 
 const app = express();
 const server = http.createServer(app);
+
+// ─── WebSocket Upgrade Handling for Dev Server Preview (HMR / WebSockets) ─────
+server.on("upgrade", (req, socket, head) => {
+  // If it's socket.io, let Socket.IO handle it
+  if (req.url && req.url.startsWith("/socket.io")) {
+    return;
+  }
+
+  // Handle preview proxy WebSocket upgrades
+  const previewMatch = req.url.match(/^(?:\/api\/project\/([^/]+)\/preview|\/preview\/([^/]+))\/(\d+)/);
+  if (previewMatch) {
+    const projectId = previewMatch[1] || previewMatch[2];
+    const port = parseInt(previewMatch[3], 10);
+    if (!isNaN(port) && port > 0 && port < 65535) {
+      console.log(`[Preview WS] Upgrading WebSocket connection for project ${projectId} on port ${port} (URL: ${req.url})`);
+      const proxy = previewProxy.getProxyForProjectAndPort(projectId, port);
+      if (proxy && typeof proxy.upgrade === "function") {
+        proxy.upgrade(req, socket, head);
+      }
+    }
+  }
+});
 
 const vercelPreviewRegex = /^https:\/\/dev-collab[a-z0-9-]*\.vercel\.app$/;
 
@@ -17,7 +47,8 @@ const io = new Server(server, {
         vercelPreviewRegex.test(origin) ||
         origin === process.env.ALLOWED_ORIGIN ||
         origin === "http://localhost:5173" ||
-        origin === "http://localhost:3000"
+        origin === "http://localhost:3000" ||
+        origin === "http://localhost:4002"
       ) {
         callback(null, true);
       } else {
@@ -28,6 +59,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+devServerManager.setSocketServer(io);
+app.set("io", io);
 
 const users = {};
 const pendingDisconnects = {};
@@ -74,6 +108,8 @@ function getTokenFromCookie(cookieString = "") {
   return null;
 }
 
+// ─── Main socket handler ──────────────────────────────────────────────────────
+
 io.on("connection", (socket) => {
   console.log("🟢 socket connected:", socket.id);
 
@@ -116,6 +152,87 @@ io.on("connection", (socket) => {
   }
 
   io.emit("onlineUsers", Object.keys(users));
+
+  // ─── Multi-Terminal PTY Events ──────────────────────────────────────────────
+
+  /**
+   * Create or attach to a terminal session
+   * Payload: { sessionId, projectId, shellType, cols, rows }
+   */
+  socket.on("terminal:create", ({ sessionId, projectId, shellType, cols, rows } = {}) => {
+    if (projectId) {
+      workspaceFs.watchWorkspace(projectId, (change) => {
+        io.emit("workspace:fs-change", change);
+      });
+    }
+    terminalManager.createSession({
+      sessionId,
+      projectId,
+      socket,
+      shellType,
+      cols,
+      rows,
+      userId: socket.userId
+    });
+  });
+
+  // Backward compatibility alias
+  socket.on("terminal:start", ({ sessionId, projectId, shellType, cols, rows } = {}) => {
+    if (projectId) {
+      workspaceFs.watchWorkspace(projectId, (change) => {
+        io.emit("workspace:fs-change", change);
+      });
+    }
+    terminalManager.createSession({
+      sessionId: sessionId || "default",
+      projectId,
+      socket,
+      shellType,
+      cols,
+      rows,
+      userId: socket.userId
+    });
+  });
+
+  /**
+   * User typed or sent raw keystrokes to terminal
+   * Payload: { sessionId, data }
+   */
+  socket.on("terminal:input", (payload = {}) => {
+    const sessionId = payload.sessionId || "default";
+    const data = typeof payload.data === "string" ? payload.data : (typeof payload === "string" ? payload : "");
+    terminalManager.write(sessionId, data);
+  });
+
+  /**
+   * Terminal panel resized
+   * Payload: { sessionId, cols, rows }
+   */
+  socket.on("terminal:resize", ({ sessionId = "default", cols = 80, rows = 24 } = {}) => {
+    terminalManager.resize(sessionId, cols, rows);
+  });
+
+  /**
+   * User explicitly requested to kill a terminal session
+   * Payload: { sessionId }
+   */
+  socket.on("terminal:kill", ({ sessionId = "default" } = {}) => {
+    terminalManager.kill(sessionId);
+    socket.emit("terminal:output", {
+      sessionId,
+      data: "\r\n\x1b[33m[Terminal session terminated]\x1b[0m\r\n"
+    });
+  });
+
+  /**
+   * User requested to restart a terminal session
+   * Payload: { sessionId }
+   */
+  socket.on("terminal:restart", ({ sessionId = "default" } = {}) => {
+    terminalManager.restart(sessionId, socket);
+  });
+
+  // ─── Chat & call events ─────────────────────────────────────────────────────
 
   socket.on("typing", ({ to, conversationId, typing }) => {
     if (!to) return;
@@ -244,6 +361,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("🔴 socket disconnected:", socket.id);
 
+    // Cleanup terminal sessions for this socket
+    terminalManager.cleanupSocket(socket.id);
+
     const uid = socket.userId;
     if (!uid || !users[uid]) return;
 
@@ -278,3 +398,4 @@ module.exports = {
   server,
   getReceiverSocketIds
 };
+

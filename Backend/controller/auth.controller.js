@@ -72,7 +72,7 @@ async function loginUser(req, res) {
     const user = await userModel.findOne({
       email
     });
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(400).json({
         message: "Invalid email or password"
       });
@@ -89,9 +89,10 @@ async function loginUser(req, res) {
       id: user._id
     }, process.env.JWT_SECRET);
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
-      sameSite: "none",
-      secure: true
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction
     });
 
     return res.status(200).json({
@@ -110,9 +111,10 @@ async function loginUser(req, res) {
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in loginUser:", error);
     return res.status(500).json({
-      message: "Server error"
+      message: "Server error",
+      error: error.message
     });
   }
 }

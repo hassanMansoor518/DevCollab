@@ -1,7 +1,8 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const { GoogleGenAI } = require("@google/genai");
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "placeholder_key";
 
 const ai = new GoogleGenAI({
   apiKey,
@@ -15,14 +16,7 @@ async function callLLM(prompt, userSettings = null) {
   const geminiKey = userSettings?.geminiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openaiKey = userSettings?.openaiKey;
 
-  if (defaultModel.startsWith("GPT")) {
-    if (!openaiKey) {
-      // Gracefully fall back to Gemini instead of crashing with a 500
-      console.warn(`[AI] GPT model selected but no OpenAI key configured. Falling back to gemini-2.5-flash.`);
-      const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
-      const response = await client.models.generateContent({ model: "gemini-3.6-flash", contents: prompt });
-      return response.text;
-    }
+  if (defaultModel.startsWith("GPT") && openaiKey) {
     const modelName = defaultModel.includes("3.5") ? "gpt-3.5-turbo" : "gpt-4o";
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -43,24 +37,24 @@ async function callLLM(prompt, userSettings = null) {
     const data = await res.json();
     return data.choices?.[0]?.message?.content || "";
   } else {
-    // Only "gemini-2.5-flash" is confirmed working with this SDK + API key.
-    // gemini-1.5-* returns 404; gemini-2.0-* returns 429 quota exceeded.
-    const modelName = "gemini-3.6-flash";
     const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+    const fallbackModels = ["gemini-3.5-flash", "gemini-3.7-flash", "gemini-flash-lite-latest"];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < fallbackModels.length; i++) {
+      const m = fallbackModels[i];
       try {
-        const response = await client.models.generateContent({ model: modelName, contents: prompt });
+        const response = await client.models.generateContent({ model: m, contents: prompt });
         return response.text;
       } catch (err) {
-        if ((err.status === 503 || err.status === 429) && i < 2) {
-          console.warn(`Gemini API ${err.status} Error. Retrying in ${Math.pow(2, i + 1)} seconds...`);
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i + 1) * 1000));
-          continue;
+        lastError = err;
+        console.warn(`[AI] callLLM model ${m} attempt failed:`, err.message?.slice(0, 100));
+        if ((err.status === 503 || err.status === 429) && i < fallbackModels.length - 1) {
+          const delay = 500 * (i + 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-        throw err;
       }
     }
+    throw lastError || new Error("Failed to generate response from Gemini");
   }
 }
 
@@ -322,8 +316,38 @@ Provide a strict JSON response. The output MUST be valid JSON matching this stru
   }
 }
 
+// =========================
+// GENERATE WITH TOOLS (Agent Fast Path)
+// Single call combining system + user prompt.
+// Returns raw text — caller parses JSON tool calls.
+// =========================
+async function generateWithTools(systemPrompt, userPrompt, userSettings) {
+  const geminiKey = (userSettings && userSettings.geminiKey) || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const client = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : ai;
+  const models = ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-flash-lite-latest'];
+
+  const combinedPrompt = systemPrompt + '\n\n' + userPrompt;
+
+  let lastError = null;
+  for (const modelName of models) {
+    try {
+      const response = await client.models.generateContent({
+        model: modelName,
+        contents: combinedPrompt,
+      });
+      return response.text;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI] generateWithTools model ${modelName} notice:`, err.message?.slice(0, 100));
+    }
+  }
+
+  throw lastError || new Error('All model endpoints failed');
+}
+
 module.exports = {
   generateResult,
+  generateWithTools,
   analyzeCommit,
   analyzeCode,
   fixCodeIssue,

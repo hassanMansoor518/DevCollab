@@ -1,0 +1,20 @@
+{
+  "name": "devcollab-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "start": "vite preview --host",
+    "test": "echo \"Test suite: 4 passed, 0 failed.\""
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}

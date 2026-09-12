@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { BiLogOutCircle } from "react-icons/bi";
+import { LogOut, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
 
 const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
 
-export default function Logout({ collapsed }) {
+export default function Logout({ collapsed, variant = "default" }) {
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -45,47 +45,49 @@ export default function Logout({ collapsed }) {
         }
     };
 
-    return (
-        <div className="pt-2">
+    if (variant === "activitybar") {
+        return (
             <button
                 onClick={handleLogout}
                 disabled={loading}
-                className={`group relative flex w-full items-center overflow-hidden rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-error-soft hover:text-error disabled:opacity-60 ${collapsed ? "justify-center" : "justify-start"}`}
+                title="Logout"
+                className="relative w-full py-2 flex flex-col items-center justify-center gap-1 text-[#8B949E] hover:text-[#F85149] hover:bg-[#F85149]/10 transition-colors group cursor-pointer"
             >
-                {/* ICON */}
-                <div
-                    className={`
-            flex items-center justify-center shrink-0
-            transition-all duration-500
-            ${collapsed ? "w-full" : "mr-3"}
-          `}
-                >
+                {loading ? (
+                    <Loader2 size={18} className="animate-spin text-[#F85149]" />
+                ) : (
+                    <LogOut size={18} strokeWidth={1.75} className="group-hover:translate-x-0.5 transition-transform" />
+                )}
+                <span className="text-[9px] font-medium leading-none tracking-tight text-center text-[#6E7681] group-hover:text-[#F85149]">
+                    Logout
+                </span>
+            </button>
+        );
+    }
+
+    return (
+        <div className="pt-1">
+            <button
+                onClick={handleLogout}
+                disabled={loading}
+                title={collapsed ? "Logout" : undefined}
+                className={`group relative flex w-full items-center rounded text-xs font-medium text-[#8B949E] transition-colors hover:bg-[#F85149]/10 hover:text-[#F85149] disabled:opacity-50 select-none ${
+                    collapsed ? "h-9 justify-center px-0" : "h-9 px-2.5 gap-2.5"
+                }`}
+            >
+                <div className="flex items-center justify-center shrink-0">
                     {loading ? (
-                        <Loader2
-                            size={20}
-                            className="animate-spin text-error"
-                        />
+                        <Loader2 size={16} className="animate-spin text-[#F85149]" />
                     ) : (
-                        <BiLogOutCircle
-                            size={22}
-                            className="transition duration-200 group-hover:scale-110"
-                        />
+                        <BiLogOutCircle size={16} className="transition-transform group-hover:scale-105" />
                     )}
                 </div>
 
-                {/* TEXT */}
-                <span
-                    className={`
-            whitespace-nowrap overflow-hidden
-            transition-all duration-500 ease-in-out
-            ${collapsed
-                            ? "max-w-0 opacity-0 translate-x-[-10px]"
-                            : "max-w-[160px] opacity-100 translate-x-0"
-                        }
-          `}
-                >
-                    {loading ? "Logging out..." : "Logout"}
-                </span>
+                {!collapsed && (
+                    <span className="truncate">
+                        {loading ? "Logging out..." : "Logout"}
+                    </span>
+                )}
             </button>
         </div>
     );

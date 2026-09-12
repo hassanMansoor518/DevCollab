@@ -20,11 +20,17 @@ export default defineConfig(({ mode }) => {
       port: 4002,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'https://devcollab-production-f16f.up.railway.app',
+          target: env.VITE_API_URL || 'http://localhost:3001',
           changeOrigin: true,
+          ws: true,
+        },
+        '/preview': {
+          target: env.VITE_API_URL || 'http://localhost:3001',
+          changeOrigin: true,
+          ws: true,
         },
         '/socket.io': {
-          target: env.VITE_API_URL || 'https://devcollab-production-f16f.up.railway.app',
+          target: env.VITE_API_URL || 'http://localhost:3001',
           ws: true,
           changeOrigin: true
         }
