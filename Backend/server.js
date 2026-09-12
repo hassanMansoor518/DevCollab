@@ -30,6 +30,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:4002",
+  "https://dev-collab-neon.vercel.app",
 ];
 
 app.use(cors({

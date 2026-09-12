@@ -48,7 +48,8 @@ const io = new Server(server, {
         origin === process.env.ALLOWED_ORIGIN ||
         origin === "http://localhost:5173" ||
         origin === "http://localhost:3000" ||
-        origin === "http://localhost:4002"
+        origin === "http://localhost:4002" ||
+        origin === "https://dev-collab-neon.vercel.app"
       ) {
         callback(null, true);
       } else {
