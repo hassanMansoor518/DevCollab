@@ -74,7 +74,23 @@ async function loginUser(req, res) {
     const user = await userModel.findOne({
       email
     });
-    if (!user || !user.password) {
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid email or password"
+      });
+    }
+
+    if (!user.password) {
+      if (user.provider === "google") {
+        return res.status(400).json({
+          message: "This account was registered with Google. Please sign in with Google."
+        });
+      }
+      if (user.provider === "github") {
+        return res.status(400).json({
+          message: "This account was registered with GitHub. Please sign in with GitHub."
+        });
+      }
       return res.status(400).json({
         message: "Invalid email or password"
       });
