@@ -49,7 +49,9 @@ const io = new Server(server, {
         origin === "http://localhost:5173" ||
         origin === "http://localhost:3000" ||
         origin === "http://localhost:4002" ||
-        origin === "https://dev-collab-neon.vercel.app"
+        origin === "https://dev-collab-neon.vercel.app" ||
+        origin === "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app" ||
+        origin === "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app"
       ) {
         callback(null, true);
       } else {

@@ -31,6 +31,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:4002",
   "https://dev-collab-neon.vercel.app",
+  "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
+  "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app"
 ];
 
 app.use(cors({
