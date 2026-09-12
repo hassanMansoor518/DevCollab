@@ -22,9 +22,6 @@ connectDB();
 const Port = process.env.PORT;
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Matches ALL Vercel preview/branch deployments for this project automatically
-const vercelPreviewRegex = /^https:\/\/dev-collab[a-z0-9-]*\.vercel\.app$/;
-
 const allowedOrigins = [
   process.env.ALLOWED_ORIGIN,   // Set this in Railway env vars for production domain
   "http://localhost:5173",
@@ -35,15 +32,18 @@ const allowedOrigins = [
   "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app"
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.filter(Boolean).includes(origin)) return true;
+  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(origin)) return true;
+  return false;
+};
+
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow no-origin requests (Postman, mobile apps, curl)
-    if (!origin) return callback(null, true);
-
-    if (vercelPreviewRegex.test(origin) || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-
     return callback(new Error(`CORS: Origin '${origin}' not allowed`));
   },
   credentials: true

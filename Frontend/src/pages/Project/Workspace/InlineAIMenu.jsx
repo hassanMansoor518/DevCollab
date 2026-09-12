@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Sparkles, Bug, Wrench, FileText, X, RotateCcw } from "lucide-react";
 import axios from "axios";
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f60e.up.railway.app");
 
 export default function InlineAIMenu({
   isOpen,

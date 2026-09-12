@@ -18,7 +18,7 @@ import TestingInsights from "./Testing/TestingInsights";
 
 import { useSocketContext } from "../../../context/SocketContext";
 
-const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f16f.up.railway.app");
+const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f60e.up.railway.app");
 
 const REFERENCE_CODE = `import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';

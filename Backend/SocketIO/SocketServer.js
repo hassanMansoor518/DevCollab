@@ -37,22 +37,28 @@ server.on("upgrade", (req, socket, head) => {
   }
 });
 
-const vercelPreviewRegex = /^https:\/\/dev-collab[a-z0-9-]*\.vercel\.app$/;
+const allowedOrigins = [
+  process.env.ALLOWED_ORIGIN,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:4002",
+  "https://dev-collab-neon.vercel.app",
+  "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
+  "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app",
+  "https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app"
+];
+
+const isAllowedSocketOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.filter(Boolean).includes(origin)) return true;
+  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(origin)) return true;
+  return false;
+};
 
 const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
-      if (
-        !origin ||
-        vercelPreviewRegex.test(origin) ||
-        origin === process.env.ALLOWED_ORIGIN ||
-        origin === "http://localhost:5173" ||
-        origin === "http://localhost:3000" ||
-        origin === "http://localhost:4002" ||
-        origin === "https://dev-collab-neon.vercel.app" ||
-        origin === "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app" ||
-        origin === "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app"
-      ) {
+      if (isAllowedSocketOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`Socket CORS: Origin '${origin}' not allowed`));
