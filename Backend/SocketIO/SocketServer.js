@@ -128,7 +128,8 @@ io.on("connection", (socket) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
+      const decoded = jwt.verify(token, JWT_SECRET);
       userId = decoded.id?.toString();
     } catch (err) {
       console.warn("❌ Invalid socket token");

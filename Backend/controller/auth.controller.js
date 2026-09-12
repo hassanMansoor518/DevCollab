@@ -2,6 +2,8 @@ const userModel = require("../model/user.model");
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 
+const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
+
 async function registerUser(req, res) {
   try {
     console.log("REQ BODY:", req.body);
@@ -31,7 +33,7 @@ async function registerUser(req, res) {
 
     const token = jwt.sign({
       id: user._id
-    }, process.env.JWT_SECRET);
+    }, JWT_SECRET);
     res.cookie("token", token, {
       sameSite: "none",
       secure: true
@@ -87,7 +89,7 @@ async function loginUser(req, res) {
     }
     const token = jwt.sign({
       id: user._id
-    }, process.env.JWT_SECRET);
+    }, JWT_SECRET);
 
     const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {

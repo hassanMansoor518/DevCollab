@@ -2,6 +2,8 @@ const userModel = require("../model/user.model");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 
+const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
+
 // ─── Google OAuth ──────────────────────────────────────────────
 async function googleAuth(req, res) {
   try {
@@ -46,7 +48,7 @@ async function googleAuth(req, res) {
       });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user._id }, JWT_SECRET);
     res.cookie("token", token, {
       sameSite: "none",
       secure: true
@@ -151,7 +153,7 @@ async function githubAuth(req, res) {
       });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user._id }, JWT_SECRET);
     res.cookie("token", token, {
       sameSite: "none",
       secure: true

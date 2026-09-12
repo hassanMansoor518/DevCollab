@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/user.model");
 
+const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
+
 const secureRoute = async (req, res, next) => {
   try {
     // Accept cookie named `token` (used by auth controller) or Authorization header
@@ -13,7 +15,7 @@ const secureRoute = async (req, res, next) => {
       return res.status(401).json({ error: "No token, authorization denied" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     if (!decoded) {
       return res.status(401).json({ error: "Invalid Token" });
     }
