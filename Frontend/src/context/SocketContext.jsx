@@ -62,11 +62,14 @@ export const SocketProvider = ({ children }) => {
     if (authUser?.user?._id) {
       console.log("🔌 Initializing socket for user:", authUser.user._id);
 
+      const token = authUser.token || localStorage.getItem("token") || "";
+
       const newSocket = io(API_URL, {
         withCredentials: true,
         autoConnect: true,
-        transports: ["websocket"],
-        query: { userId: authUser.user._id },
+        transports: ["websocket", "polling"],
+        auth: { token },
+        query: { userId: authUser.user._id, token },
       });
 
       setSocket(newSocket);

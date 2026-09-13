@@ -39,6 +39,7 @@ class TerminalManager {
    */
   resolveShell(shellType) {
     const isWindows = os.platform() === "win32";
+    const fs = require("fs");
 
     if (isWindows) {
       if (shellType === "cmd") {
@@ -51,22 +52,30 @@ class TerminalManager {
           path.join(process.env.LOCALAPPDATA || "", "Programs\\Git\\bin\\bash.exe")
         ];
         for (const p of gitBashPaths) {
-          if (require("fs").existsSync(p)) return { shell: p, args: ["--login", "-i"] };
+          if (fs.existsSync(p)) return { shell: p, args: ["--login", "-i"] };
         }
       }
-      // Default to PowerShell on Windows with interactive mode
+      // Default to PowerShell on Windows
       return { shell: "powershell.exe", args: ["-NoLogo"] };
     }
 
-    // Unix (macOS / Linux)
-    const defaultShell = process.env.SHELL || "/bin/bash";
-    if (shellType === "zsh" && require("fs").existsSync("/bin/zsh")) {
-      return { shell: "/bin/zsh", args: ["-l"] };
+    // Unix (Linux / macOS / Cloud container)
+    const availableShells = ["/bin/bash", "/usr/bin/bash", "/bin/sh", "/usr/bin/sh"];
+    let shell = process.env.SHELL;
+
+    if (!shell || !fs.existsSync(shell)) {
+      shell = availableShells.find((s) => fs.existsSync(s)) || "/bin/sh";
     }
-    if (shellType === "sh" && require("fs").existsSync("/bin/sh")) {
-      return { shell: "/bin/sh", args: ["-l"] };
+
+    if (shellType === "zsh" && fs.existsSync("/bin/zsh")) {
+      return { shell: "/bin/zsh", args: ["-i"] };
     }
-    return { shell: defaultShell, args: ["-l"] };
+    if (shellType === "sh" && fs.existsSync("/bin/sh")) {
+      return { shell: "/bin/sh", args: ["-i"] };
+    }
+
+    // Use interactive mode for bash/sh so prompts and aliases work correctly
+    return { shell, args: ["-i"] };
   }
 
   /**
@@ -128,8 +137,23 @@ class TerminalManager {
     console.log(`[Terminal] cwd: ${workDir}`);
     console.log(`[Terminal] shell: ${shell} ${args.join(" ")}`);
 
+    const standardPath = isWindows
+      ? process.env.PATH || ""
+      : [
+          process.env.PATH || "",
+          "/usr/local/bin",
+          "/usr/bin",
+          "/bin",
+          "/usr/local/sbin",
+          "/usr/sbin",
+          "/sbin"
+        ].filter(Boolean).join(":");
+
     const env = {
       ...process.env,
+      PATH: standardPath,
+      HOME: process.env.HOME || os.homedir(),
+      USER: process.env.USER || "devcollab",
       TERM: "xterm-256color",
       COLORTERM: "truecolor",
       FORCE_COLOR: "1",

@@ -1,5 +1,7 @@
 const express = require("express");
 const axios = require("axios");
+const os = require("os");
+const { exec: execCmd } = require("child_process");
 const Project = require("../model/project.model");
 const Workspace = require("../model/workspace.model");
 const Analysis = require("../model/analysis.model");
@@ -7,11 +9,16 @@ const PullRequest = require("../model/pullRequest.model");
 const User = require("../model/user.model");
 const ai = require("../services/ai.service");
 const { logActivity } = require("../services/activity.service");
+const workspaceFs = require("../services/workspaceFs.service");
+const terminalManager = require("../services/TerminalManager");
 require("dotenv").config();
 
 const router = express.Router();
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const protectRoute = require("../middleware/secureRoute");
+const jwt = require("jsonwebtoken");
+
+/* ─── GitHub Token (resolved once from environment on startup) ─── */
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null;
 
 /* ================= GLOBAL HELPER ================= */
 const formatRepo = (url) => {
@@ -20,32 +27,89 @@ const formatRepo = (url) => {
     .replace("https://github.com/", "")
     .replace("http://github.com/", "")
     .replace("github.com/", "")
+    .replace(/\.git$/, "")
     .trim();
 };
 
+const getOptionalUserToken = async (req) => {
+  try {
+    if (req?.user?.githubAccessToken) return req.user.githubAccessToken;
+    const headerToken = req?.headers?.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null;
+    const token = req?.cookies?.token || headerToken || req?.query?.userToken;
+    if (token) {
+      const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const userId = decoded.id || decoded.userId || decoded._id;
+      if (userId) {
+        const u = await User.findById(userId).select("githubAccessToken");
+        if (u?.githubAccessToken) return u.githubAccessToken;
+      }
+    }
+  } catch (_) {}
+  return null;
+};
+
+const getGithubHeaders = (userToken = null) => {
+  const token = userToken || process.env.GITHUB_TOKEN;
+  if (!token) return { "User-Agent": "DevCollab-App" };
+  const authVal = token.startsWith("ghp_") || token.startsWith("github_pat_")
+    ? `token ${token}`
+    : `Bearer ${token}`;
+  return {
+    Authorization: authVal,
+    "User-Agent": "DevCollab-App",
+  };
+};
+
+const githubApiRequest = async (url, options = {}) => {
+  const userToken = options.userToken || null;
+  const headers = {
+    ...getGithubHeaders(userToken),
+    Accept: options.accept || "application/vnd.github.v3+json",
+    ...(options.headers || {}),
+  };
+
+  try {
+    const res = await axios.get(url, { ...options, headers, timeout: options.timeout || 15000 });
+    return res;
+  } catch (err) {
+    if ((err.response?.status === 401 || err.response?.status === 403) && headers.Authorization) {
+      console.warn(`[GitHub API] Auth warning (${err.response?.status}) for ${url}, attempting unauthenticated fallback...`);
+      const publicHeaders = {
+        "User-Agent": "DevCollab-App",
+        Accept: options.accept || "application/vnd.github.v3+json",
+      };
+      return await axios.get(url, { ...options, headers: publicHeaders, timeout: options.timeout || 15000 });
+    }
+    throw err;
+  }
+};
+
 /* ================= Fetch GitHub Data ================= */
-async function fetchGithubData(repo) {
+async function fetchGithubData(repo, userToken = null) {
   try {
     if (!repo) return null;
+    const cleanRepo = formatRepo(repo);
+    if (!cleanRepo) return null;
 
     const [repoRes, langRes] = await Promise.all([
-      axios.get(`https://api.github.com/repos/${repo}`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` },
-      }),
-      axios.get(`https://api.github.com/repos/${repo}/languages`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}` },
-      }),
+      githubApiRequest(`https://api.github.com/repos/${cleanRepo}`, { userToken }),
+      githubApiRequest(`https://api.github.com/repos/${cleanRepo}/languages`, { userToken }).catch(() => ({ data: {} })),
     ]);
 
     return {
       html_url: repoRes.data.html_url,
-      description: repoRes.data.description,
-      stars: repoRes.data.stargazers_count,
-      forks: repoRes.data.forks_count,
-      languages: Object.keys(langRes.data),
+      description: repoRes.data.description || "",
+      stars: repoRes.data.stargazers_count || 0,
+      forks: repoRes.data.forks_count || 0,
+      languages: Object.keys(langRes.data || {}),
+      default_branch: repoRes.data.default_branch || "main",
+      private: Boolean(repoRes.data.private),
     };
   } catch (err) {
-    console.error("GitHub fetch failed:", err.response?.data || err.message);
+    console.error("GitHub fetch failed for repo", repo, ":", err.response?.data || err.message);
     return null;
   }
 }
@@ -240,19 +304,64 @@ router.get("/:id/commits", async (req, res) => {
 /* ================= FETCH FILES / CONTENT ================= */
 router.get("/:id/contents", async (req, res) => {
   try {
-    const { path = "" } = req.query;
+    const { path: reqPath = "", branch: queryBranch = "", refresh = "false" } = req.query;
     const project = await Project.findById(req.params.id);
 
     if (!project || !project.githubRepo) {
-      return res.status(400).json({ error: "No GitHub repo linked" });
+      return res.status(400).json({ error: "No GitHub repo linked to this project" });
     }
 
-    const repo = formatRepo(project.githubRepo);
-    const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+    const cleanRepo = formatRepo(project.githubRepo);
+    const userToken = await getOptionalUserToken(req);
 
-    const response = await axios.get(url, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` },
-    });
+    // If file is already cached on workspace disk and not a forced refresh, check disk first
+    if (reqPath && refresh !== "true") {
+      const diskContent = workspaceFs.readWorkspaceFile(req.params.id, reqPath);
+      if (diskContent !== null) {
+        return res.json({
+          type: "file",
+          name: reqPath.split("/").pop(),
+          path: reqPath,
+          content: diskContent,
+          source: "workspace"
+        });
+      }
+    }
+
+    // Determine target branch
+    const branch = queryBranch || project.githubData?.default_branch || "main";
+    const cleanPath = reqPath.replace(/^\/+/, "");
+    const encodedPath = cleanPath ? encodeURIComponent(cleanPath).replace(/%2F/g, "/") : "";
+    const url = `https://api.github.com/repos/${cleanRepo}/contents/${encodedPath}${branch ? `?ref=${encodeURIComponent(branch)}` : ""}`;
+
+    let response;
+    try {
+      response = await githubApiRequest(url, { userToken });
+    } catch (apiErr) {
+      // If 404 and we have a path, try fetching raw content
+      if (cleanPath) {
+        try {
+          const rawUrl = `https://raw.githubusercontent.com/${cleanRepo}/${branch}/${cleanPath}`;
+          const rawRes = await axios.get(rawUrl, {
+            headers: userToken ? { Authorization: userToken.startsWith("ghp_") ? `token ${userToken}` : `Bearer ${userToken}` } : {},
+            responseType: "text",
+            timeout: 15000
+          });
+          const rawContent = typeof rawRes.data === "string" ? rawRes.data : JSON.stringify(rawRes.data, null, 2);
+          try {
+            workspaceFs.writeWorkspaceFile(req.params.id, cleanPath, rawContent);
+          } catch (_) {}
+          return res.json({
+            type: "file",
+            name: cleanPath.split("/").pop(),
+            path: cleanPath,
+            content: rawContent,
+            source: "github-raw"
+          });
+        } catch (_) {}
+      }
+      throw apiErr;
+    }
 
     // 📁 Folder
     if (Array.isArray(response.data)) {
@@ -261,17 +370,49 @@ router.get("/:id/contents", async (req, res) => {
         items: response.data.map((item) => ({
           name: item.name,
           path: item.path,
-          type: item.type,
+          type: item.type === "dir" ? "dir" : "file",
+          size: item.size || 0
         })),
+        source: "github"
       });
     }
 
     // 📄 File
-    const content = Buffer.from(response.data.content, "base64").toString("utf-8");
-    res.json({ type: "file", name: response.data.name, content });
+    let content = "";
+    if (response.data.content) {
+      const cleanBase64 = response.data.content.replace(/\s/g, "");
+      content = Buffer.from(cleanBase64, "base64").toString("utf-8");
+    } else if (response.data.download_url) {
+      // Large file with download_url
+      try {
+        const dlRes = await axios.get(response.data.download_url, { responseType: "text", timeout: 15000 });
+        content = dlRes.data;
+      } catch (_) {
+        content = "";
+      }
+    }
+
+    // Cache file to local workspace disk
+    if (cleanPath) {
+      try {
+        workspaceFs.writeWorkspaceFile(req.params.id, cleanPath, content);
+      } catch (_) {}
+    }
+
+    res.json({
+      type: "file",
+      name: response.data.name || cleanPath.split("/").pop(),
+      path: cleanPath,
+      content,
+      sha: response.data.sha,
+      source: "github"
+    });
   } catch (err) {
     console.error("Contents Error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to fetch contents" });
+    res.status(err.response?.status || 500).json({
+      error: "Failed to fetch file content from GitHub repository",
+      details: err.response?.data?.message || err.message
+    });
   }
 });
 
@@ -749,77 +890,121 @@ router.get("/:id/tree", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
+    const userToken = await getOptionalUserToken(req);
+
     // 1. If workspace disk has REAL cloned repo files (not a starter template), return workspace tree
     const isTemplate = workspaceFs.isStarterTemplate(req.params.id);
     if (!isTemplate) {
       const wsItems = workspaceFs.getWorkspaceTree(req.params.id);
       if (wsItems && wsItems.length > 0) {
-        return res.json({ items: wsItems, source: "workspace" });
+        return res.json({ items: wsItems, source: "workspace", isStarterOnly: false });
       }
     }
 
-    // 2. No real workspace files — fetch from GitHub API
+    // 2. If no GitHub repo linked, return empty
     if (!project.githubRepo) {
-      return res.json({ items: [] });
+      return res.json({ items: [], source: "none", empty: true });
     }
 
-    const repo = formatRepo(project.githubRepo);
-    let treeRes;
-    const branchesToTry = [
-      project.githubData?.default_branch,
-      "main",
-      "master",
-    ].filter(Boolean);
+    const cleanRepo = formatRepo(project.githubRepo);
 
-    let fetched = false;
-    const authHeader = GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {};
+    // 3. Discover exact repository default branch dynamically from GitHub
+    let defaultBranch = project.githubData?.default_branch || "main";
+    try {
+      const repoMeta = await githubApiRequest(`https://api.github.com/repos/${cleanRepo}`, { userToken });
+      if (repoMeta.data?.default_branch) {
+        defaultBranch = repoMeta.data.default_branch;
+        if (!project.githubData) project.githubData = {};
+        project.githubData.default_branch = defaultBranch;
+        project.githubData.stars = repoMeta.data.stargazers_count;
+        project.githubData.forks = repoMeta.data.forks_count;
+        await project.save().catch(() => {});
+      }
+    } catch (metaErr) {
+      console.warn(`[GitHub Tree] Could not fetch repo meta for ${cleanRepo}, using fallback branch '${defaultBranch}':`, metaErr.message);
+    }
+
+    const branchesToTry = Array.from(new Set([defaultBranch, "main", "master", "develop", "trunk"])).filter(Boolean);
+
+    let treeRes = null;
+    let successfulBranch = defaultBranch;
 
     for (const branch of branchesToTry) {
       try {
-        treeRes = await axios.get(
-          `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`,
-          { headers: authHeader, timeout: 15000 }
-        );
-        if (treeRes.data && treeRes.data.tree && treeRes.data.tree.length > 0) {
-          fetched = true;
+        const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+        treeRes = await githubApiRequest(url, { userToken });
+        if (treeRes.data && Array.isArray(treeRes.data.tree)) {
+          successfulBranch = branch;
           break;
         }
       } catch (err) {
-        // Try without auth token if 401
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          try {
-            treeRes = await axios.get(
-              `https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`,
-              { timeout: 15000 }
-            );
-            if (treeRes.data && treeRes.data.tree && treeRes.data.tree.length > 0) {
-              fetched = true;
-              break;
-            }
-          } catch (_) { }
-        }
+        // Continue trying next branch
       }
     }
 
-    if (!fetched || !treeRes?.data?.tree) {
-      return res.json({ items: [], source: "none" });
+    // 4. If Git Trees API returned valid items
+    if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
+      const ignoredPrefixes = ["node_modules/", ".git/", "dist/", "build/", ".next/", ".turbo/"];
+      const rawItems = treeRes.data.tree
+        .filter((item) => !ignoredPrefixes.some((ig) => item.path.startsWith(ig) || item.path.includes("/" + ig)))
+        .map((item) => ({
+          name: item.path.split("/").pop(),
+          path: item.path,
+          type: item.type === "tree" || item.type === "dir" ? "dir" : "file",
+          size: item.size || 0,
+        }));
+
+      const nestedTree = buildTreeFromFlatList(rawItems);
+
+      // Cache indexed summary in background
+      project.projectStructure = nestedTree;
+      await project.save().catch(() => {});
+
+      return res.json({
+        items: nestedTree,
+        source: "github",
+        branch: successfulBranch,
+        empty: nestedTree.length === 0,
+        isStarterOnly: false
+      });
     }
 
-    const ignoredPrefixes = ["node_modules/", ".git/", "dist/", "build/", ".next/", ".turbo/"];
-    const rawItems = (treeRes.data.tree || [])
-      .filter((item) => !ignoredPrefixes.some((ig) => item.path.startsWith(ig) || item.path.includes("/" + ig)))
-      .map((item) => ({
-        name: item.path.split("/").pop(),
-        path: item.path,
-        type: item.type === "blob" ? "file" : "dir",
-        size: item.size || 0,
-      }));
+    // 5. Fallback to GitHub Contents API if recursive tree wasn't available
+    try {
+      const contentsUrl = `https://api.github.com/repos/${cleanRepo}/contents/`;
+      const contentsRes = await githubApiRequest(contentsUrl, { userToken });
+      if (Array.isArray(contentsRes.data)) {
+        const items = contentsRes.data
+          .filter((i) => !["node_modules", ".git", "dist", "build", ".next"].includes(i.name))
+          .map((i) => ({
+            name: i.name,
+            path: i.path,
+            type: i.type === "dir" ? "dir" : "file",
+            size: i.size || 0,
+            children: []
+          }));
+        return res.json({
+          items,
+          source: "github-contents",
+          branch: successfulBranch,
+          empty: items.length === 0,
+          isStarterOnly: false
+        });
+      }
+    } catch (_) {}
 
-    const nestedTree = buildTreeFromFlatList(rawItems);
-    res.json({ items: nestedTree, source: "github" });
+    // 6. If repository is completely empty (no commits)
+    return res.json({
+      items: [],
+      source: "github",
+      branch: defaultBranch,
+      empty: true,
+      message: "Repository is empty or has no commits on default branch.",
+      isStarterOnly: false
+    });
   } catch (err) {
     console.error("Tree Error:", err.message);
-    res.status(500).json({ error: "Failed to fetch repository tree" });
+    res.status(500).json({ error: "Failed to fetch repository tree", details: err.message, items: [] });
   }
 });
 
@@ -951,10 +1136,6 @@ router.post("/:id/suggest-commit-message", async (req, res) => {
 
 
 /* ================= WORKSPACE DISK FILESYSTEM & SYNC ================= */
-const workspaceFs = require("../services/workspaceFs.service");
-const terminalManager = require("../services/TerminalManager");
-const os = require("os");
-
 router.get("/:id/workspace-info", async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -978,10 +1159,17 @@ router.get("/:id/workspace/files", async (req, res) => {
     const project = await Project.findById(req.params.id);
     workspaceFs.ensureWorkspaceDir(req.params.id, project || {});
 
+    const hasLinkedRepo = Boolean(project?.githubRepo);
+    const isStarter = hasLinkedRepo ? workspaceFs.isStarterTemplate(req.params.id) : false;
     const items = workspaceFs.getWorkspaceTree(req.params.id);
-    res.json({ items, isStarterOnly: false });
+
+    res.json({
+      items,
+      isStarterOnly: isStarter,
+      hasLinkedRepo
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, items: [], isStarterOnly: false });
   }
 });
 
@@ -1035,7 +1223,6 @@ router.delete("/:id/workspace/delete-file", async (req, res) => {
 });
 
 /* ================= TERMINAL COMMAND EXECUTION (REST Fallback) ================= */
-const { exec: execCmd } = require("child_process");
 router.post("/:id/terminal/execute", async (req, res) => {
   try {
     const { command } = req.body;

@@ -135,13 +135,14 @@ async function githubAuth(req, res) {
     let user = await userModel.findOne({ email });
 
     if (user) {
-      // User exists — update provider info if needed
+      // User exists — update provider info and GitHub token
       if (user.provider === "local") {
         user.provider = "github";
         user.providerId = String(githubUser.id);
-        user.avatar = githubUser.avatar_url || user.avatar;
-        await user.save();
       }
+      user.avatar = githubUser.avatar_url || user.avatar;
+      user.githubAccessToken = accessToken;
+      await user.save();
     } else {
       // Create new user
       user = await userModel.create({
@@ -150,6 +151,7 @@ async function githubAuth(req, res) {
         provider: "github",
         providerId: String(githubUser.id),
         avatar: githubUser.avatar_url || null,
+        githubAccessToken: accessToken,
       });
     }
 

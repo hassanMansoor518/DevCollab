@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
         defaultModel: { type: String, default: "Gemini 1.5 Flash" },
         contextAware: { type: Boolean, default: true },
         autoSummarize: { type: Boolean, default: false }
+    },
+    githubAccessToken: {
+        type: String,
+        default: null
     }
 }, 
   

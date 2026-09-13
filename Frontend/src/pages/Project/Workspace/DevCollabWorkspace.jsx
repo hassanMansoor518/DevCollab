@@ -148,7 +148,7 @@ export default function DevCollabWorkspace({
     });
 
     setFileContents((prev) => {
-      if (prev[filePath] !== undefined) return prev;
+      if (prev[filePath] !== undefined && prev[filePath] !== "// Loading file content...") return prev;
       return { ...prev, [filePath]: "// Loading file content..." };
     });
 
@@ -158,24 +158,27 @@ export default function DevCollabWorkspace({
     try {
       const diskRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/file-content`, {
         params: { path: filePath },
+        withCredentials: true,
       });
-      if (diskRes.data && diskRes.data.content !== undefined) {
+      if (diskRes.data && diskRes.data.content !== undefined && diskRes.data.content !== null) {
         content = diskRes.data.content;
       }
     } catch (_) {}
 
-    // 2. Fallback to GitHub / contents endpoint
+    // 2. Fetch from GitHub / contents endpoint if not on disk or empty
     if (content === null) {
       try {
         const res = await axios.get(`${API_URL}/api/project/${projectId}/contents`, {
           params: { path: filePath },
+          withCredentials: true,
         });
 
         if (res.data && res.data.content !== undefined) {
           content = res.data.content;
         }
       } catch (err) {
-        content = `// ${filePath}\n// File loaded in DevCollab Workspace\n`;
+        console.warn(`[Workspace] Could not load content for ${filePath}:`, err.message);
+        content = `// ${filePath}\n// (File could not be fetched from repository or disk)\n`;
       }
     }
 
@@ -184,36 +187,44 @@ export default function DevCollabWorkspace({
     }
   }, [projectId]);
 
-  /* ---------------- FETCH FILE TREE FROM BACKEND & WORKSPACE DISK ---------------- */
+  /* ---------------- FETCH FILE TREE FROM BACKEND & GITHUB ---------------- */
   const fetchTree = useCallback(async (autoSelect = false) => {
     if (!projectId) return;
     setIsTreeLoading(true);
     let items = [];
 
     try {
-      // 1. Try real workspace disk files first
-      try {
-        const wsRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/files`);
-        if (wsRes.data && wsRes.data.items && wsRes.data.items.length > 0) {
-          items = wsRes.data.items;
+      // 1. If project is linked to a GitHub repo, query /tree for real repo structure
+      if (project?.githubRepo) {
+        try {
+          const treeRes = await axios.get(`${API_URL}/api/project/${projectId}/tree`, { withCredentials: true });
+          if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
+            items = treeRes.data.items;
+          }
+        } catch (treeErr) {
+          console.warn("[Workspace] GitHub tree fetch fallback:", treeErr.message);
         }
-      } catch (_) {}
+      }
 
-      // 2. Fallback to GitHub tree if workspace files empty or starter template
+      // 2. If no GitHub tree or no repo, check workspace disk
       if (!items || items.length === 0) {
         try {
-          const res = await axios.get(`${API_URL}/api/project/${projectId}/tree`);
-          if (res.data && res.data.items && res.data.items.length > 0) {
-            items = res.data.items;
+          const wsRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/files`, { withCredentials: true });
+          // Only use workspace disk if there's no GitHub repo OR if the workspace is not a generic starter template
+          if (wsRes.data?.items && wsRes.data.items.length > 0 && (!project?.githubRepo || !wsRes.data.isStarterOnly)) {
+            items = wsRes.data.items;
           }
-        } catch (err) {
-          try {
-            const contentsRes = await axios.get(`${API_URL}/api/project/${projectId}/contents`);
-            if (contentsRes.data && contentsRes.data.items && contentsRes.data.items.length > 0) {
-              items = contentsRes.data.items.map((i) => ({ ...i, path: i.path, type: i.type }));
-            }
-          } catch (fallbackErr) {}
-        }
+        } catch (_) {}
+      }
+
+      // 3. Fallback to /contents if tree was empty
+      if (!items || items.length === 0) {
+        try {
+          const contentsRes = await axios.get(`${API_URL}/api/project/${projectId}/contents`, { withCredentials: true });
+          if (contentsRes.data?.items && contentsRes.data.items.length > 0) {
+            items = contentsRes.data.items;
+          }
+        } catch (_) {}
       }
 
       setFileItems(items || []);
@@ -233,7 +244,7 @@ export default function DevCollabWorkspace({
     } finally {
       setIsTreeLoading(false);
     }
-  }, [projectId, handleSelectFile]);
+  }, [projectId, project?.githubRepo, handleSelectFile]);
 
   useEffect(() => {
     fetchTree(true);
@@ -243,9 +254,9 @@ export default function DevCollabWorkspace({
   const handleSyncRepo = async () => {
     if (!projectId) return;
     setIsSyncingRepo(true);
-    const toastId = toast.loading("Syncing real repository files from GitHub...");
+    const toastId = toast.loading("Syncing repository files from GitHub...");
     try {
-      const res = await axios.post(`${API_URL}/api/project/${projectId}/workspace/sync-repo`);
+      const res = await axios.post(`${API_URL}/api/project/${projectId}/workspace/sync-repo`, {}, { withCredentials: true });
       if (res.data?.items && res.data.items.length > 0) {
         setFileItems(res.data.items);
         const first = findFirstFile(res.data.items);
@@ -259,7 +270,7 @@ export default function DevCollabWorkspace({
       }
     } catch (err) {
       await fetchTree(true);
-      toast.success("Refreshed workspace file tree", { id: toastId });
+      toast.success("Refreshed repository file tree", { id: toastId });
     } finally {
       setIsSyncingRepo(false);
     }

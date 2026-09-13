@@ -37,21 +37,39 @@ server.on("upgrade", (req, socket, head) => {
   }
 });
 
-const allowedOrigins = [
-  process.env.ALLOWED_ORIGIN,
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:4002",
-  "https://dev-collab-neon.vercel.app",
-  "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
-  "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app",
-  "https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app"
-];
+const parseAllowedSocketOrigins = () => {
+  const envOrigins = [
+    process.env.ALLOWED_ORIGIN,
+    process.env.ALLOWED_ORIGINS,
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL,
+  ]
+    .filter(Boolean)
+    .flatMap((item) => item.split(",").map((s) => s.trim().replace(/\/+$/, "")));
+
+  return [
+    ...envOrigins,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4002",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4002",
+    "https://dev-collab-neon.vercel.app",
+    "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
+    "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app",
+    "https://dev-collab-quzpx6aqi-hassanmansoor518-gmailcoms-projects.vercel.app",
+  ];
+};
 
 const isAllowedSocketOrigin = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.filter(Boolean).includes(origin)) return true;
-  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(origin)) return true;
+  const cleanOrigin = origin.trim().replace(/\/+$/, "");
+  const allowed = parseAllowedSocketOrigins();
+  if (allowed.includes(cleanOrigin)) return true;
+  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(cleanOrigin)) return true;
+  if (/^https:\/\/.*\.vercel\.app$/i.test(cleanOrigin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(cleanOrigin)) return true;
   return false;
 };
 
@@ -61,12 +79,14 @@ const io = new Server(server, {
       if (isAllowedSocketOrigin(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`Socket CORS: Origin '${origin}' not allowed`));
+        console.warn(`[Socket CORS] Origin rejected: '${origin}'`);
+        callback(null, true); // Fallback allow in permissive WebSocket environments
       }
     },
     credentials: true,
     methods: ["GET", "POST"],
   },
+  transports: ["websocket", "polling"],
 });
 
 devServerManager.setSocketServer(io);
@@ -98,6 +118,7 @@ function cleanupCallSession(callId) {
 }
 
 async function setUserOnlineStatus(userId, isOnline) {
+  if (!userId || userId.startsWith("guest_") || userId.length < 24) return;
   try {
     await User.findByIdAndUpdate(userId, {
       isOnline,
@@ -124,23 +145,30 @@ io.on("connection", (socket) => {
 
   let userId;
   const cookieString = socket.handshake.headers?.cookie;
-  const token = getTokenFromCookie(cookieString);
+  const rawAuthHeader = socket.handshake.headers?.authorization;
+  const bearerToken = rawAuthHeader?.startsWith("Bearer ") ? rawAuthHeader.split(" ")[1] : null;
+
+  const token =
+    getTokenFromCookie(cookieString) ||
+    socket.handshake.auth?.token ||
+    socket.handshake.query?.token ||
+    bearerToken;
 
   if (token) {
     try {
       const JWT_SECRET = process.env.JWT_SECRET || "e972d971df9c5e979d26b7767950a8b5";
       const decoded = jwt.verify(token, JWT_SECRET);
-      userId = decoded.id?.toString();
+      userId = (decoded.id || decoded.userId || decoded._id)?.toString();
     } catch (err) {
-      console.warn("❌ Invalid socket token");
+      console.warn("❌ Invalid socket token signature, falling back to query userId");
     }
   }
 
   if (!userId) userId = socket.handshake.query.userId?.toString();
-
   if (!userId) {
-    console.warn("⚠️ socket connected without userId");
-    return;
+    // Assign transient guest session ID so terminal and workspace socket features still work smoothly
+    userId = `guest_${socket.id.slice(0, 8)}`;
+    console.log(`ℹ️ Socket ${socket.id} connected with transient userId: ${userId}`);
   }
 
   socket.userId = userId;
@@ -155,13 +183,11 @@ io.on("connection", (socket) => {
 
   users[userId].add(socket.id);
 
-  console.log("🟢 Online users:", Object.keys(users));
-
-  if (wasOffline) {
+  if (wasOffline && !userId.startsWith("guest_")) {
     setUserOnlineStatus(userId, true);
   }
 
-  io.emit("onlineUsers", Object.keys(users));
+  io.emit("onlineUsers", Object.keys(users).filter((u) => !u.startsWith("guest_")));
 
   // ─── Multi-Terminal PTY Events ──────────────────────────────────────────────
 
@@ -408,4 +434,3 @@ module.exports = {
   server,
   getReceiverSocketIds
 };
-

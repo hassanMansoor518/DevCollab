@@ -22,20 +22,38 @@ connectDB();
 const Port = process.env.PORT;
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  process.env.ALLOWED_ORIGIN,   // Set this in Railway env vars for production domain
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:4002",
-  "https://dev-collab-neon.vercel.app",
-  "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
-  "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app"
-];
+const parseAllowedOrigins = () => {
+  const envOrigins = [
+    process.env.ALLOWED_ORIGIN,
+    process.env.ALLOWED_ORIGINS,
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL,
+  ]
+    .filter(Boolean)
+    .flatMap((item) => item.split(",").map((s) => s.trim().replace(/\/+$/, "")));
+
+  return [
+    ...envOrigins,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4002",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4002",
+    "https://dev-collab-neon.vercel.app",
+    "https://dev-collab-git-main-hassanmansoor518-gmailcoms-projects.vercel.app",
+    "https://dev-collab-r4a2jc21m-hassanmansoor518-gmailcoms-projects.vercel.app",
+  ];
+};
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.filter(Boolean).includes(origin)) return true;
-  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(origin)) return true;
+  const cleanOrigin = origin.trim().replace(/\/+$/, "");
+  const allowed = parseAllowedOrigins();
+  if (allowed.includes(cleanOrigin)) return true;
+  if (/^https:\/\/dev-collab.*\.vercel\.app$/i.test(cleanOrigin)) return true;
+  if (/^https:\/\/.*\.vercel\.app$/i.test(cleanOrigin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(cleanOrigin)) return true;
   return false;
 };
 
