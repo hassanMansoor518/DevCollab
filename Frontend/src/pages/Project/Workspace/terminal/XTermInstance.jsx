@@ -26,62 +26,28 @@ export default function XTermInstance({
   const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0 });
   const [hasSelection, setHasSelection] = useState(false);
 
+  // Stable callback refs
+  const callbacksRef = useRef({ onDevServerDetected, onSessionReady });
+  useEffect(() => {
+    callbacksRef.current = { onDevServerDetected, onSessionReady };
+  }, [onDevServerDetected, onSessionReady]);
+
   // Dev server detection regex
-  const detectDevServer = useCallback(
-    (text) => {
-      if (!text || typeof text !== "string") return;
-      // Match patterns like: http://localhost:5173, http://127.0.0.1:3000, Local: http://localhost:PORT
-      const match = text.match(/https?:\/\/(localhost|127\.0\.0\.1):(\d+)/i);
-      if (match && onDevServerDetected) {
-        const url = match[0];
-        const port = match[2];
-        onDevServerDetected({ url, port, sessionId });
-      }
-    },
-    [onDevServerDetected, sessionId]
-  );
-
-  // Start or restart WebContainer Terminal Session
-  const initTerminalSession = useCallback(async () => {
-    const term = terminalRef.current;
-    if (!term) return;
-
-    setInitError(null);
-    term.write("\x1b[36m⚡ DevCollab WebContainer Terminal\x1b[0m\r\n");
-    term.write("\x1b[90mConnecting to in-browser Node.js sandbox environment...\x1b[0m\r\n");
-
-    try {
-      const cols = term.cols || 80;
-      const rows = term.rows || 24;
-
-      const session = await webContainerService.spawnTerminalSession({
-        sessionId,
-        cols,
-        rows,
-        onOutput: (data) => {
-          term.write(data);
-          detectDevServer(data);
-        },
-        onExit: (exitCode) => {
-          term.write(`\r\n\x1b[90m[Process completed with exit code ${exitCode}]\x1b[0m\r\n`);
-        },
-      });
-
-      sessionRef.current = session;
-      if (onSessionReady) {
-        onSessionReady({ sessionId, shell: "jsh", isWebContainer: true });
-      }
-    } catch (err) {
-      console.error("[WebContainer Terminal] Init error:", err);
-      setInitError(err.message);
-      term.write(`\r\n\x1b[31m[Development environment could not be started: ${err.message}]\x1b[0m\r\n`);
-      term.write("\x1b[33mTip: Ensure Cross-Origin Isolation headers (COOP/COEP) are active.\x1b[0m\r\n");
+  const detectDevServer = useCallback((text) => {
+    if (!text || typeof text !== "string") return;
+    const match = text.match(/https?:\/\/(localhost|127\.0\.0\.1):(\d+)/i);
+    if (match && callbacksRef.current.onDevServerDetected) {
+      const url = match[0];
+      const port = match[2];
+      callbacksRef.current.onDevServerDetected({ url, port, sessionId });
     }
-  }, [sessionId, detectDevServer, onSessionReady]);
+  }, [sessionId]);
 
-  // Initialize Terminal Instance
+  // Initialize Terminal & Spawn WebContainer jsh session (ONCE per sessionId)
   useEffect(() => {
     if (!containerRef.current) return;
+
+    let isMounted = true;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -127,26 +93,71 @@ export default function XTermInstance({
     terminalRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Send keystrokes directly to WebContainer process session
+    term.write("\x1b[36m⚡ DevCollab WebContainer Terminal\x1b[0m\r\n");
+    term.write("\x1b[90mNode.js in-browser sandbox active. Ready for commands.\x1b[0m\r\n\r\n");
+
+    // Spawn WebContainer jsh session
+    const cols = term.cols || 80;
+    const rows = term.rows || 24;
+
+    webContainerService
+      .spawnTerminalSession({
+        sessionId,
+        cols,
+        rows,
+        onOutput: (data) => {
+          if (isMounted && terminalRef.current) {
+            terminalRef.current.write(data);
+            detectDevServer(data);
+          }
+        },
+        onExit: (exitCode) => {
+          if (isMounted && terminalRef.current) {
+            terminalRef.current.write(
+              `\r\n\x1b[90m[Process completed with exit code ${exitCode}]\x1b[0m\r\n`
+            );
+          }
+        },
+      })
+      .then((session) => {
+        if (!isMounted) return;
+        sessionRef.current = session;
+        if (callbacksRef.current.onSessionReady) {
+          callbacksRef.current.onSessionReady({
+            sessionId,
+            shell: "jsh",
+            isWebContainer: true,
+          });
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error("[WebContainer Terminal] Spawn error:", err);
+        setInitError(err.message);
+        term.write(
+          `\r\n\x1b[31m[Terminal initialization error: ${err.message}]\x1b[0m\r\n`
+        );
+      });
+
+    // Keystroke forwarding
     const onDataDisposable = term.onData((data) => {
       if (sessionRef.current) {
         sessionRef.current.write(data);
       }
     });
 
-    // Track text selection for copy
+    // Selection tracking
     const onSelectionDisposable = term.onSelectionChange(() => {
       setHasSelection(term.hasSelection());
     });
 
-    // Custom Key Event Handler for Ctrl+C copy vs SIGINT, and Ctrl+V paste
+    // Custom Key Handler
     term.attachCustomKeyEventHandler((event) => {
       if (event.ctrlKey && event.key === "c" && event.type === "keydown") {
         if (term.hasSelection()) {
           navigator.clipboard.writeText(term.getSelection());
           return false;
         }
-        // Send SIGINT to WebContainer process
         if (sessionRef.current) {
           sessionRef.current.write("\x03");
         }
@@ -170,11 +181,10 @@ export default function XTermInstance({
       try {
         fitAddon.fit();
       } catch (_) {}
-    }, 50);
+    }, 60);
 
-    // ResizeObserver for responsive resizing
+    // ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
-      if (!isActive) return;
       try {
         fitAddon.fit();
         if (term.cols && term.rows && sessionRef.current) {
@@ -189,10 +199,8 @@ export default function XTermInstance({
     resizeObserver.observe(containerRef.current);
     resizeObserverRef.current = resizeObserver;
 
-    // Spawn WebContainer terminal session
-    initTerminalSession();
-
     return () => {
+      isMounted = false;
       onDataDisposable.dispose();
       onSelectionDisposable.dispose();
       resizeObserver.disconnect();
@@ -201,10 +209,13 @@ export default function XTermInstance({
         sessionRef.current = null;
       }
       term.dispose();
+      terminalRef.current = null;
+      fitAddonRef.current = null;
     };
-  }, [sessionId, isActive, initTerminalSession]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
-  // Refit when tab becomes active
+  // Refit & focus when active tab switches without killing session
   useEffect(() => {
     if (isActive && fitAddonRef.current && terminalRef.current) {
       setTimeout(() => {

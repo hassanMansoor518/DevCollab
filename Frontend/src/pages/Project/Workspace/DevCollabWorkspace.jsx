@@ -228,63 +228,67 @@ export default function DevCollabWorkspace({
         return;
       }
 
-      // 4. Fallback: Tree endpoint + per-file fetch
-      if (project?.githubRepo) {
-        try {
-          const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
-          if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
-            items = treeRes.data.items;
-          }
-        } catch (treeErr) {
-          console.warn("[Workspace] GitHub tree fallback error:", treeErr.message);
-          if (!treeLoadError) {
-            setTreeLoadError(treeErr.response?.data?.error || "Failed to load files from GitHub");
-          }
+      // 4. Fallback: Always try Tree endpoint if bundle was empty or errored
+      try {
+        const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
+        if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
+          items = treeRes.data.items;
+        }
+      } catch (treeErr) {
+        console.warn("[Workspace] Tree fallback error:", treeErr.message);
+        if (!treeLoadError) {
+          setTreeLoadError(treeErr.response?.data?.error || "Failed to load files from GitHub");
         }
       }
 
       if (!isCurrentProject()) return;
 
-      const fetchContentFn = async (filePath) => {
-        if (!isCurrentProject()) return "";
-        try {
-          const res = await axios.get(`${API_URL}/api/project/${pid}/contents`, {
-            params: { path: filePath },
-            withCredentials: true,
-          });
-          return res.data?.content || "";
-        } catch (_) {
-          return "";
-        }
-      };
+      if (items && items.length > 0) {
+        const fetchContentFn = async (filePath) => {
+          if (!isCurrentProject()) return "";
+          try {
+            const res = await axios.get(`${API_URL}/api/project/${pid}/contents`, {
+              params: { path: filePath },
+              withCredentials: true,
+            });
+            return res.data?.content || "";
+          } catch (_) {
+            return "";
+          }
+        };
 
-      try {
-        await webContainerService.mountRepository({
-          items,
-          fetchContentFn,
-          projectId: pid,
-        });
+        try {
+          await webContainerService.mountRepository({
+            items,
+            fetchContentFn,
+            projectId: pid,
+          });
+
+          if (!isCurrentProject()) return;
+
+          const wcItems = await webContainerService.getFsTree();
+          if (wcItems && wcItems.length > 0) {
+            items = wcItems;
+          }
+        } catch (wcErr) {
+          console.warn("[Workspace] WebContainer mount error:", wcErr.message);
+        }
 
         if (!isCurrentProject()) return;
 
-        const wcItems = await webContainerService.getFsTree();
-        if (wcItems && wcItems.length > 0) {
-          items = wcItems;
-        }
-      } catch (wcErr) {
-        console.warn("[Workspace] WebContainer mount error:", wcErr.message);
-      }
-
-      if (!isCurrentProject()) return;
-
-      setFileItems(items || []);
-
-      if (items && items.length > 0) {
+        setFileItems(items || []);
         setTreeLoadError(null);
-        if (autoSelect) {
+
+        if (autoSelect && items.length > 0) {
           const first = findFirstFile(items);
           if (first && isCurrentProject()) handleSelectFile(first);
         }
+        return;
+      }
+
+      // If no files were found across bundle and tree
+      if (!treeLoadError) {
+        setTreeLoadError("Repository is empty or files could not be loaded.");
       }
     } catch (globalErr) {
       console.error("[Workspace] fetchTree error:", globalErr);
@@ -296,7 +300,7 @@ export default function DevCollabWorkspace({
         setIsTreeLoading(false);
       }
     }
-  }, [projectId, project?.githubRepo, handleSelectFile, treeLoadError]);
+  }, [projectId, handleSelectFile, treeLoadError]);
 
   /* ---------------- PROJECT ISOLATION: Reset + Clean WebContainer on project change ---------------- */
   useEffect(() => {

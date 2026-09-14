@@ -338,8 +338,8 @@ router.get("/:id/contents", async (req, res) => {
       return res.status(400).json({ error: "No GitHub repo linked to this project" });
     }
 
-    const cleanRepo = formatRepo(project.githubRepo);
-    const userToken = await getOptionalUserToken(req);
+    const cleanRepo = formatRepo(project.githubRepo, project);
+    const userToken = await getOptionalUserToken(req, project);
 
     // If file is already cached on workspace disk and not a forced refresh, check disk first
     if (reqPath && refresh !== "true") {

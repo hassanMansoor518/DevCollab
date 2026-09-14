@@ -569,13 +569,13 @@ class WebContainerService {
   async spawnTerminalSession({ sessionId, onOutput, onExit, cols = 80, rows = 24, cwd = '/' }) {
     const wc = await this.getInstance();
 
-    // Kill any existing session with this ID
+    // If an active session with this ID already exists, reuse it without killing
     if (this.activeProcesses.has(sessionId)) {
-      try {
-        const oldProc = this.activeProcesses.get(sessionId);
-        oldProc.kill?.();
-      } catch (_) {}
-      this.activeProcesses.delete(sessionId);
+      const existing = this.activeProcesses.get(sessionId);
+      if (existing) {
+        console.log(`[DevCollab][Terminal] Reusing active jsh session: ${sessionId}`);
+        return existing;
+      }
     }
 
     console.log(`[DevCollab][Terminal] Spawning interactive jsh session: ${sessionId}`);
