@@ -23,17 +23,31 @@ const jwt = require("jsonwebtoken");
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null;
 
 /* ================= GLOBAL HELPER ================= */
-const formatRepo = (url) => {
-  if (!url) return null;
-  return url
-    .replace("https://github.com/", "")
-    .replace("http://github.com/", "")
-    .replace("github.com/", "")
+const formatRepo = (url, project = null) => {
+  if (!url) {
+    if (project?.githubData?.html_url) {
+      return formatRepo(project.githubData.html_url);
+    }
+    return null;
+  }
+  let clean = url
+    .replace(/^https?:\/\/github\.com\//, "")
+    .replace(/^http:\/\/github\.com\//, "")
+    .replace(/^github\.com\//, "")
     .replace(/\.git$/, "")
     .trim();
+
+  // If repo is just a single name without owner (e.g. "StudentFeedback"), try to extract owner from githubData
+  if (!clean.includes("/") && project?.githubData?.html_url) {
+    const fromHtml = formatRepo(project.githubData.html_url);
+    if (fromHtml && fromHtml.includes("/")) {
+      return fromHtml;
+    }
+  }
+  return clean;
 };
 
-const getOptionalUserToken = async (req) => {
+const getOptionalUserToken = async (req, project = null) => {
   try {
     if (req?.user?.githubAccessToken) return req.user.githubAccessToken;
     const headerToken = req?.headers?.authorization?.startsWith("Bearer ")
@@ -49,14 +63,25 @@ const getOptionalUserToken = async (req) => {
         if (u?.githubAccessToken) return u.githubAccessToken;
       }
     }
+
+    // Check project members for a valid GitHub token
+    if (project?.members && project.members.length > 0) {
+      const memberUsers = await User.find({
+        _id: { $in: project.members },
+        githubAccessToken: { $exists: true, $ne: null, $ne: "" },
+      }).select("githubAccessToken");
+      if (memberUsers.length > 0 && memberUsers[0].githubAccessToken) {
+        return memberUsers[0].githubAccessToken;
+      }
+    }
   } catch (_) {}
-  return null;
+  return process.env.GITHUB_TOKEN || null;
 };
 
 const getGithubHeaders = (userToken = null) => {
   const token = userToken || process.env.GITHUB_TOKEN;
   if (!token) return { "User-Agent": "DevCollab-App" };
-  const authVal = token.startsWith("ghp_") || token.startsWith("github_pat_")
+  const authVal = token.startsWith("ghp_") || token.startsWith("github_pat_") || token.startsWith("gho_")
     ? `token ${token}`
     : `Bearer ${token}`;
   return {
@@ -924,11 +949,11 @@ router.get("/:id/tree", async (req, res) => {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    const userToken = await getOptionalUserToken(req);
+    const userToken = await getOptionalUserToken(req, project);
 
     // 1. If project is connected to a GitHub repository, fetch REAL repository tree from GitHub
     if (project.githubRepo) {
-      const cleanRepo = formatRepo(project.githubRepo);
+      const cleanRepo = formatRepo(project.githubRepo, project);
 
       // Discover default branch dynamically from GitHub
       let defaultBranch = project.githubData?.default_branch || "main";
@@ -1028,11 +1053,11 @@ router.get("/:id/tree/bundle", async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
 
-    const userToken = await getOptionalUserToken(req);
+    const userToken = await getOptionalUserToken(req, project);
 
     // 1. If GitHub repository is linked, fetch REAL repository tree and contents directly from GitHub
     if (project.githubRepo) {
-      const cleanRepo = formatRepo(project.githubRepo);
+      const cleanRepo = formatRepo(project.githubRepo, project);
       let defaultBranch = project.githubData?.default_branch || "main";
 
       let treeRes = null;
