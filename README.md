@@ -1,5 +1,6 @@
 # ⚡ DevCollab — AI-Powered Cloud IDE & Collaborative Engineering Platform
 
+<<<<<<< HEAD
 <p align="center">
   <img src="https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
@@ -10,6 +11,15 @@
   <img src="https://img.shields.io/badge/TailwindCSS_v4-DaisyUI-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License" />
 </p>
+=======
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen)
+![React](https://img.shields.io/badge/react-18.0+-blue)
+
+A cutting-edge collaborative development platform that enables teams to seamlessly manage projects, track commits, analyze code quality, and communicate in real-time—all powered by AI-driven insights.
+
+**🔗 Live Demo:** [https://dev-collab-neon.vercel.app)
+>>>>>>> 8571b197a3a98f0c2f10388c980b48b5468c5ec6
 
 ---
 
