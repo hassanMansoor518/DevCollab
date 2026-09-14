@@ -943,9 +943,14 @@ async function fetchGithubDirectoryRecursive(repo, dirPath = "", userToken = nul
 
 /* ================= RECURSIVE FILE TREE ================= */
 router.get("/:id/tree", async (req, res) => {
+  console.log(`[API] project tree request`);
+  console.log(`[API] projectId: ${req.params.id}`);
+  console.log(`[API] route matched: /api/project/:id/tree`);
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
+      console.log(`[API] response status: 404`);
+      console.log(`[API] error: Project not found`);
       return res.status(404).json({ error: "Project not found" });
     }
 
@@ -1033,6 +1038,7 @@ router.get("/:id/tree", async (req, res) => {
         project.projectStructure = nestedTree;
         await project.save().catch(() => {});
 
+        console.log(`[API] response status: 200`);
         return res.json({
           items: nestedTree,
           source: "github",
@@ -1051,6 +1057,7 @@ router.get("/:id/tree", async (req, res) => {
           console.log(`[GitHub] files count: ${fileNodes.length}`);
 
           const nestedTree = buildTreeFromFlatList(crawledItems);
+          console.log(`[API] response status: 200`);
           return res.json({
             items: nestedTree,
             source: "github-recursive",
@@ -1067,6 +1074,8 @@ router.get("/:id/tree", async (req, res) => {
         console.log(`[GitHub] response error: ${lastError}`);
       }
 
+      console.log(`[API] response status: 500`);
+      console.log(`[API] error: ${lastError || "Failed to fetch repository files from GitHub"}`);
       return res.status(500).json({
         error: `Failed to fetch repository files from GitHub. ${lastError || "Please verify the repository exists and is accessible."}`,
         items: []
@@ -1075,6 +1084,7 @@ router.get("/:id/tree", async (req, res) => {
 
     // 2. Non-GitHub project: read workspace disk
     const diskTree = workspaceFs.getWorkspaceTree(req.params.id);
+    console.log(`[API] response status: 200`);
     return res.json({
       items: diskTree || [],
       source: "workspace-disk",
@@ -1083,15 +1093,24 @@ router.get("/:id/tree", async (req, res) => {
     });
   } catch (err) {
     console.log(`[GitHub] response error: ${err.message}`);
+    console.log(`[API] response status: 500`);
+    console.log(`[API] error: ${err.message}`);
     res.status(500).json({ error: "Failed to fetch repository tree", details: err.message, items: [] });
   }
 });
 
 /* ================= REPOSITORY BUNDLE (ALL FILES + CONTENTS IN ONE REQUEST) ================= */
 router.get("/:id/tree/bundle", async (req, res) => {
+  console.log(`[API] project tree request`);
+  console.log(`[API] projectId: ${req.params.id}`);
+  console.log(`[API] route matched: /api/project/:id/tree/bundle`);
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (!project) {
+      console.log(`[API] response status: 404`);
+      console.log(`[API] error: Project not found`);
+      return res.status(404).json({ error: "Project not found" });
+    }
 
     const userToken = await getOptionalUserToken(req, project);
 
@@ -1206,6 +1225,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
         }));
         const tree = buildTreeFromFlatList(flatItems);
 
+        console.log(`[API] response status: 200`);
         return res.json({
           projectId: req.params.id,
           files,
@@ -1221,6 +1241,8 @@ router.get("/:id/tree/bundle", async (req, res) => {
         console.log(`[GitHub] response error: ${lastError}`);
       }
 
+      console.log(`[API] response status: 500`);
+      console.log(`[API] error: ${lastError || "Could not load repository from GitHub"}`);
       // If GitHub returned no tree, return error rather than mock files
       return res.status(500).json({
         error: `Could not load repository ${cleanRepo} from GitHub. ${lastError || "Please check branch and access."}`,
@@ -1263,6 +1285,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
     }));
     const tree = buildTreeFromFlatList(flatItems);
 
+    console.log(`[API] response status: 200`);
     return res.json({
       projectId: req.params.id,
       files: diskFiles.filter(f => f.type === "file"),
@@ -1271,6 +1294,8 @@ router.get("/:id/tree/bundle", async (req, res) => {
       source: "workspace-disk"
     });
   } catch (err) {
+    console.log(`[API] response status: 500`);
+    console.log(`[API] error: ${err.message}`);
     console.error("Bundle Error:", err.message);
     res.status(500).json({ error: "Failed to fetch project bundle", details: err.message });
   }

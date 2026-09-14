@@ -186,13 +186,19 @@ router.post("/task/:taskId/retry", async (req, res) => {
  * 11. Fetch task execution history for a project
  */
 router.get("/history/:projectId", async (req, res) => {
+  console.log(`[API] agent history request`);
+  console.log(`[API] projectId: ${req.params.projectId}`);
+  console.log(`[API] route matched: /api/agent/history/:projectId`);
   try {
     const history = await AgentTask.find({ projectId: req.params.projectId })
       .sort({ createdAt: -1 })
       .limit(20)
       .lean();
+    console.log(`[API] response status: 200`);
     res.json(history);
   } catch (err) {
+    console.log(`[API] response status: 500`);
+    console.log(`[API] error: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
