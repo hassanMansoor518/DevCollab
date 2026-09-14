@@ -197,8 +197,18 @@ export default function DevCollabWorkspace({
 
         if (!isCurrentProject()) return;
         bundle = bundleRes.data;
+
+        if (bundle) {
+          const filesCount = bundle.files?.length || 0;
+          console.log(`[GitHub] response status: ${bundleRes.status}`);
+          console.log(`[GitHub] files count: ${filesCount}`);
+        }
       } catch (bundleErr) {
-        console.warn("[Workspace] Bundle endpoint error:", bundleErr.response?.data?.error || bundleErr.message);
+        const status = bundleErr.response?.status || 500;
+        const errMsg = bundleErr.response?.data?.error || bundleErr.message;
+        console.log(`[GitHub] response status: ${status}`);
+        console.log(`[GitHub] files count: 0`);
+        console.log(`[GitHub] error: ${errMsg}`);
         if (bundleErr.response?.data?.error) {
           setTreeLoadError(bundleErr.response.data.error);
         }
@@ -231,11 +241,16 @@ export default function DevCollabWorkspace({
       // 4. Fallback: Always try Tree endpoint if bundle was empty or errored
       try {
         const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
+        console.log(`[GitHub] response status: ${treeRes.status}`);
         if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
           items = treeRes.data.items;
+          console.log(`[GitHub] files count: ${items.length}`);
         }
       } catch (treeErr) {
-        console.warn("[Workspace] Tree fallback error:", treeErr.message);
+        const status = treeErr.response?.status || 500;
+        const errMsg = treeErr.response?.data?.error || treeErr.message;
+        console.log(`[GitHub] response status: ${status}`);
+        console.log(`[GitHub] error: ${errMsg}`);
         if (!treeLoadError) {
           setTreeLoadError(treeErr.response?.data?.error || "Failed to load files from GitHub");
         }

@@ -953,7 +953,21 @@ router.get("/:id/tree", async (req, res) => {
 
     // 1. If project is connected to a GitHub repository, fetch REAL repository tree from GitHub
     if (project.githubRepo) {
-      const cleanRepo = formatRepo(project.githubRepo, project);
+      let cleanRepo = formatRepo(project.githubRepo, project);
+
+      // Resolve owner if missing
+      if (cleanRepo && !cleanRepo.includes("/")) {
+        try {
+          const userRes = await githubApiRequest("https://api.github.com/user", { userToken });
+          if (userRes.data?.login) {
+            cleanRepo = `${userRes.data.login}/${cleanRepo}`;
+          }
+        } catch (_) {}
+      }
+
+      const [owner = "", repo = cleanRepo] = cleanRepo ? cleanRepo.split("/") : ["", ""];
+      console.log(`[GitHub] owner: ${owner}`);
+      console.log(`[GitHub] repo: ${repo}`);
 
       // Discover default branch dynamically from GitHub
       let defaultBranch = project.githubData?.default_branch || "main";
@@ -968,23 +982,33 @@ router.get("/:id/tree", async (req, res) => {
           await project.save().catch(() => {});
         }
       } catch (metaErr) {
-        console.warn(`[GitHub Tree] Could not fetch repo meta for ${cleanRepo}, using fallback branch '${defaultBranch}':`, metaErr.message);
+        console.log(`[GitHub] error: ${metaErr.response?.data?.message || metaErr.message}`);
       }
+
+      console.log(`[GitHub] branch: ${defaultBranch}`);
 
       const branchesToTry = Array.from(new Set([defaultBranch, "main", "master", "develop", "trunk"])).filter(Boolean);
 
       let treeRes = null;
       let successfulBranch = defaultBranch;
+      let apiStatus = null;
+      let lastError = null;
 
       for (const branch of branchesToTry) {
         try {
           const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
           treeRes = await githubApiRequest(url, { userToken });
+          apiStatus = treeRes.status;
           if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
             successfulBranch = branch;
+            console.log(`[GitHub] branch: ${successfulBranch}`);
+            console.log(`[GitHub] response status: ${apiStatus}`);
             break;
           }
-        } catch (_) {}
+        } catch (err) {
+          apiStatus = err.response?.status || 500;
+          lastError = err.response?.data?.message || err.message;
+        }
       }
 
       if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
@@ -997,6 +1021,9 @@ router.get("/:id/tree", async (req, res) => {
             type: item.type === "tree" || item.type === "dir" ? "dir" : "file",
             size: item.size || 0,
           }));
+
+        const fileNodes = rawItems.filter((i) => i.type === "file");
+        console.log(`[GitHub] files count: ${fileNodes.length}`);
 
         const nestedTree = buildTreeFromFlatList(rawItems);
 
@@ -1016,6 +1043,10 @@ router.get("/:id/tree", async (req, res) => {
       try {
         const crawledItems = await fetchGithubDirectoryRecursive(cleanRepo, "", userToken);
         if (crawledItems.length > 0) {
+          const fileNodes = crawledItems.filter((i) => i.type === "file");
+          console.log(`[GitHub] response status: 200`);
+          console.log(`[GitHub] files count: ${fileNodes.length}`);
+
           const nestedTree = buildTreeFromFlatList(crawledItems);
           return res.json({
             items: nestedTree,
@@ -1027,8 +1058,14 @@ router.get("/:id/tree", async (req, res) => {
         }
       } catch (_) {}
 
+      console.log(`[GitHub] response status: ${apiStatus || 500}`);
+      console.log(`[GitHub] files count: 0`);
+      if (lastError) {
+        console.log(`[GitHub] error: ${lastError}`);
+      }
+
       return res.status(500).json({
-        error: "Failed to fetch repository files from GitHub. Please verify the repository exists and is accessible.",
+        error: `Failed to fetch repository files from GitHub. ${lastError || "Please verify the repository exists and is accessible."}`,
         items: []
       });
     }
@@ -1042,7 +1079,7 @@ router.get("/:id/tree", async (req, res) => {
       isStarterOnly: false
     });
   } catch (err) {
-    console.error("Tree Error:", err.message);
+    console.log(`[GitHub] error: ${err.message}`);
     res.status(500).json({ error: "Failed to fetch repository tree", details: err.message, items: [] });
   }
 });
@@ -1057,22 +1094,59 @@ router.get("/:id/tree/bundle", async (req, res) => {
 
     // 1. If GitHub repository is linked, fetch REAL repository tree and contents directly from GitHub
     if (project.githubRepo) {
-      const cleanRepo = formatRepo(project.githubRepo, project);
-      let defaultBranch = project.githubData?.default_branch || "main";
+      let cleanRepo = formatRepo(project.githubRepo, project);
 
-      let treeRes = null;
-      try {
-        const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`;
-        treeRes = await githubApiRequest(url, { userToken });
-      } catch (_) {
+      // Resolve owner if missing
+      if (cleanRepo && !cleanRepo.includes("/")) {
         try {
-          const url = `https://api.github.com/repos/${cleanRepo}/git/trees/master?recursive=1`;
-          treeRes = await githubApiRequest(url, { userToken });
-          defaultBranch = "master";
+          const userRes = await githubApiRequest("https://api.github.com/user", { userToken });
+          if (userRes.data?.login) {
+            cleanRepo = `${userRes.data.login}/${cleanRepo}`;
+          }
         } catch (_) {}
       }
 
-      if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree)) {
+      const [owner = "", repo = cleanRepo] = cleanRepo ? cleanRepo.split("/") : ["", ""];
+      console.log(`[GitHub] owner: ${owner}`);
+      console.log(`[GitHub] repo: ${repo}`);
+
+      let defaultBranch = project.githubData?.default_branch || "main";
+      try {
+        const repoMeta = await githubApiRequest(`https://api.github.com/repos/${cleanRepo}`, { userToken });
+        if (repoMeta.data?.default_branch) {
+          defaultBranch = repoMeta.data.default_branch;
+        }
+      } catch (metaErr) {
+        console.log(`[GitHub] error: ${metaErr.response?.data?.message || metaErr.message}`);
+      }
+
+      console.log(`[GitHub] branch: ${defaultBranch}`);
+
+      const branchesToTry = Array.from(new Set([defaultBranch, "main", "master", "develop", "trunk"])).filter(Boolean);
+
+      let treeRes = null;
+      let successfulBranch = defaultBranch;
+      let apiStatus = null;
+      let lastError = null;
+
+      for (const branch of branchesToTry) {
+        try {
+          const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+          treeRes = await githubApiRequest(url, { userToken });
+          apiStatus = treeRes.status;
+          if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
+            successfulBranch = branch;
+            console.log(`[GitHub] branch: ${successfulBranch}`);
+            console.log(`[GitHub] response status: ${apiStatus}`);
+            break;
+          }
+        } catch (err) {
+          apiStatus = err.response?.status || 500;
+          lastError = err.response?.data?.message || err.message;
+        }
+      }
+
+      if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
         const ignoredPrefixes = ["node_modules/", ".git/", "dist/", "build/", ".next/", ".turbo/"];
         const treeBlobs = treeRes.data.tree.filter(
           item => !ignoredPrefixes.some(ig => item.path.startsWith(ig) || item.path.includes("/" + ig))
@@ -1081,7 +1155,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
         const directories = treeBlobs.filter(i => i.type === "tree" || i.type === "dir").map(i => i.path);
         const fileNodes = treeBlobs.filter(i => i.type === "blob" || i.type === "file");
 
-        console.log(`[DevCollab][GitHub] Repository loading: ${cleanRepo} (${fileNodes.length} files, ${directories.length} dirs)`);
+        console.log(`[GitHub] files count: ${fileNodes.length}`);
 
         // Fetch contents in parallel batches
         const files = [];
@@ -1091,7 +1165,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
           const results = await Promise.all(
             batch.map(async (f) => {
               try {
-                const rawUrl = `https://raw.githubusercontent.com/${cleanRepo}/${defaultBranch}/${f.path}`;
+                const rawUrl = `https://raw.githubusercontent.com/${cleanRepo}/${successfulBranch}/${f.path}`;
                 const rawRes = await axios.get(rawUrl, {
                   headers: userToken ? { Authorization: userToken.startsWith("ghp_") ? `token ${userToken}` : `Bearer ${userToken}` } : {},
                   responseType: "text",
@@ -1103,7 +1177,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
                 // Try GitHub Contents API if raw URL fails
                 try {
                   const contentRes = await githubApiRequest(
-                    `https://api.github.com/repos/${cleanRepo}/contents/${encodeURIComponent(f.path)}?ref=${defaultBranch}`,
+                    `https://api.github.com/repos/${cleanRepo}/contents/${encodeURIComponent(f.path)}?ref=${successfulBranch}`,
                     { userToken }
                   );
                   if (contentRes.data?.content) {
@@ -1126,8 +1200,6 @@ router.get("/:id/tree/bundle", async (req, res) => {
         }));
         const tree = buildTreeFromFlatList(flatItems);
 
-        console.log(`[DevCollab][GitHub] Files loaded: ${files.length}`);
-
         return res.json({
           projectId: req.params.id,
           files,
@@ -1137,10 +1209,16 @@ router.get("/:id/tree/bundle", async (req, res) => {
         });
       }
 
+      console.log(`[GitHub] response status: ${apiStatus || 500}`);
+      console.log(`[GitHub] files count: 0`);
+      if (lastError) {
+        console.log(`[GitHub] error: ${lastError}`);
+      }
+
       // If GitHub returned no tree, return error rather than mock files
       return res.status(500).json({
-        error: `Could not load repository ${cleanRepo} from GitHub. Please check branch and access.`,
-        details: "Git trees API returned empty or inaccessible tree."
+        error: `Could not load repository ${cleanRepo} from GitHub. ${lastError || "Please check branch and access."}`,
+        details: lastError || "Git trees API returned empty or inaccessible tree."
       });
     }
 
