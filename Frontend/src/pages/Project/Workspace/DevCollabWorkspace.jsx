@@ -187,10 +187,21 @@ export default function DevCollabWorkspace({
       // 1. Boot WebContainer first
       await webContainerService.boot();
 
+      // Log project metadata if available
+      if (project?.githubRepo) {
+        const cleanRepo = project.githubRepo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").trim();
+        const [owner = "", repo = cleanRepo] = cleanRepo.split("/");
+        if (owner) console.log(`[GitHub] owner: ${owner}`);
+        if (repo) console.log(`[GitHub] repo: ${repo}`);
+        console.log(`[GitHub] branch: ${project.githubData?.default_branch || "main"}`);
+      }
+
       // 2. Fetch repository bundle (recursive files + contents)
       let bundle = null;
+      const bundleUrl = `${API_URL}/api/project/${pid}/tree/bundle`;
+      console.log(`[GitHub] request URL: ${bundleUrl}`);
       try {
-        const bundleRes = await axios.get(`${API_URL}/api/project/${pid}/tree/bundle`, {
+        const bundleRes = await axios.get(bundleUrl, {
           withCredentials: true,
           timeout: 45000,
         });
@@ -208,7 +219,7 @@ export default function DevCollabWorkspace({
         const errMsg = bundleErr.response?.data?.error || bundleErr.message;
         console.log(`[GitHub] response status: ${status}`);
         console.log(`[GitHub] files count: 0`);
-        console.log(`[GitHub] error: ${errMsg}`);
+        console.log(`[GitHub] response error: ${errMsg}`);
         if (bundleErr.response?.data?.error) {
           setTreeLoadError(bundleErr.response.data.error);
         }
@@ -239,8 +250,10 @@ export default function DevCollabWorkspace({
       }
 
       // 4. Fallback: Always try Tree endpoint if bundle was empty or errored
+      const treeUrl = `${API_URL}/api/project/${pid}/tree`;
+      console.log(`[GitHub] request URL: ${treeUrl}`);
       try {
-        const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
+        const treeRes = await axios.get(treeUrl, { withCredentials: true });
         console.log(`[GitHub] response status: ${treeRes.status}`);
         if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
           items = treeRes.data.items;
@@ -250,7 +263,7 @@ export default function DevCollabWorkspace({
         const status = treeErr.response?.status || 500;
         const errMsg = treeErr.response?.data?.error || treeErr.message;
         console.log(`[GitHub] response status: ${status}`);
-        console.log(`[GitHub] error: ${errMsg}`);
+        console.log(`[GitHub] response error: ${errMsg}`);
         if (!treeLoadError) {
           setTreeLoadError(treeErr.response?.data?.error || "Failed to load files from GitHub");
         }

@@ -982,7 +982,7 @@ router.get("/:id/tree", async (req, res) => {
           await project.save().catch(() => {});
         }
       } catch (metaErr) {
-        console.log(`[GitHub] error: ${metaErr.response?.data?.message || metaErr.message}`);
+        console.log(`[GitHub] response error: ${metaErr.response?.data?.message || metaErr.message}`);
       }
 
       console.log(`[GitHub] branch: ${defaultBranch}`);
@@ -997,6 +997,7 @@ router.get("/:id/tree", async (req, res) => {
       for (const branch of branchesToTry) {
         try {
           const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+          console.log(`[GitHub] request URL: ${url}`);
           treeRes = await githubApiRequest(url, { userToken });
           apiStatus = treeRes.status;
           if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
@@ -1008,6 +1009,8 @@ router.get("/:id/tree", async (req, res) => {
         } catch (err) {
           apiStatus = err.response?.status || 500;
           lastError = err.response?.data?.message || err.message;
+          console.log(`[GitHub] response status: ${apiStatus}`);
+          console.log(`[GitHub] response error: ${lastError}`);
         }
       }
 
@@ -1061,7 +1064,7 @@ router.get("/:id/tree", async (req, res) => {
       console.log(`[GitHub] response status: ${apiStatus || 500}`);
       console.log(`[GitHub] files count: 0`);
       if (lastError) {
-        console.log(`[GitHub] error: ${lastError}`);
+        console.log(`[GitHub] response error: ${lastError}`);
       }
 
       return res.status(500).json({
@@ -1079,7 +1082,7 @@ router.get("/:id/tree", async (req, res) => {
       isStarterOnly: false
     });
   } catch (err) {
-    console.log(`[GitHub] error: ${err.message}`);
+    console.log(`[GitHub] response error: ${err.message}`);
     res.status(500).json({ error: "Failed to fetch repository tree", details: err.message, items: [] });
   }
 });
@@ -1117,7 +1120,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
           defaultBranch = repoMeta.data.default_branch;
         }
       } catch (metaErr) {
-        console.log(`[GitHub] error: ${metaErr.response?.data?.message || metaErr.message}`);
+        console.log(`[GitHub] response error: ${metaErr.response?.data?.message || metaErr.message}`);
       }
 
       console.log(`[GitHub] branch: ${defaultBranch}`);
@@ -1132,6 +1135,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
       for (const branch of branchesToTry) {
         try {
           const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+          console.log(`[GitHub] request URL: ${url}`);
           treeRes = await githubApiRequest(url, { userToken });
           apiStatus = treeRes.status;
           if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
@@ -1143,6 +1147,8 @@ router.get("/:id/tree/bundle", async (req, res) => {
         } catch (err) {
           apiStatus = err.response?.status || 500;
           lastError = err.response?.data?.message || err.message;
+          console.log(`[GitHub] response status: ${apiStatus}`);
+          console.log(`[GitHub] response error: ${lastError}`);
         }
       }
 
@@ -1212,7 +1218,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
       console.log(`[GitHub] response status: ${apiStatus || 500}`);
       console.log(`[GitHub] files count: 0`);
       if (lastError) {
-        console.log(`[GitHub] error: ${lastError}`);
+        console.log(`[GitHub] response error: ${lastError}`);
       }
 
       // If GitHub returned no tree, return error rather than mock files
