@@ -23,6 +23,8 @@ export default function XTermInstance({
   const resizeObserverRef = useRef(null);
   const sessionRef = useRef(null);
   const [initError, setInitError] = useState(null);
+  const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0 });
+  const [hasSelection, setHasSelection] = useState(false);
 
   // Dev server detection regex
   const detectDevServer = useCallback(

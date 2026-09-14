@@ -19,22 +19,22 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 4002,
       headers: {
-        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Embedder-Policy': 'credentialless',
         'Cross-Origin-Opener-Policy': 'same-origin',
       },
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           ws: true,
         },
         '/preview': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           ws: true,
         },
         '/socket.io': {
-          target: env.VITE_API_URL || 'http://localhost:3001',
+          target: 'http://localhost:3001',
           ws: true,
           changeOrigin: true
         }
@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: 4002,
       headers: {
-        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Embedder-Policy': 'credentialless',
         'Cross-Origin-Opener-Policy': 'same-origin',
       }
     }

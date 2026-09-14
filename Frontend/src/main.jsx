@@ -16,6 +16,21 @@ const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "htt
 axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 
+// Suppress benign Monaco editor internal cancellation errors
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    if (
+      event.reason &&
+      (event.reason.name === "Canceled" ||
+        event.reason.message === "Canceled" ||
+        event.reason === "Canceled" ||
+        event.reason?.type === "cancelation")
+    ) {
+      event.preventDefault();
+    }
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
