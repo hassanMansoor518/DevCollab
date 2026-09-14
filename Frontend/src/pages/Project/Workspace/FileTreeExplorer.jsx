@@ -42,64 +42,6 @@ const getFileIcon = (fileName = "") => {
   }
 };
 
-/* Default standard tree structure matching reference design */
-const DEFAULT_TREE_DATA = [
-  { name: ".github", path: ".github", type: "dir" },
-  { name: ".vscode", path: ".vscode", type: "dir" },
-  { name: "backend", path: "backend", type: "dir" },
-  { name: "public", path: "public", type: "dir" },
-  {
-    name: "src",
-    path: "src",
-    type: "dir",
-    defaultOpen: true,
-    children: [
-      {
-        name: "components",
-        path: "src/components",
-        type: "dir",
-        defaultOpen: true,
-        children: [
-          { name: "Navbar.jsx", path: "src/components/Navbar.jsx", type: "file", status: "M" },
-          { name: "Sidebar.jsx", path: "src/components/Sidebar.jsx", type: "file", status: "M" },
-          { name: "Button.jsx", path: "src/components/Button.jsx", type: "file", status: "U" },
-        ],
-      },
-      {
-        name: "pages",
-        path: "src/pages",
-        type: "dir",
-        defaultOpen: true,
-        children: [
-          { name: "Dashboard.jsx", path: "src/pages/Dashboard.jsx", type: "file", status: "M" },
-          { name: "Repositories.jsx", path: "src/pages/Repositories.jsx", type: "file", status: "M" },
-          { name: "CodeEditor.jsx", path: "src/pages/CodeEditor.jsx", type: "file", status: "M" },
-          { name: "Settings.jsx", path: "src/pages/Settings.jsx", type: "file", status: "U" },
-        ],
-      },
-      {
-        name: "services",
-        path: "src/services",
-        type: "dir",
-        defaultOpen: false,
-        children: [
-          { name: "api.js", path: "src/services/api.js", type: "file", status: "M" },
-          { name: "github.js", path: "src/services/github.js", type: "file", status: "M" },
-          { name: "socket.js", path: "src/services/socket.js", type: "file" },
-        ],
-      },
-      { name: "utils", path: "src/utils", type: "dir" },
-      { name: "App.jsx", path: "src/App.jsx", type: "file", status: "M" },
-      { name: "index.jsx", path: "src/index.jsx", type: "file", status: "M" },
-      { name: "routes.jsx", path: "src/routes.jsx", type: "file", status: "M" },
-      { name: "styles.css", path: "src/styles.css", type: "file" },
-      { name: ".gitignore", path: ".gitignore", type: "file" },
-      { name: "package.json", path: "package.json", type: "file", status: "M" },
-      { name: "README.md", path: "README.md", type: "file" },
-    ],
-  },
-];
-
 /* Tree Node Component */
 const TreeNode = ({
   item,
@@ -288,6 +230,7 @@ export default function FileTreeExplorer({
   onRefresh,
   onSyncRepo,
   isLoading = false,
+  loadError = null,
   isSyncing = false,
   onDeleteFile,
   modifiedFiles = {}
@@ -368,7 +311,20 @@ export default function FileTreeExplorer({
         {isLoading ? (
           <div className="p-4 flex flex-col items-center justify-center text-center gap-2 text-[#8B949E]">
             <RefreshCw size={18} className="animate-spin text-[#38BDF8]" />
-            <span className="text-xs">Fetching repository files...</span>
+            <span className="text-xs">Loading project files...</span>
+          </div>
+        ) : loadError ? (
+          <div className="p-4 flex flex-col items-center justify-center text-center gap-2 text-[#F87171]">
+            <span className="text-xs font-semibold">Failed to load project files</span>
+            <span className="text-[11px] text-[#94A3B8] leading-tight">{loadError}</span>
+            {onSyncRepo && (
+              <button
+                onClick={onSyncRepo}
+                className="mt-2 px-2.5 py-1 text-xs bg-[#151E2D] hover:bg-[#1E293B] text-[#38BDF8] rounded border border-[#3794FF]/30 transition-colors"
+              >
+                Retry GitHub Load
+              </button>
+            )}
           </div>
         ) : itemsToRender.length === 0 ? (
           <div className="p-4 flex flex-col items-center justify-center text-center gap-2 text-[#8B949E]">

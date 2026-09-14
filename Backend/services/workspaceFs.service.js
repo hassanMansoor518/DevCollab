@@ -48,8 +48,6 @@ function ensureWorkspaceDir(projectId, projectInfo = {}) {
     );
 
   if (entries.length === 0 || (isStarterOnly && githubRepo)) {
-    let cloneSuccess = false;
-
     // 1. If project has a connected GitHub repo, attempt to clone it
     if (githubRepo) {
       try {
@@ -59,7 +57,7 @@ function ensureWorkspaceDir(projectId, projectInfo = {}) {
           .replace(/\.git$/, "")
           .trim();
 
-        // Clear starter template files before cloning
+        // Clear any old starter template files before cloning
         if (isStarterOnly) {
           for (const file of entries) {
             try {
@@ -80,7 +78,6 @@ function ensureWorkspaceDir(projectId, projectInfo = {}) {
             stdio: "pipe",
             timeout: 60000,
           });
-          cloneSuccess = true;
         } catch (authCloneErr) {
           console.warn(`Authenticated git clone failed, trying public clone for '${cleanRepo}':`, authCloneErr.message);
           try {
@@ -89,55 +86,13 @@ function ensureWorkspaceDir(projectId, projectInfo = {}) {
               stdio: "pipe",
               timeout: 60000,
             });
-            cloneSuccess = true;
           } catch (pubCloneErr) {
             console.warn(`Public git clone failed for '${cleanRepo}':`, pubCloneErr.message);
           }
         }
       } catch (cloneErr) {
-        console.warn(`Git clone failed for repo '${githubRepo}', falling back to starter project template:`, cloneErr.message);
+        console.warn(`Git clone failed for repo '${githubRepo}':`, cloneErr.message);
       }
-    }
-
-    // 2. If no repo or clone failed, seed standard modern project template
-    if (!cloneSuccess && fs.readdirSync(dir).length === 0) {
-      const starterPackageJson = {
-        name: projectName.toLowerCase().replace(/[^a-z0-9_-]/g, "-"),
-        private: true,
-        version: "0.1.0",
-        type: "module",
-        scripts: {
-          dev: "vite --host",
-          build: "vite build",
-          preview: "vite preview --host",
-          start: "vite preview --host",
-          test: "echo \"Test suite: 4 passed, 0 failed.\""
-        },
-        dependencies: {
-          react: "^18.2.0",
-          "react-dom": "^18.2.0"
-        },
-        devDependencies: {
-          vite: "^5.2.0"
-        }
-      };
-
-      const starterReadme = `# ${projectName}\n\nWelcome to your DevCollab workspace project!\n\n## Getting Started\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n`;
-      const starterGitignore = `node_modules/\ndist/\n.env\n.DS_Store\n`;
-      const starterIndexHtml = `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${projectName}</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.jsx"></script>\n</body>\n</html>\n`;
-
-      const srcDir = path.join(dir, "src");
-      fs.mkdirSync(srcDir, { recursive: true });
-
-      const starterApp = `import React from 'react';\n\nexport default function App() {\n  return (\n    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>\n      <h1>Hello from ${projectName}!</h1>\n      <p>Edit <code>src/App.jsx</code> and save to see changes.</p>\n    </div>\n  );\n}\n`;
-      const starterMain = `import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App.jsx';\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);\n`;
-
-      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify(starterPackageJson, null, 2), "utf8");
-      fs.writeFileSync(path.join(dir, "README.md"), starterReadme, "utf8");
-      fs.writeFileSync(path.join(dir, ".gitignore"), starterGitignore, "utf8");
-      fs.writeFileSync(path.join(dir, "index.html"), starterIndexHtml, "utf8");
-      fs.writeFileSync(path.join(srcDir, "App.jsx"), starterApp, "utf8");
-      fs.writeFileSync(path.join(srcDir, "main.jsx"), starterMain, "utf8");
     }
   }
 

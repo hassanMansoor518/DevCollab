@@ -926,117 +926,94 @@ router.get("/:id/tree", async (req, res) => {
 
     const userToken = await getOptionalUserToken(req);
 
-    // 1. If workspace disk has REAL cloned repo files (not a starter template), return workspace tree
-    const isTemplate = workspaceFs.isStarterTemplate(req.params.id);
-    if (!isTemplate) {
-      const wsItems = workspaceFs.getWorkspaceTree(req.params.id);
-      if (wsItems && wsItems.length > 0) {
-        return res.json({ items: wsItems, source: "workspace", isStarterOnly: false });
-      }
-    }
+    // 1. If project is connected to a GitHub repository, fetch REAL repository tree from GitHub
+    if (project.githubRepo) {
+      const cleanRepo = formatRepo(project.githubRepo);
 
-    // 2. If no GitHub repo linked, check workspace disk
-    if (!project.githubRepo) {
-      const wsItems = workspaceFs.getWorkspaceTree(req.params.id);
-      return res.json({ items: wsItems || [], source: "workspace", empty: !wsItems || wsItems.length === 0 });
-    }
-
-    const cleanRepo = formatRepo(project.githubRepo);
-
-    // 3. Discover exact repository default branch dynamically from GitHub
-    let defaultBranch = project.githubData?.default_branch || "main";
-    try {
-      const repoMeta = await githubApiRequest(`https://api.github.com/repos/${cleanRepo}`, { userToken });
-      if (repoMeta.data?.default_branch) {
-        defaultBranch = repoMeta.data.default_branch;
-        if (!project.githubData) project.githubData = {};
-        project.githubData.default_branch = defaultBranch;
-        project.githubData.stars = repoMeta.data.stargazers_count;
-        project.githubData.forks = repoMeta.data.forks_count;
-        await project.save().catch(() => {});
-      }
-    } catch (metaErr) {
-      console.warn(`[GitHub Tree] Could not fetch repo meta for ${cleanRepo}, using fallback branch '${defaultBranch}':`, metaErr.message);
-    }
-
-    const branchesToTry = Array.from(new Set([defaultBranch, "main", "master", "develop", "trunk"])).filter(Boolean);
-
-    let treeRes = null;
-    let successfulBranch = defaultBranch;
-
-    for (const branch of branchesToTry) {
+      // Discover default branch dynamically from GitHub
+      let defaultBranch = project.githubData?.default_branch || "main";
       try {
-        const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
-        treeRes = await githubApiRequest(url, { userToken });
-        if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
-          successfulBranch = branch;
-          break;
+        const repoMeta = await githubApiRequest(`https://api.github.com/repos/${cleanRepo}`, { userToken });
+        if (repoMeta.data?.default_branch) {
+          defaultBranch = repoMeta.data.default_branch;
+          if (!project.githubData) project.githubData = {};
+          project.githubData.default_branch = defaultBranch;
+          project.githubData.stars = repoMeta.data.stargazers_count;
+          project.githubData.forks = repoMeta.data.forks_count;
+          await project.save().catch(() => {});
         }
-      } catch (err) {
-        // Continue trying next branch
+      } catch (metaErr) {
+        console.warn(`[GitHub Tree] Could not fetch repo meta for ${cleanRepo}, using fallback branch '${defaultBranch}':`, metaErr.message);
       }
-    }
 
-    // 4. If Git Trees API returned valid items
-    if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
-      const ignoredPrefixes = ["node_modules/", ".git/", "dist/", "build/", ".next/", ".turbo/"];
-      const rawItems = treeRes.data.tree
-        .filter((item) => !ignoredPrefixes.some((ig) => item.path.startsWith(ig) || item.path.includes("/" + ig)))
-        .map((item) => ({
-          name: item.path.split("/").pop(),
-          path: item.path,
-          type: item.type === "tree" || item.type === "dir" ? "dir" : "file",
-          size: item.size || 0,
-        }));
+      const branchesToTry = Array.from(new Set([defaultBranch, "main", "master", "develop", "trunk"])).filter(Boolean);
 
-      const nestedTree = buildTreeFromFlatList(rawItems);
+      let treeRes = null;
+      let successfulBranch = defaultBranch;
 
-      // Cache indexed summary in background
-      project.projectStructure = nestedTree;
-      await project.save().catch(() => {});
+      for (const branch of branchesToTry) {
+        try {
+          const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+          treeRes = await githubApiRequest(url, { userToken });
+          if (treeRes.data && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
+            successfulBranch = branch;
+            break;
+          }
+        } catch (_) {}
+      }
 
-      return res.json({
-        items: nestedTree,
-        source: "github",
-        branch: successfulBranch,
-        empty: nestedTree.length === 0,
-        isStarterOnly: false
-      });
-    }
+      if (treeRes?.data?.tree && Array.isArray(treeRes.data.tree) && treeRes.data.tree.length > 0) {
+        const ignoredPrefixes = ["node_modules/", ".git/", "dist/", "build/", ".next/", ".turbo/"];
+        const rawItems = treeRes.data.tree
+          .filter((item) => !ignoredPrefixes.some((ig) => item.path.startsWith(ig) || item.path.includes("/" + ig)))
+          .map((item) => ({
+            name: item.path.split("/").pop(),
+            path: item.path,
+            type: item.type === "tree" || item.type === "dir" ? "dir" : "file",
+            size: item.size || 0,
+          }));
 
-    // 5. Fallback: Recursive Contents API traversal
-    try {
-      const crawledItems = await fetchGithubDirectoryRecursive(cleanRepo, "", userToken);
-      if (crawledItems.length > 0) {
-        const nestedTree = buildTreeFromFlatList(crawledItems);
+        const nestedTree = buildTreeFromFlatList(rawItems);
+
+        project.projectStructure = nestedTree;
+        await project.save().catch(() => {});
+
         return res.json({
           items: nestedTree,
-          source: "github-recursive",
+          source: "github",
           branch: successfulBranch,
           empty: nestedTree.length === 0,
           isStarterOnly: false
         });
       }
-    } catch (_) {}
 
-    // 6. Fallback to workspace disk tree
-    const diskTree = workspaceFs.getWorkspaceTree(req.params.id);
-    if (diskTree && diskTree.length > 0) {
-      return res.json({
-        items: diskTree,
-        source: "workspace-disk",
-        branch: defaultBranch,
-        empty: false,
-        isStarterOnly: isTemplate
+      // Fallback: Recursive Contents API traversal
+      try {
+        const crawledItems = await fetchGithubDirectoryRecursive(cleanRepo, "", userToken);
+        if (crawledItems.length > 0) {
+          const nestedTree = buildTreeFromFlatList(crawledItems);
+          return res.json({
+            items: nestedTree,
+            source: "github-recursive",
+            branch: successfulBranch,
+            empty: nestedTree.length === 0,
+            isStarterOnly: false
+          });
+        }
+      } catch (_) {}
+
+      return res.status(500).json({
+        error: "Failed to fetch repository files from GitHub. Please verify the repository exists and is accessible.",
+        items: []
       });
     }
 
+    // 2. Non-GitHub project: read workspace disk
+    const diskTree = workspaceFs.getWorkspaceTree(req.params.id);
     return res.json({
-      items: [],
-      source: "github",
-      branch: defaultBranch,
-      empty: true,
-      message: "Repository is empty or has no commits on default branch.",
+      items: diskTree || [],
+      source: "workspace-disk",
+      empty: !diskTree || diskTree.length === 0,
       isStarterOnly: false
     });
   } catch (err) {
@@ -1053,61 +1030,11 @@ router.get("/:id/tree/bundle", async (req, res) => {
 
     const userToken = await getOptionalUserToken(req);
 
-    // 1. Check workspace disk first
-    const isTemplate = workspaceFs.isStarterTemplate(req.params.id);
-    const diskDir = workspaceFs.ensureWorkspaceDir(req.params.id, project || {});
-    
-    // Helper to collect all files from workspace disk
-    const collectDiskFiles = (dir, relBase = "") => {
-      const results = [];
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const ignored = new Set([".git", "node_modules", "dist", "build", ".next", ".turbo", ".DS_Store"]);
-      
-      for (const entry of entries) {
-        if (ignored.has(entry.name)) continue;
-        const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
-        const fullPath = path.join(dir, entry.name);
-        
-        if (entry.isDirectory()) {
-          results.push({ path: relPath, type: "dir" });
-          results.push(...collectDiskFiles(fullPath, relPath));
-        } else {
-          try {
-            const content = fs.readFileSync(fullPath, "utf8");
-            results.push({ path: relPath, type: "file", content, size: content.length });
-          } catch (_) {
-            results.push({ path: relPath, type: "file", content: "", size: 0 });
-          }
-        }
-      }
-      return results;
-    };
-
-    if (!isTemplate && fs.existsSync(diskDir)) {
-      const diskFiles = collectDiskFiles(diskDir);
-      if (diskFiles.length > 0) {
-        const flatItems = diskFiles.map(f => ({
-          name: f.path.split("/").pop(),
-          path: f.path,
-          type: f.type,
-          size: f.size || 0
-        }));
-        const tree = buildTreeFromFlatList(flatItems);
-        return res.json({
-          projectId: req.params.id,
-          files: diskFiles.filter(f => f.type === "file"),
-          directories: diskFiles.filter(f => f.type === "dir").map(d => d.path),
-          tree,
-          source: "workspace-disk"
-        });
-      }
-    }
-
-    // 2. If GitHub repository is linked, fetch tree and file contents
+    // 1. If GitHub repository is linked, fetch REAL repository tree and contents directly from GitHub
     if (project.githubRepo) {
       const cleanRepo = formatRepo(project.githubRepo);
       let defaultBranch = project.githubData?.default_branch || "main";
-      
+
       let treeRes = null;
       try {
         const url = `https://api.github.com/repos/${cleanRepo}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`;
@@ -1129,18 +1056,15 @@ router.get("/:id/tree/bundle", async (req, res) => {
         const directories = treeBlobs.filter(i => i.type === "tree" || i.type === "dir").map(i => i.path);
         const fileNodes = treeBlobs.filter(i => i.type === "blob" || i.type === "file");
 
+        console.log(`[DevCollab][GitHub] Repository loading: ${cleanRepo} (${fileNodes.length} files, ${directories.length} dirs)`);
+
         // Fetch contents in parallel batches
         const files = [];
-        const BATCH_SIZE = 15;
+        const BATCH_SIZE = 20;
         for (let i = 0; i < fileNodes.length; i += BATCH_SIZE) {
           const batch = fileNodes.slice(i, i + BATCH_SIZE);
           const results = await Promise.all(
             batch.map(async (f) => {
-              // Check if cached on workspace disk
-              const cached = workspaceFs.readWorkspaceFile(req.params.id, f.path);
-              if (cached !== null) {
-                return { path: f.path, type: "file", content: cached };
-              }
               try {
                 const rawUrl = `https://raw.githubusercontent.com/${cleanRepo}/${defaultBranch}/${f.path}`;
                 const rawRes = await axios.get(rawUrl, {
@@ -1149,10 +1073,20 @@ router.get("/:id/tree/bundle", async (req, res) => {
                   timeout: 10000,
                 });
                 const content = typeof rawRes.data === "string" ? rawRes.data : JSON.stringify(rawRes.data, null, 2);
-                try { workspaceFs.writeWorkspaceFile(req.params.id, f.path, content); } catch (_) {}
-                return { path: f.path, type: "file", content };
+                return { path: f.path, type: "file", content, size: content.length };
               } catch (_) {
-                return { path: f.path, type: "file", content: "" };
+                // Try GitHub Contents API if raw URL fails
+                try {
+                  const contentRes = await githubApiRequest(
+                    `https://api.github.com/repos/${cleanRepo}/contents/${encodeURIComponent(f.path)}?ref=${defaultBranch}`,
+                    { userToken }
+                  );
+                  if (contentRes.data?.content) {
+                    const content = Buffer.from(contentRes.data.content, "base64").toString("utf-8");
+                    return { path: f.path, type: "file", content, size: content.length };
+                  }
+                } catch (_) {}
+                return { path: f.path, type: "file", content: "", size: 0 };
               }
             })
           );
@@ -1167,6 +1101,8 @@ router.get("/:id/tree/bundle", async (req, res) => {
         }));
         const tree = buildTreeFromFlatList(flatItems);
 
+        console.log(`[DevCollab][GitHub] Files loaded: ${files.length}`);
+
         return res.json({
           projectId: req.params.id,
           files,
@@ -1175,9 +1111,40 @@ router.get("/:id/tree/bundle", async (req, res) => {
           source: "github"
         });
       }
+
+      // If GitHub returned no tree, return error rather than mock files
+      return res.status(500).json({
+        error: `Could not load repository ${cleanRepo} from GitHub. Please check branch and access.`,
+        details: "Git trees API returned empty or inaccessible tree."
+      });
     }
 
-    // 3. Default starter files bundle
+    // 2. Non-GitHub project: read workspace disk
+    const diskDir = workspaceFs.getWorkspaceDir(req.params.id);
+    const collectDiskFiles = (dir, relBase = "") => {
+      const results = [];
+      if (!fs.existsSync(dir)) return results;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      const ignored = new Set([".git", "node_modules", "dist", "build", ".next", ".turbo", ".DS_Store"]);
+      for (const entry of entries) {
+        if (ignored.has(entry.name)) continue;
+        const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          results.push({ path: relPath, type: "dir" });
+          results.push(...collectDiskFiles(fullPath, relPath));
+        } else {
+          try {
+            const content = fs.readFileSync(fullPath, "utf8");
+            results.push({ path: relPath, type: "file", content, size: content.length });
+          } catch (_) {
+            results.push({ path: relPath, type: "file", content: "", size: 0 });
+          }
+        }
+      }
+      return results;
+    };
+
     const diskFiles = collectDiskFiles(diskDir);
     const flatItems = diskFiles.map(f => ({
       name: f.path.split("/").pop(),
@@ -1192,7 +1159,7 @@ router.get("/:id/tree/bundle", async (req, res) => {
       files: diskFiles.filter(f => f.type === "file"),
       directories: diskFiles.filter(f => f.type === "dir").map(d => d.path),
       tree,
-      source: "starter-disk"
+      source: "workspace-disk"
     });
   } catch (err) {
     console.error("Bundle Error:", err.message);

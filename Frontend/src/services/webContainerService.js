@@ -89,7 +89,8 @@ class WebContainerService {
     if (this.instance) return this.instance;
     if (this.bootPromise) return this.bootPromise;
 
-    this.setStatus(WC_STATUS.STARTING, 'Starting environment...');
+    console.log("[DevCollab][WebContainer] Boot started");
+    this.setStatus(WC_STATUS.STARTING, "Starting environment...");
 
     this.bootPromise = (async () => {
       try {
@@ -98,35 +99,35 @@ class WebContainerService {
           throw new Error(`Browser not supported: ${support.reason}`);
         }
 
-        console.log('[WebContainer] Booting WebContainer instance...');
         const webcontainer = await WebContainer.boot();
         this.instance = webcontainer;
 
         // Listen for dev servers starting inside WebContainer
-        webcontainer.on('server-ready', (port, url) => {
-          console.log(`[WebContainer] Dev server ready on port ${port}: ${url}`);
+        webcontainer.on("server-ready", (port, url) => {
+          console.log(`[DevCollab][DevServer] Server ready on port: ${port} (${url})`);
           const serverInfo = {
             port,
             url,
             previewUrl: url,
-            framework: 'Vite',
-            status: 'running',
+            framework: "Vite",
+            status: "running",
           };
           this.activeDevServers.set(port, serverInfo);
-          this.emit('serverReady', serverInfo);
+          this.emit("serverReady", serverInfo);
         });
 
-        webcontainer.on('error', (err) => {
-          console.error('[WebContainer] Global error:', err);
-          this.setStatus(WC_STATUS.ERROR, err.message || 'WebContainer runtime error');
+        webcontainer.on("error", (err) => {
+          console.error("[DevCollab][WebContainer] Global error:", err);
+          this.setStatus(WC_STATUS.ERROR, err.message || "WebContainer runtime error");
         });
 
-        this.setStatus(WC_STATUS.READY, 'Environment Ready');
+        console.log("[DevCollab][WebContainer] Boot ready");
+        this.setStatus(WC_STATUS.READY, "Environment Ready");
         return webcontainer;
       } catch (err) {
-        console.error('[WebContainer] Boot failed:', err);
+        console.error("[DevCollab][WebContainer] Boot failed:", err);
         this.instance = null;
-        this.setStatus(WC_STATUS.ERROR, err.message || 'Development environment could not be started.');
+        this.setStatus(WC_STATUS.ERROR, err.message || "Development environment could not be started.");
         throw err;
       } finally {
         this.bootPromise = null;
@@ -146,12 +147,11 @@ class WebContainerService {
 
   /**
    * Complete Filesystem Wipe — cleans all files, directories, and node_modules from root `/`
-   * Ensures zero state leakage between projects.
    */
   async cleanWorkspaceFs() {
     try {
       const wc = await this.getInstance();
-      const entries = await wc.fs.readdir('/', { withFileTypes: true });
+      const entries = await wc.fs.readdir("/", { withFileTypes: true });
 
       for (const entry of entries) {
         try {
@@ -161,53 +161,42 @@ class WebContainerService {
         }
       }
 
-      console.log(`[WebContainer] Workspace filesystem cleaned (wiped ${entries.length} root items).`);
+      console.log(`[DevCollab][WebContainer] Workspace filesystem cleaned (${entries.length} items removed)`);
       return true;
     } catch (err) {
-      console.warn('[WebContainer] cleanWorkspaceFs warning:', err.message);
+      console.warn("[WebContainer] cleanWorkspaceFs warning:", err.message);
       return false;
     }
   }
 
   /**
-   * Teardown and clean up project:
-   * 1. Terminates running terminal/jsh processes
-   * 2. Clears dev server registrations
-   * 3. Wipes WebContainer filesystem
-   * 4. Resets project ID and state
+   * Teardown and clean up project
    */
   async cleanupProject(projectId = null) {
     console.log(`[WebContainer] Cleaning up project: ${projectId || this.currentProjectId || 'active'}`);
     this.currentRequestId++;
 
-    // 1. Kill active terminal / background processes
     for (const [id, session] of this.activeProcesses.entries()) {
       try {
         session.kill?.();
       } catch (_) {}
     }
     this.activeProcesses.clear();
-
-    // 2. Clear dev servers
     this.activeDevServers.clear();
-    this.emit('serverStopped', {});
+    this.emit("serverStopped", {});
 
-    // 3. Wipe filesystem
     await this.cleanWorkspaceFs();
-
     this.currentProjectId = null;
-    this.setStatus(WC_STATUS.IDLE, 'Workspace reset');
-    this.emit('fsChange', { action: 'cleanup', projectId });
+    this.setStatus(WC_STATUS.IDLE, "Workspace reset");
+    this.emit("fsChange", { action: "cleanup", projectId });
   }
 
   /**
-   * Switch to a new project: Cleans previous workspace, increments request ID, and sets active project.
+   * Switch project helper
    */
   async switchProject(newProjectId) {
     this.currentRequestId++;
     const reqId = this.currentRequestId;
-    console.log(`[WebContainer] Switching to project: ${newProjectId} (requestId: ${reqId})`);
-
     await this.cleanupProject(this.currentProjectId);
     this.currentProjectId = newProjectId;
     return reqId;
@@ -215,30 +204,27 @@ class WebContainerService {
 
   /**
    * Mount file tree into WebContainer filesystem
-   * @param {Object} fileTree WebContainer FileSystemTree structure
    */
   async mount(fileTree) {
     const wc = await this.getInstance();
-    this.setStatus(WC_STATUS.MOUNTING, 'Loading repository into workspace...');
+    this.setStatus(WC_STATUS.MOUNTING, "Loading repository into workspace...");
     try {
       await wc.mount(fileTree);
-      this.setStatus(WC_STATUS.READY, 'Environment Ready');
-      this.emit('fsChange', { action: 'mount', path: '/' });
+      this.setStatus(WC_STATUS.READY, "Environment Ready");
+      this.emit("fsChange", { action: "mount", path: "/" });
       return true;
     } catch (err) {
-      console.error('[WebContainer] Mount failed:', err);
+      console.error("[WebContainer] Mount failed:", err);
       this.setStatus(WC_STATUS.ERROR, `Failed to mount files: ${err.message}`);
       throw err;
     }
   }
 
   /**
-   * Mount complete repository into WebContainer:
-   * Supports both pre-bundled files ({ files: [{ path, content }], directories: [] })
-   * and hierarchical items with fallback fetchers.
+   * Mount real repository files into WebContainer filesystem
+   * Creates all nested directories first, writes files to exact paths, and verifies package.json / src.
    */
   async mountRepository({ items = [], fileBundle = null, fetchContentFn = null, projectId = null, requestId = null }) {
-    // 1. Validate request ID to prevent race conditions
     if (requestId !== null && requestId !== undefined && requestId !== this.currentRequestId) {
       console.warn(`[WebContainer] Stale mount request ignored (current: ${this.currentRequestId}, received: ${requestId})`);
       return false;
@@ -248,22 +234,23 @@ class WebContainerService {
       this.currentProjectId = projectId;
     }
 
-    this.setStatus(WC_STATUS.MOUNTING, 'Mounting repository filesystem...');
+    this.setStatus(WC_STATUS.MOUNTING, "Mounting repository filesystem...");
     const wc = await this.getInstance();
 
-    // 2. Ensure clean workspace filesystem before mounting
+    // 1. Wipe workspace cleanly
     await this.cleanWorkspaceFs();
 
-    // 3. Mount from fast fileBundle if provided
+    // 2. Mount from fileBundle if available (fastest and most accurate)
     if (fileBundle && Array.isArray(fileBundle.files) && fileBundle.files.length > 0) {
-      console.log(`[WebContainer] Mounting ${fileBundle.files.length} files from bundle for project ${projectId}...`);
+      console.log(`[DevCollab][WebContainer] Mount started for project ${projectId || 'default'}`);
+      console.log(`[DevCollab][GitHub] Files loaded: ${fileBundle.files.length}`);
 
-      // Ensure all directories exist first
+      // Ensure all directories exist
       const dirSet = new Set(fileBundle.directories || []);
       fileBundle.files.forEach((f) => {
-        const parts = f.path.split('/');
+        const parts = f.path.split("/");
         if (parts.length > 1) {
-          dirSet.add(parts.slice(0, -1).join('/'));
+          dirSet.add(parts.slice(0, -1).join("/"));
         }
       });
 
@@ -278,108 +265,90 @@ class WebContainerService {
       for (const f of fileBundle.files) {
         if (!f.path) continue;
         try {
-          const parts = f.path.split('/');
+          const parts = f.path.split("/");
           if (parts.length > 1) {
-            const parent = parts.slice(0, -1).join('/');
+            const parent = parts.slice(0, -1).join("/");
             await wc.fs.mkdir(parent, { recursive: true }).catch(() => {});
           }
-          await wc.fs.writeFile(f.path, f.content ?? '');
+          await wc.fs.writeFile(f.path, f.content ?? "");
         } catch (writeErr) {
           console.warn(`[WebContainer] Failed to write bundled file ${f.path}:`, writeErr.message);
         }
       }
 
-      // Ensure standard package.json exists if missing
-      try {
-        await wc.fs.readFile('package.json');
-      } catch (_) {
-        await this.writeDefaultPackageJson();
-      }
-
       await this.verifyWorkspaceFs(projectId);
-      this.setStatus(WC_STATUS.READY, 'Environment Ready');
-      this.emit('fsChange', { action: 'mount', projectId });
+      this.setStatus(WC_STATUS.READY, "Environment Ready");
+      this.emit("fsChange", { action: "mount", projectId });
       return true;
     }
 
-    // 4. Mount from items tree
-    const defaultStarterTree = this.getDefaultStarterTree();
+    // 3. Mount from tree items with on-demand content fetching
+    if (items && items.length > 0) {
+      console.log(`[DevCollab][WebContainer] Mount started from tree items for project ${projectId || 'default'}`);
 
-    if (!items || items.length === 0) {
-      await this.mount(defaultStarterTree);
-      await this.verifyWorkspaceFs(projectId);
-      return true;
-    }
+      const flatFiles = [];
+      const allDirs = new Set();
 
-    // Flatten tree items to collect all file paths and directories
-    const flatFiles = [];
-    const allDirs = new Set();
-
-    const collectNodes = (nodes) => {
-      for (const node of nodes) {
-        if (node.type === 'dir' || node.children) {
-          allDirs.add(node.path);
-          if (node.children && node.children.length > 0) {
-            collectNodes(node.children);
-          }
-        } else {
-          flatFiles.push(node.path);
-          const parts = node.path.split('/');
-          if (parts.length > 1) {
-            allDirs.add(parts.slice(0, -1).join('/'));
+      const collectNodes = (nodes) => {
+        for (const node of nodes) {
+          if (node.type === "dir" || node.children) {
+            allDirs.add(node.path);
+            if (node.children && node.children.length > 0) {
+              collectNodes(node.children);
+            }
+          } else {
+            flatFiles.push(node.path);
+            const parts = node.path.split("/");
+            if (parts.length > 1) {
+              allDirs.add(parts.slice(0, -1).join("/"));
+            }
           }
         }
-      }
-    };
-    collectNodes(items);
+      };
+      collectNodes(items);
 
-    // Create all directories in WebContainer
-    for (const dir of allDirs) {
-      if (!dir) continue;
-      try {
-        await wc.fs.mkdir(dir, { recursive: true });
-      } catch (_) {}
-    }
+      console.log(`[DevCollab][GitHub] Files loaded: ${flatFiles.length}`);
 
-    // Fetch and write file contents concurrently in chunks
-    const MAX_CONCURRENT_FETCHES = 15;
-    for (let i = 0; i < flatFiles.length; i += MAX_CONCURRENT_FETCHES) {
-      // Check cancellation token during batch processing
-      if (requestId !== null && requestId !== undefined && requestId !== this.currentRequestId) {
-        console.warn('[WebContainer] Mount aborted due to newer project request.');
-        return false;
+      for (const dir of allDirs) {
+        if (!dir) continue;
+        try {
+          await wc.fs.mkdir(dir, { recursive: true });
+        } catch (_) {}
       }
 
-      const chunk = flatFiles.slice(i, i + MAX_CONCURRENT_FETCHES);
-      await Promise.all(
-        chunk.map(async (filePath) => {
-          try {
-            let content = '';
-            if (fetchContentFn) {
-              content = await fetchContentFn(filePath);
+      const MAX_CONCURRENT_FETCHES = 20;
+      for (let i = 0; i < flatFiles.length; i += MAX_CONCURRENT_FETCHES) {
+        const chunk = flatFiles.slice(i, i + MAX_CONCURRENT_FETCHES);
+        await Promise.all(
+          chunk.map(async (filePath) => {
+            try {
+              let content = "";
+              if (fetchContentFn) {
+                content = await fetchContentFn(filePath);
+              }
+              const parts = filePath.split("/");
+              if (parts.length > 1) {
+                await wc.fs.mkdir(parts.slice(0, -1).join("/"), { recursive: true }).catch(() => {});
+              }
+              await wc.fs.writeFile(filePath, content ?? "");
+            } catch (err) {
+              await wc.fs.writeFile(filePath, "").catch(() => {});
             }
-            const parts = filePath.split('/');
-            if (parts.length > 1) {
-              await wc.fs.mkdir(parts.slice(0, -1).join('/'), { recursive: true }).catch(() => {});
-            }
-            await wc.fs.writeFile(filePath, content ?? '');
-          } catch (err) {
-            await wc.fs.writeFile(filePath, `// ${filePath}\n`).catch(() => {});
-          }
-        })
-      );
+          })
+        );
+      }
+
+      await this.verifyWorkspaceFs(projectId);
+      this.setStatus(WC_STATUS.READY, "Environment Ready");
+      this.emit("fsChange", { action: "mount", projectId });
+      return true;
     }
 
-    // Ensure package.json exists
-    try {
-      await wc.fs.readFile('package.json');
-    } catch (_) {
-      await this.writeDefaultPackageJson();
-    }
-
+    // If repository is empty, leave empty workspace
+    console.log(`[DevCollab][WebContainer] Repository has no files to mount.`);
     await this.verifyWorkspaceFs(projectId);
-    this.setStatus(WC_STATUS.READY, 'Environment Ready');
-    this.emit('fsChange', { action: 'mount', projectId });
+    this.setStatus(WC_STATUS.READY, "Environment Ready");
+    this.emit("fsChange", { action: "mount", projectId });
     return true;
   }
 
@@ -389,127 +358,29 @@ class WebContainerService {
   async verifyWorkspaceFs(projectId) {
     try {
       const wc = await this.getInstance();
-      const entries = await wc.fs.readdir('/', { withFileTypes: true });
-      const dirCount = entries.filter((e) => e.isDirectory()).length;
-      const fileCount = entries.filter((e) => !e.isDirectory()).length;
+      const entries = await wc.fs.readdir("/", { withFileTypes: true });
 
+      let hasPackageJson = false;
+      try {
+        await wc.fs.readFile("package.json");
+        hasPackageJson = true;
+      } catch (_) {}
+
+      let hasSrc = false;
+      try {
+        const srcEntries = await wc.fs.readdir("src");
+        hasSrc = Boolean(srcEntries && srcEntries.length > 0);
+      } catch (_) {}
+
+      console.log("[DevCollab][WebContainer] Mount completed");
+      console.log(`[DevCollab][WebContainer] package.json exists: ${hasPackageJson}`);
+      console.log(`[DevCollab][WebContainer] src exists: ${hasSrc}`);
       console.log(
-        `[WebContainer Verified] Project: ${projectId || 'default'} | Root Entries: ${entries.length} (${dirCount} dirs, ${fileCount} files) | Status: READY`
+        `[DevCollab][WebContainer] Total root entries: ${entries.length}`
       );
     } catch (err) {
-      console.warn('[WebContainer] Verification warning:', err.message);
+      console.warn("[WebContainer] Verification warning:", err.message);
     }
-  }
-
-  /**
-   * Default starter package.json helper
-   */
-  async writeDefaultPackageJson() {
-    const defaultPkg = {
-      name: 'devcollab-app',
-      private: true,
-      version: '0.1.0',
-      type: 'module',
-      scripts: {
-        dev: 'vite --host',
-        build: 'vite build',
-        preview: 'vite preview --host',
-        test: 'echo "All tests passed (4 passed, 0 failed)"',
-      },
-      dependencies: {
-        react: '^18.2.0',
-        'react-dom': '^18.2.0',
-      },
-      devDependencies: {
-        vite: '^5.2.0',
-        '@vitejs/plugin-react': '^4.2.1',
-      },
-    };
-    await this.writeFile('package.json', JSON.stringify(defaultPkg, null, 2));
-  }
-
-  /**
-   * Default Starter Tree Generator
-   */
-  getDefaultStarterTree() {
-    return {
-      'package.json': {
-        file: {
-          contents: JSON.stringify(
-            {
-              name: 'devcollab-app',
-              private: true,
-              version: '0.1.0',
-              type: 'module',
-              scripts: {
-                dev: 'vite --host',
-                build: 'vite build',
-                preview: 'vite preview --host',
-                test: 'echo "All tests passed (4 passed, 0 failed)"',
-              },
-              dependencies: {
-                react: '^18.2.0',
-                'react-dom': '^18.2.0',
-              },
-              devDependencies: {
-                vite: '^5.2.0',
-                '@vitejs/plugin-react': '^4.2.1',
-              },
-            },
-            null,
-            2
-          ),
-        },
-      },
-      'README.md': {
-        file: {
-          contents: '# DevCollab Workspace Project\n\nRun development commands directly in the integrated terminal:\n```bash\nnpm install\nnpm run dev\n```\n',
-        },
-      },
-      'index.html': {
-        file: {
-          contents: `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DevCollab App</title>
-  </head>
-  <body class="bg-[#0B1220] text-white">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>`,
-        },
-      },
-      src: {
-        directory: {
-          'App.jsx': {
-            file: {
-              contents: `import React from 'react';
-
-export default function App() {
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Welcome to DevCollab!</h1>
-      <p>Edit <code>src/App.jsx</code> and save to see changes live.</p>
-    </div>
-  );
-}`,
-            },
-          },
-          'main.jsx': {
-            file: {
-              contents: `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
-            },
-          },
-        },
-      },
-    };
   }
 
   /**
@@ -671,6 +542,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
    */
   async spawn(command, args = [], options = {}) {
     const wc = await this.getInstance();
+    console.log(`[DevCollab][Terminal] Running: ${command} ${args.join(' ')}`);
     this.setStatus(WC_STATUS.RUNNING, `Running: ${command} ${args.join(' ')}`);
 
     const process = await wc.spawn(command, args, {
@@ -682,6 +554,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
         FORCE_COLOR: '1',
         ...(options.env || {}),
       },
+    });
+
+    process.exit.then((exitCode) => {
+      console.log(`[DevCollab][Terminal] Exit code: ${exitCode}`);
     });
 
     return process;
@@ -702,7 +578,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
       this.activeProcesses.delete(sessionId);
     }
 
-    console.log(`[WebContainer] Spawning interactive jsh terminal session: ${sessionId}`);
+    console.log(`[DevCollab][Terminal] Spawning interactive jsh session: ${sessionId}`);
 
     // Spawn jsh interactive shell
     const process = await wc.spawn('jsh', {
@@ -724,7 +600,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
     );
 
     process.exit.then((exitCode) => {
-      console.log(`[WebContainer] Terminal session ${sessionId} exited with code:`, exitCode);
+      console.log(`[DevCollab][Terminal] Exit code: ${exitCode}`);
       this.activeProcesses.delete(sessionId);
       if (onExit) onExit(exitCode);
     });

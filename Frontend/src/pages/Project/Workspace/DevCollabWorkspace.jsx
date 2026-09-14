@@ -169,6 +169,8 @@ export default function DevCollabWorkspace({
     }
   }, [projectId]);
 
+  const [treeLoadError, setTreeLoadError] = useState(null);
+
   /* ---------------- FETCH FILE TREE & MOUNT INTO WEBCONTAINER ---------------- */
   const fetchTree = useCallback(async (autoSelect = false, overrideProjectId = null) => {
     const pid = overrideProjectId || projectId;
@@ -178,10 +180,15 @@ export default function DevCollabWorkspace({
     const isCurrentProject = () => activeProjectRef.current === pid && loadRequestIdRef.current === reqId;
 
     setIsTreeLoading(true);
+    setTreeLoadError(null);
     let items = [];
 
     try {
-      // === STRATEGY 1: Fast Bundle Endpoint (all files + contents in one request) ===
+      // 1. Boot WebContainer first
+      await webContainerService.boot();
+
+      // 2. Fetch repository bundle (recursive files + contents)
+      let bundle = null;
       try {
         const bundleRes = await axios.get(`${API_URL}/api/project/${pid}/tree/bundle`, {
           withCredentials: true,
@@ -189,36 +196,39 @@ export default function DevCollabWorkspace({
         });
 
         if (!isCurrentProject()) return;
-
-        const bundle = bundleRes.data;
-        if (bundle && Array.isArray(bundle.files) && bundle.files.length > 0) {
-          console.log(`[Workspace] Bundle loaded: ${bundle.files.length} files for project ${pid} (source: ${bundle.source})`);
-
-          await webContainerService.boot();
-          await webContainerService.mountRepository({
-            fileBundle: bundle,
-            projectId: pid,
-          });
-
-          if (!isCurrentProject()) return;
-
-          const wcItems = await webContainerService.getFsTree();
-          items = (wcItems && wcItems.length > 0) ? wcItems : (bundle.tree || []);
-
-          setFileItems(items);
-          if (autoSelect && items.length > 0) {
-            const first = findFirstFile(items);
-            if (first && isCurrentProject()) handleSelectFile(first);
-          }
-          return;
-        }
+        bundle = bundleRes.data;
       } catch (bundleErr) {
-        console.warn("[Workspace] Bundle endpoint fallback:", bundleErr.message);
+        console.warn("[Workspace] Bundle endpoint error:", bundleErr.response?.data?.error || bundleErr.message);
+        if (bundleErr.response?.data?.error) {
+          setTreeLoadError(bundleErr.response.data.error);
+        }
       }
 
       if (!isCurrentProject()) return;
 
-      // === STRATEGY 2: Tree endpoint for structure + per-file content fetching ===
+      // 3. Mount repository bundle into WebContainer
+      if (bundle && Array.isArray(bundle.files) && bundle.files.length > 0) {
+        await webContainerService.mountRepository({
+          fileBundle: bundle,
+          projectId: pid,
+        });
+
+        if (!isCurrentProject()) return;
+
+        const wcItems = await webContainerService.getFsTree();
+        items = (wcItems && wcItems.length > 0) ? wcItems : (bundle.tree || []);
+
+        setFileItems(items);
+        setTreeLoadError(null);
+
+        if (autoSelect && items.length > 0) {
+          const first = findFirstFile(items);
+          if (first && isCurrentProject()) handleSelectFile(first);
+        }
+        return;
+      }
+
+      // 4. Fallback: Tree endpoint + per-file fetch
       if (project?.githubRepo) {
         try {
           const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
@@ -226,13 +236,15 @@ export default function DevCollabWorkspace({
             items = treeRes.data.items;
           }
         } catch (treeErr) {
-          console.warn("[Workspace] GitHub tree fetch fallback:", treeErr.message);
+          console.warn("[Workspace] GitHub tree fallback error:", treeErr.message);
+          if (!treeLoadError) {
+            setTreeLoadError(treeErr.response?.data?.error || "Failed to load files from GitHub");
+          }
         }
       }
 
       if (!isCurrentProject()) return;
 
-      // Helper to fetch file content on demand
       const fetchContentFn = async (filePath) => {
         if (!isCurrentProject()) return "";
         try {
@@ -246,9 +258,7 @@ export default function DevCollabWorkspace({
         }
       };
 
-      // Mount with tree + per-file fetching
       try {
-        await webContainerService.boot();
         await webContainerService.mountRepository({
           items,
           fetchContentFn,
@@ -262,23 +272,31 @@ export default function DevCollabWorkspace({
           items = wcItems;
         }
       } catch (wcErr) {
-        console.warn("[Workspace] WebContainer mount error, using repo list fallback:", wcErr.message);
+        console.warn("[Workspace] WebContainer mount error:", wcErr.message);
       }
 
       if (!isCurrentProject()) return;
 
       setFileItems(items || []);
 
-      if (autoSelect && items && items.length > 0) {
-        const first = findFirstFile(items);
-        if (first && isCurrentProject()) handleSelectFile(first);
+      if (items && items.length > 0) {
+        setTreeLoadError(null);
+        if (autoSelect) {
+          const first = findFirstFile(items);
+          if (first && isCurrentProject()) handleSelectFile(first);
+        }
+      }
+    } catch (globalErr) {
+      console.error("[Workspace] fetchTree error:", globalErr);
+      if (isCurrentProject()) {
+        setTreeLoadError(globalErr.message || "Failed to load project files");
       }
     } finally {
       if (isCurrentProject()) {
         setIsTreeLoading(false);
       }
     }
-  }, [projectId, project?.githubRepo, handleSelectFile]);
+  }, [projectId, project?.githubRepo, handleSelectFile, treeLoadError]);
 
   /* ---------------- PROJECT ISOLATION: Reset + Clean WebContainer on project change ---------------- */
   useEffect(() => {
@@ -620,6 +638,7 @@ export default function DevCollabWorkspace({
             onRefresh={() => fetchTree(false)}
             onSyncRepo={handleSyncRepo}
             isLoading={isTreeLoading}
+            loadError={treeLoadError}
             isSyncing={isSyncingRepo}
             onDeleteFile={handleDeleteFile}
             modifiedFiles={modifiedFiles}
