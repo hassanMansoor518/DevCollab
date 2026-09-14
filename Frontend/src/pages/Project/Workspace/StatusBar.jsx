@@ -1,5 +1,5 @@
 import React from "react";
-import { GitBranch, RefreshCw, AlertCircle, AlertTriangle, Info, GitFork, Bot, Radio } from "lucide-react";
+import { GitBranch, RefreshCw, AlertCircle, AlertTriangle, Info, GitFork, Bot, Radio, Cpu } from "lucide-react";
 
 export default function StatusBar({
   branch = "main",
@@ -12,6 +12,7 @@ export default function StatusBar({
   eol = "LF",
   language = "JavaScript React",
   aiAgentStatus = "Connected",
+  wcStatus = "ready",
   devServer = null,
   onOpenPreview = null
 }) {
@@ -91,6 +92,24 @@ export default function StatusBar({
             <span className="font-semibold">{devServer.framework || "Dev"}:{devServer.port}</span>
           </div>
         )}
+
+        {/* WebContainer Environment Status */}
+        <div className="flex items-center gap-1.5 text-[#E6EDF3] font-sans hover:opacity-80 cursor-pointer" title={`WebContainer: ${wcStatus}`}>
+          <Cpu size={12} className="text-[#38BDF8]" />
+          <span>WebContainer</span>
+          <span
+            className={`w-2 h-2 rounded-full ${
+              wcStatus === "ready"
+                ? "bg-[#3FB950] animate-pulse"
+                : wcStatus === "error"
+                ? "bg-[#F85149]"
+                : "bg-[#FBBF24] animate-spin"
+            }`}
+          />
+          <span className="text-[10px] font-medium hidden sm:inline capitalize text-[#8B949E]">
+            {wcStatus === "ready" ? "Ready" : wcStatus === "error" ? "Error" : "Starting..."}
+          </span>
+        </div>
 
         {/* AI Agent Status */}
         <div className="flex items-center gap-1.5 text-[#E6EDF3] font-sans hover:opacity-80 cursor-pointer">

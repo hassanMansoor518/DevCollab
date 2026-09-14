@@ -17,6 +17,7 @@ import LivePreviewModal from "./preview/LivePreviewModal";
 import TestingInsights from "./Testing/TestingInsights";
 
 import { useSocketContext } from "../../../context/SocketContext";
+import { webContainerService, WC_STATUS } from "../../../services/webContainerService";
 
 const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f60e.up.railway.app");
 
@@ -124,6 +125,7 @@ export default function DevCollabWorkspace({
   const [selectedCode, setSelectedCode] = useState("");
   const [isTreeLoading, setIsTreeLoading] = useState(true);
   const [isSyncingRepo, setIsSyncingRepo] = useState(false);
+  const [wcStatus, setWcStatus] = useState(webContainerService.status);
 
   /* Modals & Live Preview */
   const [diffModal, setDiffModal] = useState({ isOpen: false, path: null, original: "", modified: "" });
@@ -137,7 +139,7 @@ export default function DevCollabWorkspace({
 
   const { socket } = useSocketContext();
 
-  /* ---------------- OPEN FILE & FETCH CONTENT (FROM REAL DISK / GITHUB) ---------------- */
+  /* ---------------- OPEN FILE & FETCH CONTENT (FROM WEBCONTAINER FIRST) ---------------- */
   const handleSelectFile = useCallback(async (filePath) => {
     if (!filePath) return;
 
@@ -154,18 +156,15 @@ export default function DevCollabWorkspace({
 
     let content = null;
 
-    // 1. Try reading physical disk workspace file
+    // 1. Try reading directly from WebContainer virtual filesystem (Active Source of Truth)
     try {
-      const diskRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/file-content`, {
-        params: { path: filePath },
-        withCredentials: true,
-      });
-      if (diskRes.data && diskRes.data.content !== undefined && diskRes.data.content !== null) {
-        content = diskRes.data.content;
+      const wcContent = await webContainerService.readFile(filePath);
+      if (wcContent !== null && wcContent !== undefined) {
+        content = wcContent;
       }
     } catch (_) {}
 
-    // 2. Fetch from GitHub / contents endpoint if not on disk or empty
+    // 2. If not found in WebContainer, fetch from GitHub / backend API and write to WebContainer
     if (content === null) {
       try {
         const res = await axios.get(`${API_URL}/api/project/${projectId}/contents`, {
@@ -175,10 +174,32 @@ export default function DevCollabWorkspace({
 
         if (res.data && res.data.content !== undefined) {
           content = res.data.content;
+          // Store in WebContainer so subsequent reads and terminal can access it
+          try {
+            await webContainerService.writeFile(filePath, content);
+          } catch (_) {}
         }
       } catch (err) {
-        console.warn(`[Workspace] Could not load content for ${filePath}:`, err.message);
-        content = `// ${filePath}\n// (File could not be fetched from repository or disk)\n`;
+        // Fallback to disk API
+        try {
+          const diskRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/file-content`, {
+            params: { path: filePath },
+            withCredentials: true,
+          });
+          if (diskRes.data?.content !== undefined) {
+            content = diskRes.data.content;
+            try {
+              await webContainerService.writeFile(filePath, content);
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        if (content === null) {
+          content = `// ${filePath}\n// (File created in WebContainer workspace)\n`;
+          try {
+            await webContainerService.writeFile(filePath, content);
+          } catch (_) {}
+        }
       }
     }
 
@@ -187,7 +208,7 @@ export default function DevCollabWorkspace({
     }
   }, [projectId]);
 
-  /* ---------------- FETCH FILE TREE FROM BACKEND & GITHUB ---------------- */
+  /* ---------------- FETCH FILE TREE & MOUNT INTO WEBCONTAINER ---------------- */
   const fetchTree = useCallback(async (autoSelect = false) => {
     if (!projectId) return;
     setIsTreeLoading(true);
@@ -206,18 +227,7 @@ export default function DevCollabWorkspace({
         }
       }
 
-      // 2. If no GitHub tree or no repo, check workspace disk
-      if (!items || items.length === 0) {
-        try {
-          const wsRes = await axios.get(`${API_URL}/api/project/${projectId}/workspace/files`, { withCredentials: true });
-          // Only use workspace disk if there's no GitHub repo OR if the workspace is not a generic starter template
-          if (wsRes.data?.items && wsRes.data.items.length > 0 && (!project?.githubRepo || !wsRes.data.isStarterOnly)) {
-            items = wsRes.data.items;
-          }
-        } catch (_) {}
-      }
-
-      // 3. Fallback to /contents if tree was empty
+      // 2. Fallback to /contents if tree was empty
       if (!items || items.length === 0) {
         try {
           const contentsRes = await axios.get(`${API_URL}/api/project/${projectId}/contents`, { withCredentials: true });
@@ -225,6 +235,32 @@ export default function DevCollabWorkspace({
             items = contentsRes.data.items;
           }
         } catch (_) {}
+      }
+
+      // Helper to fetch file content on demand during initial mount
+      const fetchContentFn = async (path) => {
+        try {
+          const res = await axios.get(`${API_URL}/api/project/${projectId}/contents`, {
+            params: { path },
+            withCredentials: true,
+          });
+          return res.data?.content || "";
+        } catch (_) {
+          return "";
+        }
+      };
+
+      // 3. Mount repository into WebContainer
+      try {
+        await webContainerService.boot();
+        await webContainerService.mountRepository(items, fetchContentFn, projectId);
+        // Read the verified tree directly from WebContainer virtual FS
+        const wcItems = await webContainerService.getFsTree();
+        if (wcItems && wcItems.length > 0) {
+          items = wcItems;
+        }
+      } catch (wcErr) {
+        console.warn("[Workspace] WebContainer mount error, using repo list fallback:", wcErr.message);
       }
 
       setFileItems(items || []);
@@ -254,88 +290,61 @@ export default function DevCollabWorkspace({
   const handleSyncRepo = async () => {
     if (!projectId) return;
     setIsSyncingRepo(true);
-    const toastId = toast.loading("Syncing repository files from GitHub...");
+    const toastId = toast.loading("Syncing repository files from GitHub into WebContainer...");
     try {
-      const res = await axios.post(`${API_URL}/api/project/${projectId}/workspace/sync-repo`, {}, { withCredentials: true });
-      if (res.data?.items && res.data.items.length > 0) {
-        setFileItems(res.data.items);
-        const first = findFirstFile(res.data.items);
-        if (first) {
-          handleSelectFile(first);
-        }
-        toast.success(res.data.message || "Repository synchronized!", { id: toastId });
-      } else {
-        await fetchTree(true);
-        toast.success("Repository files refreshed!", { id: toastId });
-      }
-    } catch (err) {
       await fetchTree(true);
-      toast.success("Refreshed repository file tree", { id: toastId });
+      toast.success("Repository synchronized into WebContainer!", { id: toastId });
+    } catch (err) {
+      toast.error("Failed to sync repository files", { id: toastId });
     } finally {
       setIsSyncingRepo(false);
     }
   };
 
-  /* ---------------- ACTIVE DEV SERVER STATUS & REGISTRY ---------------- */
+  /* ---------------- DEV SERVER STATUS & WEBCONTAINER SUBSCRIPTIONS ---------------- */
   useEffect(() => {
-    if (!projectId) return;
+    // 1. Subscribe to WebContainer serverReady events
+    const unsubServer = webContainerService.on("serverReady", (serverInfo) => {
+      setDevServer(serverInfo);
+      toast.success(`Development server running on port ${serverInfo.port}`, { duration: 3000 });
+    });
 
-    // 1. Check existing active dev servers on backend
-    axios
-      .get(`${API_URL}/api/project/${projectId}/dev-servers`)
-      .then((res) => {
-        if (res.data?.servers?.length > 0) {
-          const s = res.data.servers[0];
-          const proxyPath = `/api/project/${projectId}/preview/${s.port}/`;
-          setDevServer({
-            port: s.port,
-            framework: s.framework || "Vite",
-            status: s.status,
-            url: proxyPath,
-            previewUrl: `${API_URL}${proxyPath}`,
-          });
+    // 2. Subscribe to WebContainer status events
+    const unsubStatus = webContainerService.on("status", ({ status }) => {
+      setWcStatus(status);
+    });
+
+    // 3. Subscribe to WebContainer filesystem events to keep FileTreeExplorer updated
+    const unsubFs = webContainerService.on("fsChange", async () => {
+      try {
+        const updatedItems = await webContainerService.getFsTree();
+        if (updatedItems && updatedItems.length > 0) {
+          setFileItems(updatedItems);
         }
-      })
-      .catch(() => {});
+      } catch (_) {}
+    });
 
-    // 2. Real-time dev server status updates
-    if (!socket) return;
-    const handleDevServerStatus = ({ projectId: pId, server }) => {
-      if (pId === projectId && server) {
-        if (server.status === "running") {
-          const proxyPath = `/api/project/${projectId}/preview/${server.port}/`;
-          setDevServer({
-            port: server.port,
-            framework: server.framework || "Vite",
-            status: "running",
-            url: proxyPath,
-            previewUrl: `${API_URL}${proxyPath}`,
-          });
-        } else if (server.status === "stopped") {
-          setDevServer(null);
-        }
-      }
-    };
-
-    socket.on("workspace:dev-server-status", handleDevServerStatus);
     return () => {
-      socket.off("workspace:dev-server-status", handleDevServerStatus);
+      unsubServer();
+      unsubStatus();
+      unsubFs();
     };
-  }, [socket, projectId]);
+  }, []);
 
-  /* ---------------- REAL-TIME FILESYSTEM WATCHER LISTENER ---------------- */
-  // Debounced: agent creates many files rapidly; we only need ONE tree refresh
-  // after all changes settle (1.5s), not one per file. Without this, 8 files
-  // = 8 concurrent fetchTree calls flooding the backend while agent is still running.
+  /* ---------------- REAL-TIME FILESYSTEM WATCHER LISTENER (Socket Fallback) ---------------- */
   const fsChangeDebounceRef = useRef(null);
   useEffect(() => {
     if (!socket) return;
     const handleFsChange = (data) => {
       if (!data || !data.projectId || data.projectId === projectId) {
-        // Cancel any pending refresh and schedule a new one
         if (fsChangeDebounceRef.current) clearTimeout(fsChangeDebounceRef.current);
-        fsChangeDebounceRef.current = setTimeout(() => {
-          fetchTree(false);
+        fsChangeDebounceRef.current = setTimeout(async () => {
+          try {
+            const updatedItems = await webContainerService.getFsTree();
+            if (updatedItems && updatedItems.length > 0) {
+              setFileItems(updatedItems);
+            }
+          } catch (_) {}
           fsChangeDebounceRef.current = null;
         }, 1500);
       }
@@ -345,7 +354,7 @@ export default function DevCollabWorkspace({
       socket.off("workspace:fs-change", handleFsChange);
       if (fsChangeDebounceRef.current) clearTimeout(fsChangeDebounceRef.current);
     };
-  }, [socket, projectId, fetchTree]);
+  }, [socket, projectId]);
 
   /* ---------------- CODE CHANGE IN EDITOR ---------------- */
   const handleCodeChange = (path, newCode) => {
@@ -356,80 +365,69 @@ export default function DevCollabWorkspace({
     );
   };
 
-  /* ---------------- SAVE FILE TO DISK ONLY (Ctrl+S) ---------------- */
+  /* ---------------- SAVE FILE TO WEBCONTAINER (Ctrl+S) ---------------- */
   const handleSaveFile = async (path) => {
     const content = fileContents[path] || "";
 
-    // Save to local workspace disk only — GitHub push is done via Commit & Push
     try {
-      await axios.post(`${API_URL}/api/project/${projectId}/workspace/save-file`, {
+      // 1. Save directly to in-browser WebContainer virtual filesystem (Single Source of Truth)
+      await webContainerService.writeFile(path, content);
+
+      // 2. Background sync to backend disk for redundancy without blocking
+      axios.post(`${API_URL}/api/project/${projectId}/workspace/save-file`, {
         path,
         content,
-      });
+      }).catch(() => {});
 
       toast.success(`Saved ${path.split("/").pop()}`, { duration: 1500 });
 
       setOpenTabs((prev) =>
         prev.map((t) => (t.path === path ? { ...t, isDirty: false } : t))
       );
-
-      // Keep the file in modifiedFiles so it shows up in Source Control for committing
-      // (only cleared after an explicit Commit & Push)
     } catch (err) {
-      toast.error(`Failed to save ${path.split("/").pop()}`);
+      toast.error(`Failed to save ${path.split("/").pop()}: ${err.message}`);
     }
   };
 
-
   /* ---------------- CREATE FILE ---------------- */
   const handleCreateFile = async () => {
-    const fileName = prompt("Enter new file path (e.g. src/utils/helper.js):");
+    const fileName = prompt("Enter new file path (e.g. src/components/Header.jsx):");
     if (!fileName || !fileName.trim()) return;
 
     const path = fileName.trim();
 
-    // Sync to disk workspace
     try {
-      await axios.post(`${API_URL}/api/project/${projectId}/workspace/save-file`, {
-        path,
-        content: "",
-      });
-    } catch (_) {}
+      // 1. Create file directly in WebContainer virtual FS
+      await webContainerService.writeFile(path, "");
 
-    try {
-      await axios.post(`${API_URL}/api/project/${projectId}/create-file`, {
-        path,
-        content: "",
-        message: `Created ${path} via DevCollab Workspace`,
-      });
+      // 2. Refresh Explorer tree from WebContainer
+      const updatedTree = await webContainerService.getFsTree();
+      setFileItems(updatedTree);
+
       toast.success(`Created file ${path}`);
-      fetchTree();
+      handleSelectFile(path);
     } catch (err) {
-      fetchTree();
+      toast.error(`Failed to create file: ${err.message}`);
     }
-    handleSelectFile(path);
   };
 
   /* ---------------- DELETE FILE ---------------- */
   const handleDeleteFile = async (path) => {
     if (!window.confirm(`Delete ${path} permanently?`)) return;
 
-    // Delete from disk workspace
     try {
-      await axios.delete(`${API_URL}/api/project/${projectId}/workspace/delete-file`, {
-        data: { path },
-      });
-    } catch (_) {}
+      // 1. Delete directly from WebContainer virtual FS
+      await webContainerService.rm(path);
 
-    try {
-      await axios.delete(`${API_URL}/api/project/${projectId}/delete-file`, {
-        data: { path, message: `Deleted ${path} via DevCollab Workspace` },
-      });
+      // 2. Refresh Explorer tree from WebContainer
+      const updatedTree = await webContainerService.getFsTree();
+      setFileItems(updatedTree);
+
       toast.success(`Deleted ${path}`);
-      fetchTree();
     } catch (err) {
-      fetchTree();
+      toast.error(`Failed to delete file: ${err.message}`);
     }
+
     setOpenTabs((prev) => prev.filter((t) => t.path !== path));
     if (activeTabPath === path) {
       const remaining = openTabs.filter((t) => t.path !== path);
@@ -442,12 +440,23 @@ export default function DevCollabWorkspace({
     if (!commitMessage?.trim()) return;
     setIsPushing(true);
 
-    // Build the list of files to commit with their latest content
-    const filesToCommit = Object.keys(modifiedFiles).map((path) => ({
-      path,
-      content: fileContents[path] ?? "",
-      status: modifiedFiles[path] || "M",
-    }));
+    // Read current content for each modified file from WebContainer
+    const filesToCommit = [];
+    for (const path of Object.keys(modifiedFiles)) {
+      let content = fileContents[path];
+      if (content === undefined) {
+        try {
+          content = (await webContainerService.readFile(path)) || "";
+        } catch (_) {
+          content = "";
+        }
+      }
+      filesToCommit.push({
+        path,
+        content: content ?? "",
+        status: modifiedFiles[path] || "M",
+      });
+    }
 
     if (filesToCommit.length === 0) {
       toast.error("No modified files to commit.");
@@ -486,6 +495,7 @@ export default function DevCollabWorkspace({
       setIsPushing(false);
     }
   };
+
 
   /* ---------------- CLOSE TAB ---------------- */
   const handleCloseTab = (path) => {
@@ -646,7 +656,10 @@ export default function DevCollabWorkspace({
             openTabs={openTabs.map(t => t.path || t)}
             selectedCode={selectedCode}
             onClose={() => setRightPanel(null)}
-            onApplyAgentChanges={(path, newCode) => {
+            onApplyAgentChanges={async (path, newCode) => {
+              try {
+                await webContainerService.writeFile(path, newCode);
+              } catch (_) {}
               handleCodeChange(path, newCode);
               handleSelectFile(path);
               toast.success(`Applied AI changes to ${path}`);
@@ -676,6 +689,7 @@ export default function DevCollabWorkspace({
         eol="LF"
         language="JavaScript React"
         aiAgentStatus="Connected"
+        wcStatus={wcStatus}
         devServer={devServer}
         onOpenPreview={() => setLivePreviewOpen(true)}
       />
@@ -719,8 +733,11 @@ export default function DevCollabWorkspace({
         filePath={diffModal.path}
         originalCode={diffModal.original}
         modifiedCode={diffModal.modified}
-        onAccept={() => {
+        onAccept={async () => {
           if (diffModal.path) {
+            try {
+              await webContainerService.writeFile(diffModal.path, diffModal.modified);
+            } catch (_) {}
             handleCodeChange(diffModal.path, diffModal.modified);
             toast.success("Accepted AI diff changes.");
           }

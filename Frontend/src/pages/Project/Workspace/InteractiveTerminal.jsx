@@ -18,6 +18,7 @@ import {
 import { useSocketContext } from "../../../context/SocketContext";
 import XTermInstance from "./terminal/XTermInstance";
 import VisualDiffReportTab from "./Testing/VisualDiffReportTab";
+import { webContainerService, WC_STATUS } from "../../../services/webContainerService";
 
 export default function InteractiveTerminal({
   projectId,
@@ -29,17 +30,17 @@ export default function InteractiveTerminal({
 
   const [activePanelTab, setActivePanelTab] = useState("terminal"); // 'terminal' | 'problems' | 'output' | 'debug'
   const [isMaximized, setIsMaximized] = useState(false);
+  const [wcStatus, setWcStatus] = useState(webContainerService.status);
 
   // Shell detection / default
-  const isWindows = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
-  const defaultShell = isWindows ? "powershell" : "bash";
+  const defaultShell = "jsh";
 
   // Multi-terminal tabs
   const [terminals, setTerminals] = useState([
     {
       id: `term_1_${projectId || "default"}`,
-      name: isWindows ? "1: PowerShell" : "1: Bash",
-      shell: defaultShell,
+      name: "1: WebContainer",
+      shell: "jsh",
     },
   ]);
   const [activeTermId, setActiveTermId] = useState(terminals[0]?.id);
@@ -54,36 +55,26 @@ export default function InteractiveTerminal({
   const [detectedDevServer, setDetectedDevServer] = useState(null);
 
   useEffect(() => {
-    if (!socket) return;
+    // 1. Subscribe to WebContainer serverReady events
+    const unsubServer = webContainerService.on("serverReady", (serverInfo) => {
+      setDetectedDevServer(serverInfo);
+    });
 
-    const handleDevServerStatus = ({ projectId: pId, server }) => {
-      if (pId === projectId && server) {
-        if (server.status === "running") {
-          const proxyPath = `/api/project/${projectId}/preview/${server.port}/`;
-          setDetectedDevServer({
-            url: proxyPath,
-            previewUrl: proxyPath,
-            port: server.port,
-            framework: server.framework || "Vite",
-            status: "running"
-          });
-        } else if (server.status === "stopped") {
-          setDetectedDevServer(null);
-        }
-      }
-    };
+    // 2. Subscribe to WebContainer status events
+    const unsubStatus = webContainerService.on("status", ({ status }) => {
+      setWcStatus(status);
+    });
 
-    socket.on("workspace:dev-server-status", handleDevServerStatus);
     return () => {
-      socket.off("workspace:dev-server-status", handleDevServerStatus);
+      unsubServer();
+      unsubStatus();
     };
-  }, [socket, projectId]);
+  }, []);
 
   const handleDevServerDetected = ({ url, port }) => {
-    const proxyPath = `/api/project/${projectId}/preview/${port}/`;
     setDetectedDevServer({
-      url: proxyPath,
-      previewUrl: proxyPath,
+      url,
+      previewUrl: url,
       port,
       framework: "Vite",
       status: "running"
@@ -91,17 +82,10 @@ export default function InteractiveTerminal({
   };
 
   // Available shell choices
-  const shellOptions = isWindows
-    ? [
-        { id: "powershell", label: "PowerShell", desc: "Default Windows PTY Shell" },
-        { id: "cmd", label: "Command Prompt", desc: "Classic cmd.exe" },
-        { id: "bash", label: "Git Bash / Bash", desc: "Unix emulation shell" },
-      ]
-    : [
-        { id: "bash", label: "Bash", desc: "Bourne Again Shell" },
-        { id: "zsh", label: "Zsh", desc: "Z Shell" },
-        { id: "sh", label: "Sh", desc: "Standard POSIX Shell" },
-      ];
+  const shellOptions = [
+    { id: "jsh", label: "Node.js Shell (WebContainer)", desc: "In-Browser WebContainer environment" },
+    { id: "bash", label: "Bash Emulation", desc: "Interactive Unix-style shell" },
+  ];
 
   const activeTerminal = terminals.find((t) => t.id === activeTermId) || terminals[0];
 
@@ -308,13 +292,25 @@ export default function InteractiveTerminal({
 
         {/* Right Controls & Toolbar */}
         <div className="flex items-center gap-1.5 text-[#8B949E]">
-          {/* Active Shell Badge */}
-          {activeTerminal && (
-            <div className="hidden sm:flex items-center gap-1 bg-[#131C2D] border border-[#202E44] px-2 py-0.5 rounded text-[11px] font-mono text-[#94A3B8]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
-              <span className="capitalize">{activeTerminal.shell}</span>
-            </div>
-          )}
+          {/* WebContainer Status Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-[#131C2D] border border-[#202E44] px-2 py-0.5 rounded text-[11px] font-mono text-[#94A3B8]">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                wcStatus === WC_STATUS.READY
+                  ? "bg-[#4ADE80] animate-pulse"
+                  : wcStatus === WC_STATUS.ERROR
+                  ? "bg-[#F87171]"
+                  : "bg-[#FBBF24] animate-spin"
+              }`}
+            />
+            <span className="capitalize">
+              {wcStatus === WC_STATUS.READY
+                ? "WebContainer Ready"
+                : wcStatus === WC_STATUS.ERROR
+                ? "Environment Error"
+                : "Starting Environment..."}
+            </span>
+          </div>
 
           {/* New Terminal Dropdown Button */}
           <div className="relative">

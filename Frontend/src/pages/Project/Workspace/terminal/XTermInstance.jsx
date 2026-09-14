@@ -4,11 +4,13 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import TerminalContextMenu from "./TerminalContextMenu";
 
+import { webContainerService, WC_STATUS } from "../../../../services/webContainerService";
+
 export default function XTermInstance({
   sessionId,
   projectId,
   socket,
-  shellType = "powershell",
+  shellType = "jsh",
   isActive = true,
   onDevServerDetected,
   onSessionReady,
@@ -19,9 +21,8 @@ export default function XTermInstance({
   const terminalRef = useRef(null);
   const fitAddonRef = useRef(null);
   const resizeObserverRef = useRef(null);
-
-  const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0 });
-  const [hasSelection, setHasSelection] = useState(false);
+  const sessionRef = useRef(null);
+  const [initError, setInitError] = useState(null);
 
   // Dev server detection regex
   const detectDevServer = useCallback(
@@ -37,6 +38,44 @@ export default function XTermInstance({
     },
     [onDevServerDetected, sessionId]
   );
+
+  // Start or restart WebContainer Terminal Session
+  const initTerminalSession = useCallback(async () => {
+    const term = terminalRef.current;
+    if (!term) return;
+
+    setInitError(null);
+    term.write("\x1b[36m⚡ DevCollab WebContainer Terminal\x1b[0m\r\n");
+    term.write("\x1b[90mConnecting to in-browser Node.js sandbox environment...\x1b[0m\r\n");
+
+    try {
+      const cols = term.cols || 80;
+      const rows = term.rows || 24;
+
+      const session = await webContainerService.spawnTerminalSession({
+        sessionId,
+        cols,
+        rows,
+        onOutput: (data) => {
+          term.write(data);
+          detectDevServer(data);
+        },
+        onExit: (exitCode) => {
+          term.write(`\r\n\x1b[90m[Process completed with exit code ${exitCode}]\x1b[0m\r\n`);
+        },
+      });
+
+      sessionRef.current = session;
+      if (onSessionReady) {
+        onSessionReady({ sessionId, shell: "jsh", isWebContainer: true });
+      }
+    } catch (err) {
+      console.error("[WebContainer Terminal] Init error:", err);
+      setInitError(err.message);
+      term.write(`\r\n\x1b[31m[Development environment could not be started: ${err.message}]\x1b[0m\r\n`);
+      term.write("\x1b[33mTip: Ensure Cross-Origin Isolation headers (COOP/COEP) are active.\x1b[0m\r\n");
+    }
+  }, [sessionId, detectDevServer, onSessionReady]);
 
   // Initialize Terminal Instance
   useEffect(() => {
@@ -86,10 +125,10 @@ export default function XTermInstance({
     terminalRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Send keystrokes to WebSocket
+    // Send keystrokes directly to WebContainer process session
     const onDataDisposable = term.onData((data) => {
-      if (socket && socket.connected) {
-        socket.emit("terminal:input", { sessionId, data });
+      if (sessionRef.current) {
+        sessionRef.current.write(data);
       }
     });
 
@@ -105,17 +144,17 @@ export default function XTermInstance({
           navigator.clipboard.writeText(term.getSelection());
           return false;
         }
-        // Send SIGINT
-        if (socket && socket.connected) {
-          socket.emit("terminal:input", { sessionId, data: "\x03" });
+        // Send SIGINT to WebContainer process
+        if (sessionRef.current) {
+          sessionRef.current.write("\x03");
         }
         return false;
       }
 
       if (event.ctrlKey && event.key === "v" && event.type === "keydown") {
         navigator.clipboard.readText().then((text) => {
-          if (text && socket && socket.connected) {
-            socket.emit("terminal:input", { sessionId, data: text });
+          if (text && sessionRef.current) {
+            sessionRef.current.write(text);
           }
         });
         return false;
@@ -136,9 +175,8 @@ export default function XTermInstance({
       if (!isActive) return;
       try {
         fitAddon.fit();
-        if (term.cols && term.rows && socket && socket.connected) {
-          socket.emit("terminal:resize", {
-            sessionId,
+        if (term.cols && term.rows && sessionRef.current) {
+          sessionRef.current.resize({
             cols: term.cols,
             rows: term.rows,
           });
@@ -149,61 +187,20 @@ export default function XTermInstance({
     resizeObserver.observe(containerRef.current);
     resizeObserverRef.current = resizeObserver;
 
+    // Spawn WebContainer terminal session
+    initTerminalSession();
+
     return () => {
       onDataDisposable.dispose();
       onSelectionDisposable.dispose();
       resizeObserver.disconnect();
+      if (sessionRef.current) {
+        sessionRef.current.kill();
+        sessionRef.current = null;
+      }
       term.dispose();
     };
-  }, [sessionId, isActive, socket]);
-
-  // Connect to backend socket session
-  useEffect(() => {
-    if (!socket) return;
-
-    const cols = terminalRef.current?.cols || 80;
-    const rows = terminalRef.current?.rows || 24;
-
-    // Create / attach session
-    socket.emit("terminal:create", {
-      sessionId,
-      projectId,
-      shellType,
-      cols,
-      rows,
-    });
-
-    const handleOutput = ({ sessionId: outId, data }) => {
-      if (outId === sessionId || (!outId && sessionId === "default")) {
-        terminalRef.current?.write(data);
-        detectDevServer(data);
-      }
-    };
-
-    const handleReady = (info) => {
-      if (info.sessionId === sessionId || (!info.sessionId && sessionId === "default")) {
-        if (onSessionReady) onSessionReady(info);
-      }
-    };
-
-    const handleExit = ({ sessionId: exitId, exitCode }) => {
-      if (exitId === sessionId) {
-        terminalRef.current?.write(
-          `\r\n\x1b[90m[Process completed with exit code ${exitCode}]\x1b[0m\r\n`
-        );
-      }
-    };
-
-    socket.on("terminal:output", handleOutput);
-    socket.on("terminal:ready", handleReady);
-    socket.on("terminal:exit", handleExit);
-
-    return () => {
-      socket.off("terminal:output", handleOutput);
-      socket.off("terminal:ready", handleReady);
-      socket.off("terminal:exit", handleExit);
-    };
-  }, [socket, sessionId, projectId, shellType, detectDevServer, onSessionReady]);
+  }, [sessionId, isActive, initTerminalSession]);
 
   // Refit when tab becomes active
   useEffect(() => {
@@ -235,8 +232,8 @@ export default function XTermInstance({
 
   const handlePaste = () => {
     navigator.clipboard.readText().then((text) => {
-      if (text && socket && socket.connected) {
-        socket.emit("terminal:input", { sessionId, data: text });
+      if (text && sessionRef.current) {
+        sessionRef.current.write(text);
       }
     });
   };
@@ -247,22 +244,24 @@ export default function XTermInstance({
 
   const handleClear = () => {
     terminalRef.current?.clear();
-    if (socket && socket.connected) {
-      socket.emit("terminal:input", { sessionId, data: "\x0c" }); // Form feed (Ctrl+L)
+    if (sessionRef.current) {
+      sessionRef.current.write("\x0c"); // Form feed (Ctrl+L)
     }
   };
 
   const handleRestart = () => {
     terminalRef.current?.clear();
-    terminalRef.current?.write("\x1b[33mRestarting terminal session...\x1b[0m\r\n");
-    if (socket && socket.connected) {
-      socket.emit("terminal:restart", { sessionId });
+    terminalRef.current?.write("\x1b[33mRestarting WebContainer terminal session...\x1b[0m\r\n");
+    if (sessionRef.current) {
+      sessionRef.current.kill();
+      sessionRef.current = null;
     }
+    initTerminalSession();
   };
 
   const handleKill = () => {
-    if (socket && socket.connected) {
-      socket.emit("terminal:kill", { sessionId });
+    if (sessionRef.current) {
+      sessionRef.current.write("\x03"); // SIGINT
     }
   };
 
@@ -273,6 +272,18 @@ export default function XTermInstance({
       }`}
       onContextMenu={handleContextMenu}
     >
+      {initError && (
+        <div className="bg-[#3B1824] border-b border-[#F85149]/40 px-3 py-1.5 flex items-center justify-between text-xs text-[#FFA198] shrink-0 font-sans">
+          <span>Development environment could not be started: {initError}</span>
+          <button
+            onClick={initTerminalSession}
+            className="bg-[#F85149] hover:bg-[#DA3633] text-white px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors shadow-sm ml-2"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <div
         ref={containerRef}
         className="w-full h-full flex-1 overflow-hidden p-2"

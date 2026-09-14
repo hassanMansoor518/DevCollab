@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 4002,
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:3001',
@@ -34,6 +38,13 @@ export default defineConfig(({ mode }) => {
           ws: true,
           changeOrigin: true
         }
+      }
+    },
+    preview: {
+      port: 4002,
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
       }
     }
   }
