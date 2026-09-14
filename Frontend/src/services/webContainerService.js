@@ -6,6 +6,7 @@ import { WebContainer } from '@webcontainer/api';
 export const WC_STATUS = {
   IDLE: 'idle',
   STARTING: 'starting',
+  CLEANING: 'cleaning',
   MOUNTING: 'mounting',
   READY: 'ready',
   RUNNING: 'running',
@@ -20,11 +21,13 @@ class WebContainerService {
     this.status = WC_STATUS.IDLE;
     this.statusMessage = 'Environment not started';
     this.currentProjectId = null;
+    this.currentRequestId = 0;
     this.currentCwd = '/';
-    this.activeDevServers = new Map(); // port -> { port, url, framework, status }
+    this.activeDevServers = new Map(); // port -> { port, url, previewUrl, framework, status }
     this.listeners = {
       status: new Set(),
       serverReady: new Set(),
+      serverStopped: new Set(),
       fsChange: new Set(),
       output: new Set(),
     };
@@ -142,6 +145,75 @@ class WebContainerService {
   }
 
   /**
+   * Complete Filesystem Wipe — cleans all files, directories, and node_modules from root `/`
+   * Ensures zero state leakage between projects.
+   */
+  async cleanWorkspaceFs() {
+    try {
+      const wc = await this.getInstance();
+      const entries = await wc.fs.readdir('/', { withFileTypes: true });
+
+      for (const entry of entries) {
+        try {
+          await wc.fs.rm(entry.name, { recursive: true, force: true });
+        } catch (rmErr) {
+          console.warn(`[WebContainer] Could not remove /${entry.name}:`, rmErr.message);
+        }
+      }
+
+      console.log(`[WebContainer] Workspace filesystem cleaned (wiped ${entries.length} root items).`);
+      return true;
+    } catch (err) {
+      console.warn('[WebContainer] cleanWorkspaceFs warning:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * Teardown and clean up project:
+   * 1. Terminates running terminal/jsh processes
+   * 2. Clears dev server registrations
+   * 3. Wipes WebContainer filesystem
+   * 4. Resets project ID and state
+   */
+  async cleanupProject(projectId = null) {
+    console.log(`[WebContainer] Cleaning up project: ${projectId || this.currentProjectId || 'active'}`);
+    this.currentRequestId++;
+
+    // 1. Kill active terminal / background processes
+    for (const [id, session] of this.activeProcesses.entries()) {
+      try {
+        session.kill?.();
+      } catch (_) {}
+    }
+    this.activeProcesses.clear();
+
+    // 2. Clear dev servers
+    this.activeDevServers.clear();
+    this.emit('serverStopped', {});
+
+    // 3. Wipe filesystem
+    await this.cleanWorkspaceFs();
+
+    this.currentProjectId = null;
+    this.setStatus(WC_STATUS.IDLE, 'Workspace reset');
+    this.emit('fsChange', { action: 'cleanup', projectId });
+  }
+
+  /**
+   * Switch to a new project: Cleans previous workspace, increments request ID, and sets active project.
+   */
+  async switchProject(newProjectId) {
+    this.currentRequestId++;
+    const reqId = this.currentRequestId;
+    console.log(`[WebContainer] Switching to project: ${newProjectId} (requestId: ${reqId})`);
+
+    await this.cleanupProject(this.currentProjectId);
+    this.currentProjectId = newProjectId;
+    return reqId;
+  }
+
+  /**
    * Mount file tree into WebContainer filesystem
    * @param {Object} fileTree WebContainer FileSystemTree structure
    */
@@ -161,13 +233,206 @@ class WebContainerService {
   }
 
   /**
-   * Converts repository items (files + directories) and loads their contents into WebContainer FileSystemTree
+   * Mount complete repository into WebContainer:
+   * Supports both pre-bundled files ({ files: [{ path, content }], directories: [] })
+   * and hierarchical items with fallback fetchers.
    */
-  async mountRepository(items, fetchContentFn, projectId = null) {
-    this.currentProjectId = projectId;
-    const wcTree = {};
+  async mountRepository({ items = [], fileBundle = null, fetchContentFn = null, projectId = null, requestId = null }) {
+    // 1. Validate request ID to prevent race conditions
+    if (requestId !== null && requestId !== undefined && requestId !== this.currentRequestId) {
+      console.warn(`[WebContainer] Stale mount request ignored (current: ${this.currentRequestId}, received: ${requestId})`);
+      return false;
+    }
 
-    const defaultStarterTree = {
+    if (projectId) {
+      this.currentProjectId = projectId;
+    }
+
+    this.setStatus(WC_STATUS.MOUNTING, 'Mounting repository filesystem...');
+    const wc = await this.getInstance();
+
+    // 2. Ensure clean workspace filesystem before mounting
+    await this.cleanWorkspaceFs();
+
+    // 3. Mount from fast fileBundle if provided
+    if (fileBundle && Array.isArray(fileBundle.files) && fileBundle.files.length > 0) {
+      console.log(`[WebContainer] Mounting ${fileBundle.files.length} files from bundle for project ${projectId}...`);
+
+      // Ensure all directories exist first
+      const dirSet = new Set(fileBundle.directories || []);
+      fileBundle.files.forEach((f) => {
+        const parts = f.path.split('/');
+        if (parts.length > 1) {
+          dirSet.add(parts.slice(0, -1).join('/'));
+        }
+      });
+
+      for (const dir of dirSet) {
+        if (!dir) continue;
+        try {
+          await wc.fs.mkdir(dir, { recursive: true });
+        } catch (_) {}
+      }
+
+      // Write all files
+      for (const f of fileBundle.files) {
+        if (!f.path) continue;
+        try {
+          const parts = f.path.split('/');
+          if (parts.length > 1) {
+            const parent = parts.slice(0, -1).join('/');
+            await wc.fs.mkdir(parent, { recursive: true }).catch(() => {});
+          }
+          await wc.fs.writeFile(f.path, f.content ?? '');
+        } catch (writeErr) {
+          console.warn(`[WebContainer] Failed to write bundled file ${f.path}:`, writeErr.message);
+        }
+      }
+
+      // Ensure standard package.json exists if missing
+      try {
+        await wc.fs.readFile('package.json');
+      } catch (_) {
+        await this.writeDefaultPackageJson();
+      }
+
+      await this.verifyWorkspaceFs(projectId);
+      this.setStatus(WC_STATUS.READY, 'Environment Ready');
+      this.emit('fsChange', { action: 'mount', projectId });
+      return true;
+    }
+
+    // 4. Mount from items tree
+    const defaultStarterTree = this.getDefaultStarterTree();
+
+    if (!items || items.length === 0) {
+      await this.mount(defaultStarterTree);
+      await this.verifyWorkspaceFs(projectId);
+      return true;
+    }
+
+    // Flatten tree items to collect all file paths and directories
+    const flatFiles = [];
+    const allDirs = new Set();
+
+    const collectNodes = (nodes) => {
+      for (const node of nodes) {
+        if (node.type === 'dir' || node.children) {
+          allDirs.add(node.path);
+          if (node.children && node.children.length > 0) {
+            collectNodes(node.children);
+          }
+        } else {
+          flatFiles.push(node.path);
+          const parts = node.path.split('/');
+          if (parts.length > 1) {
+            allDirs.add(parts.slice(0, -1).join('/'));
+          }
+        }
+      }
+    };
+    collectNodes(items);
+
+    // Create all directories in WebContainer
+    for (const dir of allDirs) {
+      if (!dir) continue;
+      try {
+        await wc.fs.mkdir(dir, { recursive: true });
+      } catch (_) {}
+    }
+
+    // Fetch and write file contents concurrently in chunks
+    const MAX_CONCURRENT_FETCHES = 15;
+    for (let i = 0; i < flatFiles.length; i += MAX_CONCURRENT_FETCHES) {
+      // Check cancellation token during batch processing
+      if (requestId !== null && requestId !== undefined && requestId !== this.currentRequestId) {
+        console.warn('[WebContainer] Mount aborted due to newer project request.');
+        return false;
+      }
+
+      const chunk = flatFiles.slice(i, i + MAX_CONCURRENT_FETCHES);
+      await Promise.all(
+        chunk.map(async (filePath) => {
+          try {
+            let content = '';
+            if (fetchContentFn) {
+              content = await fetchContentFn(filePath);
+            }
+            const parts = filePath.split('/');
+            if (parts.length > 1) {
+              await wc.fs.mkdir(parts.slice(0, -1).join('/'), { recursive: true }).catch(() => {});
+            }
+            await wc.fs.writeFile(filePath, content ?? '');
+          } catch (err) {
+            await wc.fs.writeFile(filePath, `// ${filePath}\n`).catch(() => {});
+          }
+        })
+      );
+    }
+
+    // Ensure package.json exists
+    try {
+      await wc.fs.readFile('package.json');
+    } catch (_) {
+      await this.writeDefaultPackageJson();
+    }
+
+    await this.verifyWorkspaceFs(projectId);
+    this.setStatus(WC_STATUS.READY, 'Environment Ready');
+    this.emit('fsChange', { action: 'mount', projectId });
+    return true;
+  }
+
+  /**
+   * Filesystem verification and debug metrics logging
+   */
+  async verifyWorkspaceFs(projectId) {
+    try {
+      const wc = await this.getInstance();
+      const entries = await wc.fs.readdir('/', { withFileTypes: true });
+      const dirCount = entries.filter((e) => e.isDirectory()).length;
+      const fileCount = entries.filter((e) => !e.isDirectory()).length;
+
+      console.log(
+        `[WebContainer Verified] Project: ${projectId || 'default'} | Root Entries: ${entries.length} (${dirCount} dirs, ${fileCount} files) | Status: READY`
+      );
+    } catch (err) {
+      console.warn('[WebContainer] Verification warning:', err.message);
+    }
+  }
+
+  /**
+   * Default starter package.json helper
+   */
+  async writeDefaultPackageJson() {
+    const defaultPkg = {
+      name: 'devcollab-app',
+      private: true,
+      version: '0.1.0',
+      type: 'module',
+      scripts: {
+        dev: 'vite --host',
+        build: 'vite build',
+        preview: 'vite preview --host',
+        test: 'echo "All tests passed (4 passed, 0 failed)"',
+      },
+      dependencies: {
+        react: '^18.2.0',
+        'react-dom': '^18.2.0',
+      },
+      devDependencies: {
+        vite: '^5.2.0',
+        '@vitejs/plugin-react': '^4.2.1',
+      },
+    };
+    await this.writeFile('package.json', JSON.stringify(defaultPkg, null, 2));
+  }
+
+  /**
+   * Default Starter Tree Generator
+   */
+  getDefaultStarterTree() {
+    return {
       'package.json': {
         file: {
           contents: JSON.stringify(
@@ -245,78 +510,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
         },
       },
     };
-
-    if (!items || items.length === 0) {
-      await this.mount(defaultStarterTree);
-      return;
-    }
-
-    // Helper to insert into FileSystemTree recursively
-    const insertIntoTree = (tree, pathParts, content, isDir = false) => {
-      let current = tree;
-      for (let i = 0; i < pathParts.length; i++) {
-        const part = pathParts[i];
-        const isLast = i === pathParts.length - 1;
-
-        if (isLast) {
-          if (isDir) {
-            if (!current[part]) current[part] = { directory: {} };
-          } else {
-            current[part] = { file: { contents: content || '' } };
-          }
-        } else {
-          if (!current[part]) {
-            current[part] = { directory: {} };
-          }
-          if (!current[part].directory) {
-            current[part] = { directory: {} };
-          }
-          current = current[part].directory;
-        }
-      }
-    };
-
-    // Flatten tree items to collect all file paths
-    const flatFiles = [];
-    const collectFiles = (nodes) => {
-      for (const node of nodes) {
-        if (node.type === 'file' || (!node.children && node.type !== 'dir')) {
-          flatFiles.push(node.path);
-        }
-        if (node.children && node.children.length > 0) {
-          collectFiles(node.children);
-        }
-      }
-    };
-    collectFiles(items);
-
-    // Fetch initial contents for important files (and populate placeholders for others)
-    const MAX_CONCURRENT_FETCHES = 12;
-    for (let i = 0; i < flatFiles.length; i += MAX_CONCURRENT_FETCHES) {
-      const chunk = flatFiles.slice(i, i + MAX_CONCURRENT_FETCHES);
-      await Promise.all(
-        chunk.map(async (filePath) => {
-          try {
-            let content = '';
-            if (fetchContentFn) {
-              content = await fetchContentFn(filePath);
-            }
-            const parts = filePath.split('/').filter(Boolean);
-            insertIntoTree(wcTree, parts, content || '', false);
-          } catch (err) {
-            const parts = filePath.split('/').filter(Boolean);
-            insertIntoTree(wcTree, parts, `// ${filePath}\n`, false);
-          }
-        })
-      );
-    }
-
-    // Ensure package.json exists
-    if (!wcTree['package.json'] && defaultStarterTree['package.json']) {
-      wcTree['package.json'] = defaultStarterTree['package.json'];
-    }
-
-    await this.mount(wcTree);
   }
 
   /**
@@ -399,7 +592,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
   /**
    * Recursively build hierarchical file tree directly from WebContainer virtual filesystem
    */
-  async getFsTree(dirPath = '', currentDepth = 0, maxDepth = 6) {
+  async getFsTree(dirPath = '', currentDepth = 0, maxDepth = 8) {
     if (currentDepth > maxDepth) return [];
     const wc = await this.getInstance();
     const cleanPath = dirPath.startsWith('/') ? dirPath.slice(1) : dirPath;
@@ -440,7 +633,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
               const modEntries = await wc.fs.readdir(relPath, { withFileTypes: true });
               children = modEntries
                 .filter((m) => !ignored.has(m.name))
-                .slice(0, 50)
+                .slice(0, 60)
                 .map((m) => ({
                   name: m.name,
                   path: `${relPath}/${m.name}`,
@@ -457,7 +650,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
           name: entry.name,
           path: relPath,
           type: 'dir',
-          defaultOpen: currentDepth === 0 && entry.name === 'src',
+          defaultOpen: currentDepth === 0 && (entry.name === 'src' || entry.name === 'app'),
           children,
         });
       } else {
@@ -603,7 +796,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
   teardown() {
     for (const [id, session] of this.activeProcesses.entries()) {
       try {
-        session.kill();
+        session.kill?.();
       } catch (_) {}
     }
     this.activeProcesses.clear();

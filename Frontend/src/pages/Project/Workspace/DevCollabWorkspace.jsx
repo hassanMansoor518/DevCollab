@@ -21,49 +21,6 @@ import { webContainerService, WC_STATUS } from "../../../services/webContainerSe
 
 const API_URL = import.meta.env.DEV ? "" : (import.meta.env.VITE_API_URL || "https://devcollab-production-f60e.up.railway.app");
 
-const REFERENCE_CODE = `import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  PanelLeft,
-  Save,
-  GitCommit,
-  Play,
-  MoreVertical
-} from "lucide-react";
-
-const CodeEditor = () => {
-  const { owner, repo, path } = useParams();
-  const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [fileInfo, setFileInfo] = useState(null);
-
-  useEffect(() => {
-    const fetchFile = async () => {
-      try {
-        const res = await fetch(\`/api/github/file?owner=\${owner}&repo=\${repo}&path=\${path}\`);
-        const data = await res.json();
-        setCode(atob(data.content));
-        setFileInfo(data);
-      } catch (error) {
-        console.error('Failed to fetch file:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFile();
-  }, [owner, repo, path]);
-
-  return (
-    <div className="flex h-full bg-[#0B1220] text-[#E6EDF3]">
-      {/* DevCollab Workspace Code Editor */}
-    </div>
-  );
-};
-
-export default CodeEditor;
-`;
-
 const findFirstFile = (nodes) => {
   if (!nodes || nodes.length === 0) return null;
   const priorityFiles = [
@@ -109,9 +66,9 @@ export default function DevCollabWorkspace({
   onTabChange,
   initialTab = ""
 }) {
-  const [activeView, setActiveView] = useState("explorer"); // 'explorer' | 'sourceControl' | 'search' | 'debug' | 'extensions' | null
-  const [rightPanel, setRightPanel] = useState(initialTab === "visual-regression" ? "testing" : "aiAgent"); // 'aiAgent' | 'testing' | null
-  const [terminalOpen, setTerminalOpen] = useState(true); // Bottom terminal panel open matching reference
+  const [activeView, setActiveView] = useState("explorer");
+  const [rightPanel, setRightPanel] = useState(initialTab === "visual-regression" ? "testing" : "aiAgent");
+  const [terminalOpen, setTerminalOpen] = useState(true);
 
   const [fileItems, setFileItems] = useState([]);
   const [openTabs, setOpenTabs] = useState(() =>
@@ -136,6 +93,10 @@ export default function DevCollabWorkspace({
   const [livePreviewOpen, setLivePreviewOpen] = useState(false);
 
   const projectName = project?.projectName || "devcollab-webapp";
+
+  // Cancellation tokens — prevent stale async fetches from contaminating new project state
+  const activeProjectRef = useRef(projectId);
+  const loadRequestIdRef = useRef(0);
 
   const { socket } = useSocketContext();
 
@@ -209,16 +170,58 @@ export default function DevCollabWorkspace({
   }, [projectId]);
 
   /* ---------------- FETCH FILE TREE & MOUNT INTO WEBCONTAINER ---------------- */
-  const fetchTree = useCallback(async (autoSelect = false) => {
-    if (!projectId) return;
+  const fetchTree = useCallback(async (autoSelect = false, overrideProjectId = null) => {
+    const pid = overrideProjectId || projectId;
+    if (!pid) return;
+
+    const reqId = ++loadRequestIdRef.current;
+    const isCurrentProject = () => activeProjectRef.current === pid && loadRequestIdRef.current === reqId;
+
     setIsTreeLoading(true);
     let items = [];
 
     try {
-      // 1. If project is linked to a GitHub repo, query /tree for real repo structure
+      // === STRATEGY 1: Fast Bundle Endpoint (all files + contents in one request) ===
+      try {
+        const bundleRes = await axios.get(`${API_URL}/api/project/${pid}/tree/bundle`, {
+          withCredentials: true,
+          timeout: 45000,
+        });
+
+        if (!isCurrentProject()) return;
+
+        const bundle = bundleRes.data;
+        if (bundle && Array.isArray(bundle.files) && bundle.files.length > 0) {
+          console.log(`[Workspace] Bundle loaded: ${bundle.files.length} files for project ${pid} (source: ${bundle.source})`);
+
+          await webContainerService.boot();
+          await webContainerService.mountRepository({
+            fileBundle: bundle,
+            projectId: pid,
+          });
+
+          if (!isCurrentProject()) return;
+
+          const wcItems = await webContainerService.getFsTree();
+          items = (wcItems && wcItems.length > 0) ? wcItems : (bundle.tree || []);
+
+          setFileItems(items);
+          if (autoSelect && items.length > 0) {
+            const first = findFirstFile(items);
+            if (first && isCurrentProject()) handleSelectFile(first);
+          }
+          return;
+        }
+      } catch (bundleErr) {
+        console.warn("[Workspace] Bundle endpoint fallback:", bundleErr.message);
+      }
+
+      if (!isCurrentProject()) return;
+
+      // === STRATEGY 2: Tree endpoint for structure + per-file content fetching ===
       if (project?.githubRepo) {
         try {
-          const treeRes = await axios.get(`${API_URL}/api/project/${projectId}/tree`, { withCredentials: true });
+          const treeRes = await axios.get(`${API_URL}/api/project/${pid}/tree`, { withCredentials: true });
           if (treeRes.data && Array.isArray(treeRes.data.items) && treeRes.data.items.length > 0) {
             items = treeRes.data.items;
           }
@@ -227,21 +230,14 @@ export default function DevCollabWorkspace({
         }
       }
 
-      // 2. Fallback to /contents if tree was empty
-      if (!items || items.length === 0) {
-        try {
-          const contentsRes = await axios.get(`${API_URL}/api/project/${projectId}/contents`, { withCredentials: true });
-          if (contentsRes.data?.items && contentsRes.data.items.length > 0) {
-            items = contentsRes.data.items;
-          }
-        } catch (_) {}
-      }
+      if (!isCurrentProject()) return;
 
-      // Helper to fetch file content on demand during initial mount
-      const fetchContentFn = async (path) => {
+      // Helper to fetch file content on demand
+      const fetchContentFn = async (filePath) => {
+        if (!isCurrentProject()) return "";
         try {
-          const res = await axios.get(`${API_URL}/api/project/${projectId}/contents`, {
-            params: { path },
+          const res = await axios.get(`${API_URL}/api/project/${pid}/contents`, {
+            params: { path: filePath },
             withCredentials: true,
           });
           return res.data?.content || "";
@@ -250,11 +246,17 @@ export default function DevCollabWorkspace({
         }
       };
 
-      // 3. Mount repository into WebContainer
+      // Mount with tree + per-file fetching
       try {
         await webContainerService.boot();
-        await webContainerService.mountRepository(items, fetchContentFn, projectId);
-        // Read the verified tree directly from WebContainer virtual FS
+        await webContainerService.mountRepository({
+          items,
+          fetchContentFn,
+          projectId: pid,
+        });
+
+        if (!isCurrentProject()) return;
+
         const wcItems = await webContainerService.getFsTree();
         if (wcItems && wcItems.length > 0) {
           items = wcItems;
@@ -263,28 +265,51 @@ export default function DevCollabWorkspace({
         console.warn("[Workspace] WebContainer mount error, using repo list fallback:", wcErr.message);
       }
 
+      if (!isCurrentProject()) return;
+
       setFileItems(items || []);
 
-      if (items && items.length > 0) {
+      if (autoSelect && items && items.length > 0) {
         const first = findFirstFile(items);
-        if (first) {
-          setActiveTabPath((current) => {
-            if (!current || autoSelect) {
-              handleSelectFile(first);
-              return first;
-            }
-            return current;
-          });
-        }
+        if (first && isCurrentProject()) handleSelectFile(first);
       }
     } finally {
-      setIsTreeLoading(false);
+      if (isCurrentProject()) {
+        setIsTreeLoading(false);
+      }
     }
   }, [projectId, project?.githubRepo, handleSelectFile]);
 
+  /* ---------------- PROJECT ISOLATION: Reset + Clean WebContainer on project change ---------------- */
   useEffect(() => {
-    fetchTree(true);
-  }, [fetchTree]);
+    if (!projectId) return;
+
+    activeProjectRef.current = projectId;
+    loadRequestIdRef.current++;
+
+    // Full state wipe before loading new project
+    setOpenTabs([]);
+    setActiveTabPath("");
+    setFileContents({});
+    setModifiedFiles({});
+    setFileItems([]);
+    setDevServer(null);
+    setLivePreviewOpen(false);
+    setDiffModal({ isOpen: false, path: null, original: "", modified: "" });
+    setSelectedCode("");
+    setIsTreeLoading(true);
+
+    // Switch WebContainer to the new project (kills processes, wipes FS)
+    webContainerService.switchProject(projectId).then(() => {
+      if (activeProjectRef.current === projectId) {
+        fetchTree(true, projectId);
+      }
+    }).catch((err) => {
+      console.warn("[Workspace] switchProject error:", err.message);
+      fetchTree(true, projectId);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   /* ---------------- FORCE SYNC FROM GITHUB REPOSITORY ---------------- */
   const handleSyncRepo = async () => {
