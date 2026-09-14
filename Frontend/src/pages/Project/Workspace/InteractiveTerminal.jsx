@@ -537,27 +537,26 @@ export default function InteractiveTerminal({
         {/* TAB: REAL INTEGRATED TERMINAL */}
         {activePanelTab === "terminal" && (
           <div className="w-full h-full flex flex-row divide-x divide-[#172033]">
-            {/* Primary Terminal Instance */}
+            {/* Primary Terminal Instances - Keep mounted to preserve sessions */}
             {terminals.map((term) => {
               const isCurrentActive = term.id === activeTermId;
               const isSplitActive = term.id === splitTermId;
-              const shouldRender = isCurrentActive || isSplitActive;
-
-              if (!shouldRender) return null;
+              const isVisible = isCurrentActive || isSplitActive;
 
               return (
                 <div
                   key={term.id}
                   className={`h-full ${
                     splitTermId ? "w-1/2 flex-1" : "w-full"
-                  }`}
+                  } ${isVisible ? "" : "hidden"}`}
+                  style={{ display: isVisible ? undefined : "none" }}
                 >
                   <XTermInstance
                     sessionId={term.id}
                     projectId={projectId}
                     socket={socket}
                     shellType={term.shell}
-                    isActive={isCurrentActive || isSplitActive}
+                    isActive={isVisible}
                     onDevServerDetected={handleDevServerDetected}
                     onNewTerminal={() => handleCreateTerminal(defaultShell)}
                     onSplitTerminal={handleToggleSplit}
